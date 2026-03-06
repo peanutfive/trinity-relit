@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trinity · 中文版 — 嵌入模型语义匹配原型</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#header {
+  padding: 12px 20px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+#header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+#header .subtitle {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+#debug-toggle {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+#debug-toggle:hover { border-color: #58a6ff; color: #58a6ff; }
+
+#output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scroll-behavior: smooth;
+}
+
+.location {
+  color: #f0883e;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 20px 0 8px 0;
+  padding: 6px 12px;
+  background: rgba(240, 136, 62, 0.08);
+  border-left: 3px solid #f0883e;
+  border-radius: 0 4px 4px 0;
+}
+.location:first-child { margin-top: 0; }
+
+.scene-text {
+  color: #c9d1d9;
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+
+.user-input {
+  color: #7ee787;
+  margin: 12px 0 4px 0;
+}
+.user-input::before { content: ">> "; opacity: 0.5; }
+
+.system-msg {
+  color: #8b949e;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+.debug-info {
+  font-size: 12px;
+  color: #6e7681;
+  margin: 2px 0 8px 0;
+  padding: 4px 8px;
+  background: rgba(110, 118, 129, 0.08);
+  border-radius: 4px;
+  display: none;
+}
+.debug-info.visible { display: block; }
+
+.item-gained {
+  color: #d2a8ff;
+  font-weight: 500;
+}
+
+#input-area {
+  padding: 12px 20px;
+  background: #161b22;
+  border-top: 1px solid #30363d;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+#input-area .prompt {
+  color: #7ee787;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+#input-area input {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+}
+#input-area input:focus { border-color: #58a6ff; }
+#input-area input:disabled { opacity: 0.4; }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  background: #0d1117;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  gap: 16px;
+}
+
+#loading h2 {
+  color: #58a6ff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+#loading .status {
+  color: #8b949e;
+  font-size: 14px;
+  min-height: 20px;
+}
+
+#loading .progress-bar {
+  width: 300px;
+  height: 6px;
+  background: #21262d;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+#loading .progress-fill {
+  height: 100%;
+  background: #58a6ff;
+  border-radius: 3px;
+  transition: width 0.3s;
+  width: 0%;
+}
+
+.inventory-display {
+  color: #d2a8ff;
+  margin: 4px 0;
+  padding: 4px 0;
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Trinity · 中文版</h1>
+    <span class="subtitle">完全浏览器端推理</span>
+  </div>
+  <button id="debug-toggle" onclick="toggleDebug()">调试面板: 关</button>
+</div>
+
+<div id="output"></div>
+
+<div id="input-area">
+  <span class="prompt">&gt;&gt;</span>
+  <input type="text" id="input" placeholder="输入中文或英文指令..." disabled autocomplete="off">
+</div>
+
+<div id="loading">
+  <h2>Trinity · 中文版</h2>
+  <div class="status" id="loading-status">正在初始化...</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="loading-progress"></div>
+  </div>
+</div>
+
+<script>
+let debugVisible = false;
+function toggleDebug() {
+  debugVisible = !debugVisible;
+  document.getElementById('debug-toggle').textContent = `调试面板: ${debugVisible ? '开' : '关'}`;
+  document.querySelectorAll('.debug-info').forEach(el => {
+    el.classList.toggle('visible', debugVisible);
+  });
+}
+</script>
+<script type="module" src="game.js"></script>
+</body>
+</html>
