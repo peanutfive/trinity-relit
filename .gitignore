@@ -1,4 +1,4 @@
-# Game data (copyrighted, not redistributable)
+# Original game data (copyrighted, not redistributable)
 *.zip
 *.DAT
 *.IMA
@@ -6,6 +6,13 @@
 *.COM
 *.BAT
 Trinity 1986/
+$DOCS.zip
+
+# Extracted game data (derived from copyrighted source)
+trinity_objects.json
+trinity_strings.json
+trinity_print_strings.json
+trinity_prologue_text.txt
 
 # OS
 .DS_Store

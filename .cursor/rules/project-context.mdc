@@ -1,0 +1,30 @@
+---
+description: Trinity Relit project context and conventions
+alwaysApply: true
+---
+
+# Trinity Relit Project
+
+Browser-based text adventure faithfully reproducing Infocom's Trinity (1986) with bilingual English/Chinese text.
+
+## Key Files
+
+- `prototype/js/engine.js` — GameState + GameEngine classes (DO NOT modify without explicit request)
+- `prototype/js/data/*.js` — Chapter data (rooms, events). Follow `prototype/CHAPTER_RULES.md`
+- `prototype/js/data/items.js` — All game items
+- `prototype/js/parser.js` — Input parser
+- `prototype/js/embedding.js` — Semantic matching via Web Worker
+- `zparse.py` — Z-machine parser for extracting data from `Trinity 1986/TRINITY.DAT`
+
+## Core Principle
+
+ALL English text must come from the original 1986 Infocom game. Never create original English content. Map structure must match Z-machine data extracted by `zparse.py`.
+
+## Z-machine Direction Properties
+
+63=N, 62=NE, 61=E, 60=SE, 59=S, 58=SW, 57=W, 56=NW, 55=UP, 54=DOWN, 53=IN, 52=OUT.
+2-byte value = room object number. 3+ bytes = conditional routine.
+
+## When Writing Chapters
+
+Read and follow `prototype/CHAPTER_RULES.md` for the complete workflow, API reference, and validation checklist.

@@ -1,0 +1,49 @@
+---
+description: Trinity Relit chapter data file authoring rules
+globs: prototype/js/data/*.js
+alwaysApply: false
+---
+
+# Chapter Data File Rules
+
+When editing or creating chapter data files (`prototype/js/data/*.js`), follow these rules strictly. The full reference is at `prototype/CHAPTER_RULES.md`.
+
+## Mandatory Workflow
+
+1. Extract room data from Z-machine using `zparse.py` BEFORE writing code
+2. Extract original English text from dfrotz transcripts
+3. Write code following the templates below
+4. Run ALL validation checks before considering complete
+
+## Text Format
+
+All text must be: `"Original English from Infocom.\n\n中文翻译。"`
+Never create original English text. Use single quotes when content has `"` inside.
+
+## Room Template
+
+```javascript
+room_id: {
+  name: "English Name", cn: "中文名",
+  desc(s) { return "English.\n\n中文。"; },
+  exits(s) { return { n: "other_room" }; },
+  onEnter(s, eng) {},
+  events: [{ id: "x", match: {verb:[],noun:[]}, triggers: [], when: s=>true, act(s,eng){}, text: "" }],
+}
+```
+
+## Critical Rules
+
+- **Quotes**: Use `'...'` when string contains `"` characters (Chinese or English quotes)
+- **onTurn guard**: Every `onTurn` MUST start with `if (s.room !== "this_room_id") return;`
+- **act+text order**: `act()` runs first, then `text` is printed. If act prints via `eng.print()`, set text to `""`
+- **No moveTo in exit act**: Exit's `act` should not call `eng.moveTo()` — the engine does this automatically after act
+- **Event ordering**: More specific `when` conditions go first in the events array
+- **API only**: Only use methods listed in CHAPTER_RULES.md §4. Check before using any state method.
+
+## Validation (ALL must pass)
+
+```bash
+node -e "..." # Syntax check
+```
+Then verify: exit connectivity, bidirectional exits match Z-machine, item IDs exist, no unescaped quotes.
