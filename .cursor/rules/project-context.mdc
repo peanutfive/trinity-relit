@@ -27,4 +27,6 @@ ALL English text must come from the original 1986 Infocom game. Never create ori
 
 ## When Writing Chapters
 
-Read and follow `prototype/CHAPTER_RULES.md` for the complete workflow, API reference, and validation checklist.
+1. First read `prototype/CHAPTER_PLAN.md` to find the target chapter's room list, mechanics, and subtasks
+2. Then follow `prototype/CHAPTER_RULES.md` for the complete workflow, API reference, and validation checklist
+3. Use `prototype/js/data/prologue.js` as the reference implementation

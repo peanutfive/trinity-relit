@@ -1045,7 +1045,7 @@ export const ROOMS = {
           );
           await eng.transitionChapter({
             to: "wabe",
-            roomCandidates: ["wabe_entrance", "cottage", "wabe_meadow", "meadow"],
+            roomCandidates: ["meadow", "vertex", "cottage"],
           });
         },
       },

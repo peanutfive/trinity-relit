@@ -1,0 +1,32 @@
+
+# Per-room exits (obj# -> room_id)
+  north_arbor (obj 4): {}
+  north_bog (obj 42): {'sw': 'waterfall', 's': 'south_bog', 'se': 'bottom_of_stairs', 'e': 'chasms_brink', 'n': 'promontory'}
+  crater (obj 145): {}
+  bluff (obj 213): {'sw': 'chasms_brink', 'se': 'craters_edge'}
+  chasms_brink (obj 306): {'nw': 'promontory', 'w': 'north_bog', 'sw': 'south_bog', 'se': 'the_bend', 'e': 'under_cliff', 'ne': 'bluff'}
+  vertex (obj 316): {}
+  trellises (obj 317): {'nw': 'south_bog', 'w': 'forest_clearing', 'sw': 'arborvitaes_s', 'se': 'arborvitaes_n', 'e': 'the_river', 'ne': 'the_bend', 'n': 'bottom_of_stairs'}
+  south_bog (obj 319): {'w': 'waterfall', 's': 'forest_clearing', 'se': 'trellises', 'e': 'bottom_of_stairs', 'ne': 'chasms_brink', 'n': 'north_bog'}
+  summit (obj 323): {'s': 'meadow', 'e': 'forest_clearing', 'ne': 'south_bog'}
+  cottage (obj 327): {}
+  barrow (obj 353): {}
+  promontory (obj 370): {'s': 'north_bog', 'se': 'chasms_brink'}
+  under_cliff (obj 400): {'w': 'chasms_brink', 'sw': 'bottom_of_stairs', 's': 'the_bend', 'se': 'moor', 'e': 'craters_edge'}
+  top_of_arbor (obj 408): {'s': 'south_arbor', 'n': 'north_arbor'}
+  cemetery (obj 414): {}
+  herb_garden (obj 417): {}
+  arborvitaes_n (obj 418): {'nw': 'trellises', 'w': 'arboretum'}
+  forest_clearing (obj 426): {'nw': 'waterfall', 'e': 'trellises', 'ne': 'bottom_of_stairs', 'n': 'south_bog'}
+  south_arbor (obj 430): {}
+  craters_edge (obj 441): {'nw': 'bluff', 'w': 'under_cliff', 'sw': 'the_bend', 's': 'moor'}
+  ice_cavern (obj 449): {}
+  arboretum (obj 462): {'w': 'arborvitaes_s', 'e': 'arborvitaes_n'}
+  moor (obj 471): {'nw': 'under_cliff', 'w': 'the_bend', 'n': 'craters_edge'}
+  waterfall (obj 472): {'se': 'forest_clearing', 'e': 'south_bog', 'ne': 'north_bog'}
+  ossuary (obj 522): {}
+  the_bend (obj 557): {'nw': 'chasms_brink', 'w': 'bottom_of_stairs', 'sw': 'trellises', 's': 'the_river', 'e': 'moor', 'ne': 'craters_edge', 'n': 'under_cliff'}
+  the_river (obj 565): {'nw': 'bottom_of_stairs', 'w': 'trellises', 'n': 'the_bend'}
+  bottom_of_stairs (obj 575): {'nw': 'north_bog', 'w': 'south_bog', 'sw': 'forest_clearing', 's': 'trellises', 'se': 'the_river', 'e': 'the_bend', 'ne': 'under_cliff'}
+  meadow (obj 576): {}
+  arborvitaes_s (obj 580): {'e': 'arboretum', 'ne': 'trellises'}

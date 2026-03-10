@@ -190,27 +190,8 @@ export class GameEngine {
       if (handled) { this._postTurn(); return; }
     }
 
-    // 3. Embedding fallback
-    if (this.embedding) {
-      const room = this.currentRoom();
-      const available = (room.events || []).filter(e => !e.when || e.when(this.state));
-      const result = await this.embedding.findMatch(input, available);
-
-      this.ui.debug(result.topMatches || []);
-
-      if (result.score >= 0.65 && result.event) {
-        await this._executeEvent(result.event);
-        this._postTurn();
-        return;
-      }
-      if (result.score >= 0.45 && result.event) {
-        this.ui.system(`你的意思是不是「${result.trigger}」？试试更明确的说法。`);
-        this._postTurn();
-        return;
-      }
-    }
-
-    this.ui.system("你的话似乎没有产生任何效果。输入「帮助」查看指令提示。");
+    // 解析返回 null：不进行语义猜测，直接提示无法识别
+    this.ui.system("这句话无法识别。输入「帮助」查看指令提示。");
     this._postTurn();
   }
 

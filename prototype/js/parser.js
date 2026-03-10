@@ -28,12 +28,16 @@ for (const [dir, cores] of Object.entries(DIR_CORE)) {
     DIR_MAP[prefix + cn + "走"] = dir;
     DIR_MAP[prefix + cn + "边"] = dir;
     DIR_MAP[prefix + cn + "方"] = dir;
+    DIR_MAP[prefix + cn + "方" + "走"] = dir;  // 向西方走、往东方走 等
   }
   DIR_MAP[cn + "走"] = dir;
   DIR_MAP[cn + "边"] = dir;
   DIR_MAP[cn + "方"] = dir;
+  DIR_MAP[cn + "方" + "走"] = dir;  // 西方走、东方走 等
   DIR_MAP["走" + cn] = dir;
   DIR_MAP["走" + cn + "边"] = dir;
+  DIR_MAP["走" + cn + "方"] = dir;
+  DIR_MAP["走" + cn + "方" + "走"] = dir;  // 走西方走 等
 }
 
 const VERB_CN = {

@@ -6,7 +6,12 @@ alwaysApply: false
 
 # Chapter Data File Rules
 
-When editing or creating chapter data files (`prototype/js/data/*.js`), follow these rules strictly. The full reference is at `prototype/CHAPTER_RULES.md`.
+When editing or creating chapter data files (`prototype/js/data/*.js`), follow these rules strictly.
+
+**必读文件**（按优先级）：
+1. `prototype/CHAPTER_PLAN.md` — 章节开发总计划（找到对应章节的房间列表、机制、子任务）
+2. `prototype/CHAPTER_RULES.md` — 完整编码规范和 API 参考
+3. `prototype/js/data/prologue.js` — 已完成的范例代码
 
 ## Mandatory Workflow
 

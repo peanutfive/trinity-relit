@@ -13,8 +13,16 @@ import { ROOMS as PROLOGUE } from "./data/prologue.js";
 // 其余章节通过 loader 函数懒加载（动态 import）。
 const CHAPTERS = [
   { id: "prologue", rooms: PROLOGUE, preload: true },
-  // 后续章节按此格式追加：
-  // { id: "wabe", loader: () => import("./data/wabe.js") },
+  { id: "wabe", loader: () => import("./data/wabe.js") },
+  { id: "japan", loader: () => import("./data/japan.js") },
+  { id: "underground", loader: () => import("./data/underground.js") },
+  { id: "orbit", loader: () => import("./data/orbit.js") },
+  { id: "pacific", loader: () => import("./data/pacific.js") },
+  { id: "tundra", loader: () => import("./data/tundra.js") },
+  { id: "islet", loader: () => import("./data/islet.js") },
+  { id: "desert", loader: () => import("./data/desert.js") },
+  { id: "ranch", loader: () => import("./data/ranch.js") },
+  { id: "finale", loader: () => import("./data/finale.js") },
 ];
 
 const CHAPTER_REGISTRY = new Map(CHAPTERS.map((c) => [c.id, c]));

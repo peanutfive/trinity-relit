@@ -64,6 +64,28 @@ export const ITEMS = {
   },
 
   // ── The Wabe ──
+  sundial: {
+    cn: "日晷",
+    aliases: ["sundial", "dial", "日晷", "表盘"],
+    desc: "The perimeter of the sundial is inscribed with seven curious symbols and a compass rose.\n日晷周边刻着七个奇特的符号和罗盘玫瑰。",
+    start: "vertex",
+    fixed: true,
+    fixedMsg: "The sundial is too heavy to move.\n日晷太重，无法移动。",
+  },
+  ring: {
+    cn: "符号环",
+    aliases: ["ring", "symbol ring", "symbols", "符号环", "环"],
+    desc: "A ring of seven astronomical symbols. You can turn it to point to different symbols.\n七个天文符号的环。你可以转动它指向不同符号。",
+    start: "vertex",
+    fixed: true,
+    fixedMsg: "The ring is part of the sundial.\n符号环是日晷的一部分。",
+  },
+  soap_bubble: {
+    cn: "肥皂泡",
+    aliases: ["soap bubble", "bubble", "肥皂泡", "泡"],
+    desc: "A fragile soap bubble, glistening in the light. It might protect you in harsh conditions.\n一个脆弱的肥皂泡，在光线下闪烁。",
+    start: "cottage",
+  },
   splinter: {
     cn: "木片", aliases: ["splinter","木片","碎片"],
     desc: "一片发光的木头碎片。它散发出微弱但稳定的光芒，可以照亮黑暗的地方。",
@@ -116,7 +138,7 @@ export const ITEMS = {
   },
   spade: {
     cn: "铲子", aliases: ["spade","铲子","铲","锹"],
-    desc: "一把小铁铲，适合挖掘。",
+    desc: "A small spade, suitable for digging.\n一把小铁铲，适合挖掘。",
     start: null,
   },
   shroud: {
@@ -145,6 +167,11 @@ export const ITEMS = {
   silver_coin: {
     cn: "银币", aliases: ["silver coin","silver","银币"],
     desc: "一枚古老的银币，上面刻着你看不懂的符号。",
+    start: null,
+  },
+  walnut: {
+    cn: "核桃", aliases: ["walnut","核桃"],
+    desc: "一颗核桃。",
     start: null,
   },
 

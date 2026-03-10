@@ -1,0 +1,339 @@
+
+>>> 
+
+Using normal formatting.
+Loading /Users/klarachen/developer/Trinity1986Infocom/scripts/../Trinity 1986/TRINITY.DAT.
+Copyright (C)1986 Infocom, Inc. All rights reserved.
+
+[Press any key to begin.]
+
+
+>>> 
+
+                                   Palace Gate
+
+Sharp words between the superpowers. Tanks in East Berlin. And now, reports the
+BBC, rumors of a satellite blackout. It's enough to spoil your continental
+breakfast.
+
+But the world will have to wait. This is the last day of your $599 London
+Getaway Package, and you're determined to soak up as much of that authentic
+English ambience as you can. So you've left the tour bus behind, ditched the
+camera and escaped to Hyde Park for a contemplative stroll through the
+Kensington Gardens.
+
+Palace Gate
+
+A tide of perambulators surges north along the crowded Broad Walk. Shaded glades
+stretch away to the northeast, and a hint of color marks the western edge of the
+Flower Walk.
+
+>
+
+>>> verbose
+
+[Maximum verbosity.]
+
+Palace Gate
+
+A tide of perambulators surges north along the crowded Broad Walk. Shaded glades
+stretch away to the northeast, and a hint of color marks the western edge of the
+Flower Walk.
+
+>
+
+>>> verbose
+
+[Maximum verbosity.]
+
+Palace Gate
+
+A tide of perambulators surges north along the crowded Broad Walk. Shaded glades
+stretch away to the northeast, and a hint of color marks the western edge of the
+Flower Walk.
+
+>
+
+>>> i
+
+You're not holding anything, but you're wearing a wristwatch. You also have a
+credit card and a seven-sided coin in your pocket.
+
+>
+
+>>> examine watch
+
+Your wristwatch says it's 3:30:00 pm.
+
+>
+
+>>> take coin
+
+You take the seven-sided coin out of your pocket.
+
+>
+
+>>> examine coin
+
+It's standard British currency, worth fifty pence.
+
+>
+
+>>> e
+
+                                   Flower Walk
+
+The east wind makes it difficult to walk straight.
+
+Flower Walk
+
+Gaily colored flower beds line the walks bending north and west, filling the air
+with a gentle fragrance. A little path leads northwest, between the trees.
+
+You can see a soccer ball half-hidden among the blossoms.
+
+The spires of the Albert Memorial are all too visible to the south. Passing
+tourists hoot with laughter at the dreadful sight; nannies hide their faces and
+roll quickly away.
+
+>
+
+>>> examine memorial
+
+Your London guide book warned you that the Albert Memorial was ugly, but nothing
+could have prepared you for this embarrassing spectacle!
+
+>
+
+>>> examine blossoms
+
+You can see a soccer ball half-hidden among the blossoms.
+
+>
+
+>>> take ball
+
+[HIGH-PITCHED BEEP]
+You take the soccer ball off the flower beds.
+
+[Your score just went up by 1 point. The total is now 1 out of 100.]
+
+[NOTE: You can turn score notification on or off at any time with the NOTIFY
+command.]
+
+>
+
+>>> nw
+
+                                    The Wabe
+
+The Wabe
+
+This grassy clearing is only twenty feet across, and perfectly circular. Paths
+wander off in many directions through the surrounding thicket.
+
+A shaft of golden sunlight falls across a handsome antique sundial, erected at
+the exact center of the clearing.
+
+>
+
+>>> examine woman
+
+You can't see any woman here.
+
+>
+
+>>> examine pigeons
+
+The pigeons stare back at you hungrily.
+
+>
+
+>>> buy bag
+
+There's nobody here to sell you any.
+
+>
+
+>>> take bag
+
+You can't see any bag here.
+
+>
+
+>>> take coin
+
+You're already holding the seven-sided coin.
+
+>
+
+>>> feed birds
+
+[What do you want to feed the birds with?]
+
+>
+
+>>> take ruby
+
+You can't see any ruby here.
+
+>
+
+>>> e
+
+The thicket blocks your path.
+
+>
+
+>>> examine boats
+
+You can't see any boats here.
+
+>
+
+>>> take bird
+
+The pigeons deftly avoid you.
+
+>
+
+>>> examine bird
+
+The pigeons stare back at you hungrily.
+
+>
+
+>>> open bird
+
+The pigeons deftly avoid you.
+
+>
+
+>>> read paper
+
+You can't see any paper here.
+
+>
+
+>>> nw
+
+A noise makes you hesitate.
+
+For a moment, nothing happens. Then the east wind puffs through the clearing,
+and the gnomon on the sundial wobbles with a faint scrape.
+
+>
+
+>>> examine pram
+
+You can't see any pram here.
+
+>
+
+>>> open pram
+
+You can't see any pram here.
+
+>
+
+>>> look in pram
+
+You can't see any pram here.
+
+>
+
+>>> push pram east
+
+You can't see any pram here.
+
+>
+
+>>> examine boy
+
+You can't see any boy here.
+
+>
+
+>>> push pram east
+
+You can't see any pram here.
+
+>
+
+>>> examine woman
+
+You can't see any woman here.
+
+>
+
+>>> throw ball at umbrella
+
+You can't see any umbrella here.
+
+>
+
+>>> take umbrella
+
+You can't see any umbrella here.
+
+>
+
+>>> push pram south
+
+You can't see any pram here.
+
+>
+
+>>> examine notice
+
+You can't see any notice here.
+
+>
+
+>>> e
+
+The thicket blocks your path.
+
+>
+
+>>> enter pram
+
+You can't see any pram here.
+
+>
+
+>>> open umbrella
+
+You can't see any umbrella here.
+
+>
+
+>>> take all
+
+[To what are you referring?]
+
+>
+
+>>> examine statue
+
+You can't see any statue here.
+
+>
+
+>>> examine missile
+
+You can't see any missile here.
+
+>
+
+>>> e
+
+The thicket blocks your path.
+
+>
+
+>>> e
+
+The thicket blocks your path.
+
+>
