@@ -18,8 +18,8 @@
 | 6 | `pacific` | Pacific Island（比基尼环礁） | 7 | ✅ 完成 | wabe |
 | 7 | `tundra` | Russian Tundra（苏联冻原） | 11 | ✅ 完成 | wabe |
 | 8 | `islet` | Islet（过渡小岛） | 2 | ✅ 完成 | wabe |
-| 9 | `desert` | New Mexico Desert + Tower | 34 | ✅ 骨架 | islet |
-| 10 | `ranch` | McDonald Ranch（牧场） | 25 | ✅ 骨架 | desert |
+| 9 | `desert` | New Mexico Desert + Tower | 34 | ✅ 完成 | islet |
+| 10 | `ranch` | McDonald Ranch（牧场） | 25 | ✅ 完成 | desert |
 | 11 | `finale` | Finale（终章） | ~3 | ✅ 完成 | ranch |
 
 **总计：约 130 个房间**
@@ -592,6 +592,6 @@
 - [x] Chapter 6: Pacific Island — 2026-03-10（7 房间 + Chasm's Brink 蘑菇门 + 台地/脚手架/海滩）
 - [x] Chapter 7: Russian Tundra — 2026-03-10（11 房间 + 悬崖裂缝旅鼠+笼子）
 - [x] Chapter 8: Islet — 2026-03-10（2 房间 + 白门→Desert）
-- [x] Chapter 9: New Mexico Desert — 2026-03-10（骨架：shack/塔区/crossroads/behind_shed/jeep + 剪线→Prologue）
-- [x] Chapter 10: McDonald Ranch — 2026-03-10（骨架：nw_ranch/hallway/assembly_room/水库区 + 与 Desert 连通）
+- [x] Chapter 9: New Mexico Desert — 2026-03-10（34 房间：tower_landing/paved_road×6/desert×9/foothills×3/shallow_crater + 剪线→Prologue）
+- [x] Chapter 10: McDonald Ranch — 2026-03-10（25 房间：bathroom/bedroom/se_yard/icehouse/se_sw_ne_ranch/under_windmill/south_reservoir + 与 Desert 连通）
 - [x] Chapter 11: Finale — 2026-03-10（the_end 房间；剪线后直接 transitionChapter 回 Palace Gate）

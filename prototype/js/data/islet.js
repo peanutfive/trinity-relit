@@ -22,6 +22,17 @@ export const ROOMS = {
 
     events: [
       {
+        id: "give_coin_to_oarsman_islet",
+        match: { verb: ["give", "hand", "pay"], noun: ["silver_coin", "silver coin", "银币", "coin"], noun2: ["oarsman", "ferryman", "船夫"] },
+        triggers: ["give silver coin to oarsman", "付银币给船夫", "pay oarsman"],
+        when: (s) => (s.room === "islet" || s.room === "sand_bar") && s.has("silver_coin") && !s.hasFlag("ferry_paid"),
+        act(s) {
+          s.placeItem("silver_coin", "destroyed");
+          s.setFlag("ferry_paid");
+        },
+        text: "The oarsman takes the silver coin and nods. You may cross when the door is open.\n\n船夫收下银币，点了点头。门开时你可以过河。",
+      },
+      {
         id: "enter_door_to_desert",
         match: { verb: ["enter", "go"], noun: ["door", "门", "white door", "白门"] },
         triggers: ["enter door", "穿过白门", "go through door"],
@@ -55,6 +66,17 @@ export const ROOMS = {
     },
 
     events: [
+      {
+        id: "give_coin_to_oarsman_sb",
+        match: { verb: ["give", "hand", "pay"], noun: ["silver_coin", "silver coin", "银币", "coin"], noun2: ["oarsman", "ferryman", "船夫"] },
+        triggers: ["give silver coin to oarsman", "付银币给船夫"],
+        when: (s) => s.room === "sand_bar" && s.has("silver_coin") && !s.hasFlag("ferry_paid"),
+        act(s) {
+          s.placeItem("silver_coin", "destroyed");
+          s.setFlag("ferry_paid");
+        },
+        text: "The oarsman takes the silver coin and nods. You may cross when the door is open.\n\n船夫收下银币，点了点头。门开时你可以过河。",
+      },
       {
         id: "enter_door_to_desert_sb",
         match: { verb: ["enter", "go"], noun: ["door", "门", "white door", "白门"] },

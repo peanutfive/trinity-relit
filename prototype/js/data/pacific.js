@@ -49,7 +49,11 @@ export const ROOMS = {
     cn: "脚手架底部",
 
     desc(s) {
-      return "You are at the bottom of the scaffold. A box is here; open it and push the switch—you have seven minutes. Then push the button.\n\n你在脚手架底部。这里有一个箱子；打开它并按下开关——你有七分钟。然后按下按钮。";
+      let d = "You are at the bottom of the scaffold. A box is here; open it and push the switch—you have seven minutes. Then push the button.\n\n你在脚手架底部。这里有一个箱子；打开它并按下开关——你有七分钟。然后按下按钮。";
+      if (s.hasFlag("pacific_box_open")) d += "\n\nThe box is open. A switch and a button are inside.\n\n箱子开着。里面有一个开关和一个按钮。";
+      if (s.hasFlag("pacific_switch_pushed")) d += "\n\nThe switch is on. You have seven minutes before you must push the button.\n\n开关已按下。你必须在七分钟内按下按钮。";
+      if (s.hasFlag("pacific_button_pushed")) d += "\n\nYou have pushed the button in time.\n\n你及时按下了按钮。";
+      return d;
     },
 
     onEnter(s) {
@@ -60,7 +64,48 @@ export const ROOMS = {
       return { u: "scaffold", nw: "west_beach", s: "south_beach" };
     },
 
-    events: [],
+    events: [
+      {
+        id: "pacific_open_box",
+        match: { verb: ["open"], noun: ["box", "箱子"] },
+        triggers: ["open box", "打开箱子"],
+        when: (s) => s.room === "bottom_scaffold" && !s.hasFlag("pacific_box_open"),
+        act(s) { s.setFlag("pacific_box_open"); },
+        text: "You open the box. Inside are a switch and a button.\n\n你打开箱子。里面有一个开关和一个按钮。",
+      },
+      {
+        id: "pacific_push_switch",
+        match: { verb: ["push", "press"], noun: ["switch", "开关"] },
+        triggers: ["push switch", "按开关"],
+        when: (s) => s.room === "bottom_scaffold" && s.hasFlag("pacific_box_open") && !s.hasFlag("pacific_switch_pushed"),
+        act(s) {
+          s.setFlag("pacific_switch_pushed");
+          s.startTimer(7, "pacific_switch", (st, eng) => {
+            if (st.timer && st.timer.remaining <= 0) {
+              st.setFlag("pacific_timer_expired");
+              eng.print("Seven minutes have passed. You were too late.\n\n七分钟已过。你来不及了。");
+            }
+          });
+        },
+        text: "You push the switch. You have seven minutes to push the button.\n\n你按下开关。你有七分钟时间按下按钮。",
+      },
+      {
+        id: "pacific_push_button",
+        match: { verb: ["push", "press"], noun: ["button", "按钮"] },
+        triggers: ["push button", "按按钮"],
+        when: (s) => s.room === "bottom_scaffold" && s.hasFlag("pacific_switch_pushed") && !s.hasFlag("pacific_button_pushed"),
+        act(s, eng) {
+          if (s.hasFlag("pacific_timer_expired")) {
+            eng.print("Too late. The seven minutes have passed.\n\n太迟了。七分钟已经过了。");
+            return;
+          }
+          if (s.timer && s.timer.id === "pacific_switch") s.clearTimer();
+          s.setFlag("pacific_button_pushed");
+          eng.print("You push the button in time. The signal is sent.\n\n你及时按下按钮。信号已发出。");
+        },
+        text: "",
+      },
+    ],
   },
 
   north_beach: {

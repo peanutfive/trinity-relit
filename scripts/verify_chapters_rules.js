@@ -90,15 +90,18 @@ const ONE_WAY_EXITS = new Set([
   "west_beach:se:south_beach", "west_beach:n:north_beach", "west_beach:u:scaffold",
   "east_beach:n:north_beach", "east_beach:s:south_beach",
   "south_beach:w:west_beach", "south_beach:e:east_beach",
-  // Desert（主线骨架）：塔区/十字路口/棚屋/道路单向或骨架简化
+  // Desert（主线）：塔区/十字路口/道路/沙漠/山麓单向或多向简化
   "base_of_tower:se:crossroads", "nw_of_tower:w:west_of_tower", "west_of_tower:n:nw_of_tower",
-  "east_of_tower:e:crossroads", "north_of_tower:n:paved_road_1", "ne_of_tower:ne:paved_road_1",
+  "east_of_tower:e:crossroads", "north_of_tower:n:paved_road_6", "ne_of_tower:ne:paved_road_1",
   "sw_of_tower:sw:outside_blockhouse", "crossroads:s:paved_road_1", "crossroads:e:east_of_tower",
-  "paved_road_1:n:north_of_tower", "paved_road_1:s:crossroads", "paved_road_1:nw:behind_shed",
+  "paved_road_1:n:paved_road_2", "paved_road_1:s:crossroads", "paved_road_1:nw:behind_shed",
+  "paved_road_6:n:north_of_tower", "north_of_tower:n:paved_road_6", "foothills_2:e:desert_4", "foothills_3:e:desert_7",
+  "desert_4:s:foothills_2", "desert_7:s:foothills_3",
+  "tower_landing:u:tower_platform",
   "outside_blockhouse:w:sw_of_tower", "behind_shed:n:paved_road_1",
-  // Ranch（主线骨架）：前院/走廊/组装室/厨房/后院单向或骨架简化
+  // Ranch（主线）：前院/走廊/组装室/厨房/后院单向或骨架简化；风车下仅上通
   "front_yard:in:hallway", "hallway:n:nw_ranch", "assembly_room:e:front_yard",
-  "kitchen:n:assembly_room", "back_yard:n:hallway",
+  "kitchen:n:assembly_room", "back_yard:n:hallway", "edge_reservoir:u:windmill",
 ]);
 
 function getExits(room, fromRoomId) {
