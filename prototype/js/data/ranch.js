@@ -11,9 +11,6 @@ export const ROOMS = {
     desc(s) {
       return "You are northwest of the McDonald Ranch. A gate is here. The ranch house lies to the southeast.\n\n你在麦克唐纳牧场西北。这里有一扇门。牧场主宅在东南。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits(s) {
       return {
         n: {
@@ -21,8 +18,7 @@ export const ROOMS = {
           when: () => true,
           text: "You head north back toward the desert.\n\n你向北返回沙漠。",
           async act(s2, eng) {
-            const ok = await eng.activateChapter("desert");
-            if (ok) s2.chapter = "desert";
+            await eng.transitionChapter({ to: "desert", roomCandidates: ["behind_shed"] });
           },
         },
         se: "front_yard",
@@ -39,9 +35,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the front yard of the McDonald Ranch. The hallway is inside.\n\n你在麦克唐纳牧场前院。走廊在室内。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { nw: "nw_ranch", in: "hallway", w: "sw_yard", e: "ne_yard", se: "se_yard" };
     },
@@ -53,9 +46,6 @@ export const ROOMS = {
     cn: "走廊",
     desc(s) {
       return "You are in the hallway of the ranch house. Rooms lead off in several directions. The assembly room is to the east.\n\n你在牧场主宅的走廊里。房间向多个方向延伸。组装室在东面。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { n: "nw_ranch", e: "assembly_room", w: "kitchen", s: "spare_room", nw: "nw_room", se: "se_room", sw: "bathroom", ne: "bedroom" };
@@ -73,9 +63,6 @@ export const ROOMS = {
       }
       return d;
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { w: "hallway", n: "closet", e: "front_yard" };
     },
@@ -86,13 +73,10 @@ export const ROOMS = {
     name: "Closet",
     cn: "壁橱",
     desc(s) {
-      let d = "You are in the closet. Close the door and open the cage—the lemming will leave. Then open the door; the snake kills the lemming. Drop the cage and return south.\n\n你在壁橱里。关上门，打开笼子——旅鼠会离开。然后打开门；蛇会杀死旅鼠。放下笼子，向南返回。";
+      let d = "You are in a small closet. The assembly room is to the south.\n\n你在一个小壁橱里。组装室在南面。";
       if (s.hasFlag("closet_door_closed")) d += "\n\nThe door is closed.\n\n门关着。";
       if (s.hasFlag("lemming_loose_in_closet") && s.itemAt("lemming") === "closet") d += "\n\nThe lemming is loose here.\n\n旅鼠在这里乱窜。";
       return d;
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { s: "assembly_room" };
@@ -146,9 +130,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the kitchen. A knife is here. The hallway is to the east.\n\n你在厨房。这里有一把刀。走廊在东面。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { e: "hallway", n: "assembly_room" };
     },
@@ -160,9 +141,6 @@ export const ROOMS = {
     cn: "备用房间",
     desc(s) {
       return "You are in a spare room.\n\n你在备用房间里。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { n: "hallway" };
@@ -176,9 +154,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the northwest room.\n\n你在西北房间。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { se: "hallway" };
     },
@@ -190,9 +165,6 @@ export const ROOMS = {
     cn: "东南房间",
     desc(s) {
       return "You are in the southeast room.\n\n你在东南房间。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { nw: "hallway" };
@@ -206,9 +178,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the southwest yard. The front yard is to the east.\n\n你在西南院子。前院在东面。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { e: "front_yard" };
     },
@@ -220,9 +189,6 @@ export const ROOMS = {
     cn: "东北院子",
     desc(s) {
       return "You are in the northeast yard. The front yard is to the west.\n\n你在东北院子。前院在西面。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { w: "front_yard" };
@@ -236,9 +202,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the back yard. The reservoir is to the south.\n\n你在后院。水库在南面。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { s: "north_reservoir", n: "hallway", e: "icehouse" };
     },
@@ -250,9 +213,6 @@ export const ROOMS = {
     cn: "浴室",
     desc(s) {
       return "You are in the bathroom. The hallway is to the northeast.\n\n你在浴室。走廊在东北。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { ne: "hallway" };
@@ -266,9 +226,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the bedroom. The hallway is to the southwest.\n\n你在卧室。走廊在西南。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { sw: "hallway" };
     },
@@ -280,9 +237,6 @@ export const ROOMS = {
     cn: "东南院子",
     desc(s) {
       return "You are in the southeast yard. The front yard is to the northwest.\n\n你在东南院子。前院在西北。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { nw: "front_yard", se: "se_ranch" };
@@ -296,9 +250,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the icehouse. The back yard is to the west.\n\n你在冰库。后院在西面。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { w: "back_yard" };
     },
@@ -310,9 +261,6 @@ export const ROOMS = {
     cn: "牧场东南",
     desc(s) {
       return "You are southeast of the McDonald Ranch. The southeast yard is to the northwest.\n\n你在麦克唐纳牧场东南。东南院子在西北。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { nw: "se_yard" };
@@ -326,9 +274,6 @@ export const ROOMS = {
     desc(s) {
       return "You are southwest of the McDonald Ranch. The ranch house is to the northeast.\n\n你在麦克唐纳牧场西南。牧场主宅在东北。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { ne: "nw_ranch" };
     },
@@ -340,9 +285,6 @@ export const ROOMS = {
     cn: "牧场东北",
     desc(s) {
       return "You are northeast of the McDonald Ranch. The ranch house is to the southwest.\n\n你在麦克唐纳牧场东北。牧场主宅在西南。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { sw: "nw_ranch" };
@@ -356,9 +298,6 @@ export const ROOMS = {
     desc(s) {
       return "You are under the windmill. The windmill is above.\n\n你在风车下。风车在上方。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { u: "windmill" };
     },
@@ -370,9 +309,6 @@ export const ROOMS = {
     cn: "水库南",
     desc(s) {
       return "You are south of the reservoir. The edge of the reservoir is to the north.\n\n你在水库南侧。水库边缘在北面。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { n: "edge_reservoir" };
@@ -386,9 +322,6 @@ export const ROOMS = {
     desc(s) {
       return "You are north of the reservoir. The edge of the reservoir is to the south.\n\n你在水库北侧。水库边缘在南面。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { n: "back_yard", s: "edge_reservoir" };
     },
@@ -400,9 +333,6 @@ export const ROOMS = {
     cn: "水库边缘",
     desc(s) {
       return "You are at the edge of the reservoir. You can dive in. The windmill is to the north.\n\n你在水库边缘。你可以潜入水中。风车在北面。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { n: "north_reservoir", s: "south_reservoir", d: "reservoir", u: "windmill" };
@@ -416,9 +346,6 @@ export const ROOMS = {
     desc(s) {
       return "You are in the reservoir. Underwater is below.\n\n你在水库中。水下在下方。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { u: "edge_reservoir", d: "underwater" };
     },
@@ -431,9 +358,6 @@ export const ROOMS = {
     desc(s) {
       return "It is normally totally dark here underwater, but the lantern lets you see. Binoculars are here.\n\n水下通常一片漆黑，但灯笼让你能看见。这里有一副望远镜。";
     },
-    onEnter(s) {
-      s.chapter = "ranch";
-    },
     exits() {
       return { u: "reservoir" };
     },
@@ -445,9 +369,6 @@ export const ROOMS = {
     cn: "风车",
     desc(s) {
       return "You are at the windmill. The edge of the reservoir is below.\n\n你在风车处。水库边缘在下方。";
-    },
-    onEnter(s) {
-      s.chapter = "ranch";
     },
     exits() {
       return { d: "under_windmill" };
