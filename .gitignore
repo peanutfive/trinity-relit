@@ -25,3 +25,10 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Local debug artifacts
+artifacts/
+WABE_ROOM_STRINGS_REPORT.md
+wabe*.txt
+wabe*.exp
+wabe*.qzl
