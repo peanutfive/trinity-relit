@@ -81,6 +81,7 @@ export class GameState {
 // ═══════════════════════════════════════════════════
 
 const MAX_CARRY = 8;
+const PRAM_NOUNS = new Set(["pram", "perambulator", "carriage", "婴儿车", "推车", "车"]);
 
 export class GameEngine {
   constructor({ rooms, items, parser, embedding, ui, chapterLoader, preloadedChapters }) {
@@ -274,6 +275,18 @@ export class GameEngine {
     if (cmd.verb === "take") return this._genericTake(cmd.noun);
     if (cmd.verb === "drop") return this._genericDrop(cmd.noun);
     if (cmd.verb === "examine") return this._genericExamine(cmd.noun);
+    if ((cmd.verb === "push" || cmd.verb === "move") && this._looksLikePram(cmd.noun)) {
+      this.ui.system("这里没有可推动的婴儿车。");
+      return true;
+    }
+    if (cmd.verb === "climb") {
+      if (!cmd.noun) {
+        this.ui.system("你想爬什么？");
+      } else {
+        this.ui.system("你在这里爬不上去。");
+      }
+      return true;
+    }
 
     return false;
   }
@@ -309,6 +322,11 @@ export class GameEngine {
       }
     }
     return false;
+  }
+
+  _looksLikePram(noun) {
+    if (!noun) return false;
+    return PRAM_NOUNS.has(noun.toLowerCase());
   }
 
   async _executeEvent(ev) {

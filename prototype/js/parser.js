@@ -56,7 +56,7 @@ const VERB_CN = {
   切:"cut", 割:"cut", 剪:"cut",
   设:"set", 设置:"set",
   进:"enter", 进入:"enter", 走进:"enter",
-  爬:"climb", 攀:"climb", 攀爬:"climb",
+  爬上:"climb", 爬到:"climb", 爬:"climb", 攀:"climb", 攀爬:"climb",
   骑:"ride", 坐:"ride", 坐上:"ride",
   搜:"search", 搜索:"search", 搜查:"search",
   喂:"feed", 买:"buy", 购买:"buy",
