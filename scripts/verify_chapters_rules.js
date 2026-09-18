@@ -72,6 +72,10 @@ const itemIds = new Set(Object.keys(ITEMS));
 // 方向反向映射
 const REVERSE = { n: "s", s: "n", e: "w", w: "e", ne: "sw", sw: "ne", nw: "se", se: "nw", u: "d", d: "u", in: "out", out: "in" };
 
+// 合法出口键 —— 必须与 parser.js 的 DIRECTIONS 归一化结果一致。
+// 写成 "up"/"down" 之类的别名时 parser 不会产出该键，出口静默失效。
+const VALID_DIRS = new Set(Object.keys(REVERSE));
+
 // 有意设计的单向出口（不要求反方向存在），格式 "roomA:dir:roomB"
 const ONE_WAY_EXITS = new Set([
   "round_pond:e:long_water",           // 婴儿车被风吹入长水湖
@@ -102,6 +106,10 @@ const ONE_WAY_EXITS = new Set([
   // Ranch（主线）：前院/走廊/组装室/厨房/后院单向或骨架简化；风车下仅上通
   "front_yard:in:hallway", "hallway:n:nw_ranch", "assembly_room:e:front_yard",
   "kitchen:n:assembly_room", "back_yard:n:hallway", "edge_reservoir:u:windmill",
+  // Cemetery 在原版里没有任何已解析出口指向它，入口藏在未反汇编的 routine 中。
+  // 这对出口是补救路径，否则 Barrow 与 Ossuary 蘑菇门（Underground 章节入口）
+  // 完全不可达。几何上不自洽（南进南出），定位到真实入口后应一并替换。
+  "cottage:s:cemetery", "cemetery:s:cottage",
 ]);
 
 function getExits(room, fromRoomId) {
@@ -136,6 +144,9 @@ for (const filename of chapterFiles) {
 
     const exits = typeof room.exits === "function" ? room.exits(state) : room.exits;
     for (const [dir, t] of Object.entries(exits || {})) {
+      if (!VALID_DIRS.has(dir)) {
+        fail("方向键名", `${rid} 的出口键 "${dir}" 不是合法方向，parser 永远不会产出它`, filename, null);
+      }
       const to = typeof t === "object" ? t.to : t;
       if (!to) continue;
       if (!allRooms[to]) fail("出口联通", `${rid} ${dir} -> ${to} 目标不存在`, filename, null);

@@ -9,13 +9,13 @@
 const FLOAT_TO_SPACE = {
   n: "orbit_space", ne: "orbit_space", e: "orbit_space", se: "orbit_space",
   s: "orbit_space", sw: "orbit_space", w: "orbit_space", nw: "orbit_space",
-  up: "orbit_space", down: "orbit_space", in: "orbit_space",
+  u: "orbit_space", d: "orbit_space", in: "orbit_space",
 };
 
 const FLOAT_TO_SATELLITE = {
   n: "orbit_satellite", ne: "orbit_satellite", e: "orbit_satellite", se: "orbit_satellite",
   s: "orbit_satellite", sw: "orbit_satellite", w: "orbit_satellite", nw: "orbit_satellite",
-  up: "orbit_satellite", down: "orbit_satellite", out: "orbit_satellite",
+  u: "orbit_satellite", d: "orbit_satellite", out: "orbit_satellite",
 };
 
 export const ROOMS = {

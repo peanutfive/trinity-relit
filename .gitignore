@@ -13,6 +13,7 @@ trinity_objects.json
 trinity_strings.json
 trinity_print_strings.json
 trinity_prologue_text.txt
+scripts/exit_truth.json
 
 # OS
 .DS_Store

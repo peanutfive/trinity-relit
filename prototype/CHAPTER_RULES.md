@@ -34,7 +34,9 @@ for s in zm.extract_print_strings():
 ```
 
 **关键参数**：
-- 房间对象 = `parent==88 且 attrs 包含 37 和 44`
+- 房间对象 = `parent==88 且 attrs 包含 44`（共 134 个）
+  - 属性 `37` 是「有光照」，**不是**房间标志。曾把它当作判定条件，
+    导致 Top of Arbor、Underground ×3、Underwater 这 5 个黑暗房间被漏掉。
 - 方向属性映射：`63=N 62=NE 61=E 60=SE 59=S 58=SW 57=W 56=NW 55=UP 54=DOWN 53=IN 52=OUT`
 - 属性值 2 字节 = 目标房间对象号（直接出口）
 - 属性值 ≥3 字节 = routine 地址（条件出口或阻挡消息）

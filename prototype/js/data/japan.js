@@ -137,7 +137,7 @@ export const ROOMS = {
       return {
         out: "playground",
         w: "playground",
-        down: {
+        d: {
           to: "shelter",
           when: () => false,
           fail: "You're already in the shelter as far as you can go.\n\n你已经到了避难所的最深处。",

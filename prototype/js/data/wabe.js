@@ -572,7 +572,7 @@ export const ROOMS = {
     },
 
     exits() {
-      return { se: "craters_edge", sw: "chasms_brink" };
+      return { se: "craters_edge", sw: "chasms_brink", e: "cottage", in: "cottage" };
     },
 
     events: [],
@@ -590,7 +590,7 @@ export const ROOMS = {
     },
 
     exits() {
-      return { n: "barrow", s: "cottage" };
+      return { n: "barrow", in: "barrow", s: "cottage" };
     },
 
     events: [],
@@ -607,7 +607,7 @@ export const ROOMS = {
     },
 
     exits() {
-      return { s: "cemetery", in: "ossuary" };
+      return { s: "cemetery", out: "cemetery", in: "ossuary" };
     },
 
     events: [
@@ -697,7 +697,7 @@ export const ROOMS = {
     },
 
     exits() {
-      return { s: "north_bog", se: "chasms_brink", e: "cottage" };
+      return { s: "north_bog", se: "chasms_brink" };
     },
 
     events: [
@@ -736,8 +736,11 @@ export const ROOMS = {
       return d;
     },
 
+    // s -> cemetery 不在原版出口表中：Cemetery 的入口藏在一个尚未反汇编的
+    // routine 里，没有它 Barrow 与 Ossuary 蘑菇门（Underground 章节入口）
+    // 将完全不可达。定位到真实入口前保留此路，见 EXIT_DEVIATIONS。
     exits() {
-      return { e: "herb_garden", w: "promontory", s: "cemetery" };
+      return { e: "herb_garden", w: "bluff", out: "bluff", s: "cemetery" };
     },
 
     events: [
