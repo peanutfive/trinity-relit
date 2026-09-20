@@ -1,0 +1,18 @@
+{
+  "name": "trinity-relit",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "让 Infocom 的 Trinity (1986) 重新可玩：浏览器端中英双语文字冒险",
+  "homepage": "https://github.com/peanutfive/trinity-relit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peanutfive/trinity-relit.git"
+  },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "verify": "node scripts/verify_chapters_rules.js",
+    "verify:exits": "node scripts/verify_exits_vs_zmachine.js",
+    "truth": "python3 scripts/extract_exit_truth.py --json scripts/exit_truth.json"
+  }
+}

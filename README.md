@@ -2,6 +2,8 @@
 
 让经典 Infocom 文字冒险游戏重新可玩。
 
+**[在浏览器中开始游戏](https://peanutfive.github.io/trinity-relit/)** — 打开即玩，无需安装、无需账号、无需 API Key。
+
 ---
 
 ## 为什么是 Trinity
@@ -12,7 +14,37 @@
 
 ---
 
-## 方案说明
+## 怎么玩
+
+直接用中文或英文输入你想做的事，例如：
+
+```
+往北走          看看那只纸鹤          拿起雨伞
+n               examine the bird      take umbrella
+```
+
+方向、动作、以及「把伞给女孩」「用斧头砍泡泡」这类复合句都能识别。输入「帮助」查看完整指令提示。
+
+游戏内容为原版 11 个章节、约 130 个房间，从伦敦肯辛顿花园一路到新墨西哥的三位一体试验场。
+
+---
+
+## 两种实现
+
+### 方案 B：浏览器端中英解析器（主开发线）
+
+`prototype/` 完全在浏览器本地运行，不需要服务器，不需要 API Key，也不需要下载模型。
+
+```bash
+npm run dev
+# 打开 http://127.0.0.1:8080/
+```
+
+- 纯静态 ES module，打开即玩，可离线
+- 中/英文指令均支持，含把字句、用字句等复合结构
+- 章节懒加载，首屏只加载序章
+
+> 关于语义兜底：项目早期用 `multilingual-e5-small` 嵌入模型做「解析失败时找语义最接近的事件」。该路径目前**未启用**，引擎只走结构化匹配。`embedding.js` 与 `embedding-worker.js` 保留完好，恢复时应改为按需懒加载，而不是放在启动路径上阻塞开局。
 
 ### 方案 A：保留原作，加一层中文接口
 
@@ -27,31 +59,37 @@ python3 trinity_cn.py
 - 支持中文指令输入（"往北走"、"拿起伞"）
 - 输入 `/原文` 显示上次英文原文
 
-### 方案 B：浏览器端语义匹配原型（主开发线）
+---
 
-`prototype/` 完全在浏览器本地运行，不需要服务器，不需要 API Key。
-
-核心思路：文字冒险的事件空间是有限的，玩家输入不需要生成式回答，只需要找到语义最接近的已知事件并执行。用 `multilingual-e5-small` 嵌入模型（~130MB）计算余弦相似度来做匹配，离线可用。
+## 开发
 
 ```bash
-cd prototype
-python3 -m http.server 8080
-# 浏览器打开 http://localhost:8080
+npm run dev            # 本地起服务器
+npm run verify         # 章节规范校验（CHAPTER_RULES.md §10）
+npm run truth          # 从 TRINITY.DAT 生成出口真值表（需自备游戏文件）
+npm run verify:exits   # 把章节出口与 Z-machine 真值逐条比对
 ```
 
-- 无服务器、无 API Key；首次打开需联网加载嵌入模型，之后可离线玩
-- 中/英文指令均支持，解析器 + 语义兜底
-- 章节懒加载，首屏只加载序章
-- 内置调试面板，可查看语义匹配分数
+文档索引：
+
+| 文档 | 内容 |
+|---|---|
+| [`SHIP_PLAN.md`](./SHIP_PLAN.md) | 发布收尾路线图与当前进度 |
+| [`prototype/ARCHITECTURE.md`](./prototype/ARCHITECTURE.md) | 分层结构、事件执行路径、章节切换协议 |
+| [`prototype/CHAPTER_PLAN.md`](./prototype/CHAPTER_PLAN.md) | 章节内容路线图与房间清单 |
+| [`prototype/CHAPTER_RULES.md`](./prototype/CHAPTER_RULES.md) | 章节编写规范与引擎 API |
+| [`prototype/MECHANISMS_VS_PLAN.md`](./prototype/MECHANISMS_VS_PLAN.md) | 已实现机制对照表 |
 
 ---
 
-## 游戏文件
+## 游戏文件与版权
 
-出于版权原因，仓库不包含原版游戏文件。运行方案 A 需要自行准备 `TRINITY.DAT` 并放到对应目录。方案 B 的英文描述均来自原版，地图与出口以 `zparse.py` 提取结果为准。
+出于版权原因，**本仓库不包含原版游戏文件，也不分发任何原版游戏数据**。运行方案 A 需要自行准备 `TRINITY.DAT`。方案 B 的英文描述来自原版，地图与出口以 `zparse.py` 的解析结果为准。
+
+Trinity (1986) 的著作权归属 Infocom / Activision。本项目是非商业的独立致敬与可访问性实验，与版权方无关，也未获其背书。
 
 ---
 
 ## License
 
-[MIT](./LICENSE)
+项目代码采用 [MIT](./LICENSE)。原版文本的权利不在此授权范围内。

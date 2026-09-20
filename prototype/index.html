@@ -2,8 +2,10 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trinity · 中文版 — 嵌入模型语义匹配原型</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Trinity Relit · 中文版</title>
+<meta name="description" content="让 Infocom 的 Trinity (1986) 重新可玩。中英双语文字冒险，语义匹配完全在浏览器本地运行，无需服务器或 API Key。">
+<meta name="color-scheme" content="dark">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,6 +16,8 @@ body {
   font-size: 15px;
   line-height: 1.7;
   height: 100vh;
+  /* 移动端浏览器的地址栏会吃掉 100vh 的一部分 */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -129,7 +133,8 @@ body {
   padding: 8px 12px;
   border-radius: 6px;
   font-family: inherit;
-  font-size: 15px;
+  /* 小于 16px 时 iOS Safari 会在聚焦输入框时自动放大整个页面 */
+  font-size: 16px;
   outline: none;
 }
 #input-area input:focus { border-color: #58a6ff; }
@@ -160,7 +165,7 @@ body {
 }
 
 #loading .progress-bar {
-  width: 300px;
+  width: min(300px, 78vw);
   height: 6px;
   background: #21262d;
   border-radius: 3px;
@@ -179,6 +184,23 @@ body {
   color: #d2a8ff;
   margin: 4px 0;
   padding: 4px 0;
+}
+
+#loading .note {
+  color: #6e7681;
+  font-size: 12px;
+  max-width: min(360px, 82vw);
+  text-align: center;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  #header { padding: 10px 14px; }
+  #header .subtitle { display: none; }
+  #output { padding: 14px; }
+  #input-area { padding: 10px 14px; }
+  /* 留出 iPhone 底部小横条的空间 */
+  #input-area { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
 </style>
 </head>
@@ -200,11 +222,12 @@ body {
 </div>
 
 <div id="loading">
-  <h2>Trinity · 中文版</h2>
+  <h2>Trinity Relit · 中文版</h2>
   <div class="status" id="loading-status">正在初始化...</div>
   <div class="progress-bar">
     <div class="progress-fill" id="loading-progress"></div>
   </div>
+  <p class="note">游戏完全在本地运行，无需服务器与 API Key。</p>
 </div>
 
 <script>
