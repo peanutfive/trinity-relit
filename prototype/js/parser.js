@@ -79,8 +79,13 @@ const PREPS = new Set([
   "向","给","到","进","在","用","往",
 ]);
 
+// 注意：这些必须精确匹配。漏掉一种说法时，输入会落到中文动词前缀匹配
+// 被拆成「看」+「四周」，再当作 examine 一个不存在的物品处理。
 const META = {
-  look:"look", l:"look", 看看:"look", 环顾:"look", 环顾四周:"look",
+  look:"look", l:"look", 看:"look", 看看:"look", 瞧瞧:"look",
+  环顾:"look", 环视:"look", 环顾四周:"look", 环视四周:"look",
+  看四周:"look", 看看四周:"look", 四周:"look",
+  四处看看:"look", 四下看看:"look", 看看周围:"look", 观察四周:"look",
   wait:"wait", z:"wait", 等:"wait", 等待:"wait", 等一等:"wait",
 };
 

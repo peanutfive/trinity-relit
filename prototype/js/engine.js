@@ -395,7 +395,10 @@ export class GameEngine {
         return true;
       }
     }
-    return false;
+    // 这里曾返回 false，最终显示成「这句话无法识别」，让玩家以为是语法
+    // 不对而反复换说法。指令其实读懂了，只是那样东西不在这里。
+    this.ui.system("你没有看到那样东西。");
+    return true;
   }
 
   _resolveItem(noun) {
