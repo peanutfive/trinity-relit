@@ -4,7 +4,6 @@
 
 import { GameEngine } from "./engine.js";
 import { Parser } from "./parser.js";
-import { EmbeddingEngine } from "./embedding.js";
 import { ui } from "./ui.js";
 import { ITEMS } from "./data/items.js";
 import { ROOMS as PROLOGUE } from "./data/prologue.js";
@@ -34,28 +33,23 @@ const ALL_ROOMS = CHAPTERS.filter((c) => c.preload !== false).reduce((acc, chapt
 }, {});
 
 async function boot() {
-  ui.setLoading("正在加载嵌入模型 (首次约 130MB)…", 0);
-
-  const embedding = new EmbeddingEngine();
-  await embedding.init((p) => {
-    if (p.status === "progress" && p.progress) {
-      ui.setLoading(`下载模型: ${p.name ?? ""} ${Math.round(p.progress)}%`, p.progress);
-    }
-  });
-
-  ui.setLoading("正在预计算事件向量…", 0);
-  await embedding.precomputeAll(ALL_ROOMS, (done, total) => {
-    ui.setLoading(`预计算: ${done}/${total}`, Math.round((done / total) * 100));
-  });
-
-  ui.hideLoading();
+  ui.setLoading("正在载入…", 0);
 
   const parser = new Parser();
   const engine = new GameEngine({
     rooms: ALL_ROOMS,
     items: ITEMS,
     parser,
-    embedding,
+    // 语义兜底目前未启用：engine.processInput 只走 parser 结构化匹配，
+    // 事件靠 ev.match 命中，不再调用 embedding.findMatch。
+    //
+    // 因此启动时不加载嵌入模型。此前 boot 会 await 一个约 130MB 的下载，
+    // 而模型没有任何调用方——实测下行仅 40KB/s（官方源与国内镜像一样），
+    // 下载要近一小时且必然中途失败，游戏根本打不开。
+    //
+    // embedding.js / embedding-worker.js 保留完好。若要恢复语义兜底，
+    // 改成命中失败时按需懒加载，不要放回启动路径。
+    embedding: null,
     ui,
     chapterLoader: async (id) => {
       const ch = CHAPTER_REGISTRY.get(id);
@@ -70,6 +64,8 @@ async function boot() {
     },
     preloadedChapters: PRELOADED_CHAPTERS,
   });
+
+  ui.hideLoading();
 
   ui.system(
     "欢迎来到 Trinity Relit — 经典 Infocom 文字冒险的中文重现。\n" +
