@@ -9,8 +9,12 @@
     "type": "git",
     "url": "https://github.com/peanutfive/trinity-relit.git"
   },
+  "engines": {
+    "node": ">=22.7.0"
+  },
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
     "verify": "node scripts/verify_chapters_rules.js",
     "verify:exits": "node scripts/verify_exits_vs_zmachine.js",
     "truth": "python3 scripts/extract_exit_truth.py --json scripts/exit_truth.json"

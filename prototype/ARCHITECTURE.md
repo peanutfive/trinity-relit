@@ -5,9 +5,12 @@
   - 负责页面结构、样式、调试开关。
   - 加载模块入口 `prototype/js/main.js`。
 - `prototype/js/main.js`
-  - 初始化嵌入模型与事件向量缓存。
+  - 初始化 parser、UI 和引擎；启动不加载嵌入模型。
   - 组装 `rooms + items + parser + embedding + ui` 并启动游戏。
-  - 通过 `CHAPTERS` 注册章节数据，支持 `preload` 控制首屏预加载章节。
+  - 从 `chapters.mjs` 获取章节装配；浏览器与 Node 通关测试共用该模块。
+- `prototype/js/chapters.mjs`
+  - `CHAPTERS` 注册全部章节，只有 `preload === true` 的章节进入首屏房间和已加载列表。
+  - `createChapterSource()` 每次创建独立 rooms 容器，提供真实动态 import 的 chapterLoader。
 
 ## 2. 分层结构
 - 数据层
@@ -17,7 +20,7 @@
 - 规则层
   - `prototype/js/parser.js`: 中英混合命令解析（方向、动词、复合句）
   - `prototype/js/engine.js`: GameState、移动、事件执行、通用 take/drop/examine、回合后处理
-- 语义层
+- 语义层（当前停用，以下为保留模块的设计；是否恢复待产品决策）
   - `prototype/js/embedding.js`: 主线程包装器，通过 `postMessage` 与 Worker 通信
   - `prototype/js/embedding-worker.js`: Web Worker，`multilingual-e5-small` 模型加载与推理全部在此执行
   - 模型推理在后台线程运行，主线程 UI 不阻塞（输入框、滚动始终响应）
@@ -30,7 +33,7 @@
 1. 玩家输入
 2. `engine.processInput()`（async）
 3. 先走 parser 结构化匹配
-4. 未命中时走 embedding 语义兜底
+4. 未命中时给出无法识别提示（当前不调用 embedding）
 5. 命中事件后执行 `event.act/text`（支持 async act）
 6. `postTurn` 执行回合钩子（房间 onTurn、计时器、死亡判定）
 
@@ -43,14 +46,14 @@ processInput → _handleParsed → _handleAction → _executeEvent → event.act
 ## 4. 章节切换协议
 
 ### 4.1 章节注册
-在 `main.js` 的 `CHAPTERS` 数组中注册章节：
+在 `chapters.mjs` 的 `CHAPTERS` 数组中注册章节：
 ```js
 const CHAPTERS = [
   { id: "prologue", rooms: PROLOGUE, preload: true },       // 预加载
   { id: "wabe",     loader: () => import("./data/wabe.js") }, // 懒加载
 ];
 ```
-- `preload: true`：随首屏加载，合并进 `ALL_ROOMS`，嵌入向量一并预计算。
+- `preload: true`：随首屏加载，合并进本局 rooms。省略 preload 的章节只在首次进入时加载；不预计算嵌入向量。
 - `loader`：返回 `{ ROOMS }` 的动态 import 函数，首次进入该章节时自动调用。
 
 ### 4.2 异步加载流程
@@ -115,16 +118,17 @@ event.act() → await eng.transitionChapter()
 3. 将原版文本填入 `ROOMS` 的 `desc` / `events.text` 字段，添加中文翻译
 4. 为每个事件编写 `triggers`（中英文各 10-15 条），覆盖高频玩家表述
 5. 导出 `ROOMS`，每个 room 至少包含：`name`、`cn`、`desc`、`exits`、`events`
-6. 在 `main.js` 的 `CHAPTERS` 中注册：`{ id: "<id>", loader: () => import("./data/<id>.js") }`
+6. 在 `chapters.mjs` 的 `CHAPTERS` 中注册：`{ id: "<id>", loader: () => import("./data/<id>.js") }`
 7. 如有新物品，在 `items.js` 中添加定义并设置 `start`
 8. 为关键解谜链添加 `state.flags` 和分数点，避免重复加分
 9. 在切章事件中调用 `await eng.transitionChapter({ to, roomCandidates })`
 
-## 6. 当前状态与下一步
-- 序章（prologue）已完整可玩，11 个房间。
-- 章节基建已完成：异步加载、切换协议、fallback、模板。
-- 下一步：按章节扩展步骤，从 The Wabe 开始逐章提取原版内容并还原。
-- 语义触发覆盖与阈值调优：每场景补 20-30 条高频 trigger，复杂场景可微调阈值。
+## 6. 当前状态与验证
+- 11 个章节已注册；实际能力、未接通的谜题与发布进度以 `SHIP_PLAN.md` 为准。
+- `npm test`：无 DOM 环境，从开局通过六扇蘑菇门和牧场，剪线回到 Palace Gate；只调用真实 `processInput`，embedding stub 恒定未命中。
+- `tests/harness.mjs` 的 BFS 根据当前 `exits` / `when` 找路，每步重新规划并核对位置，不直接修改游戏状态或提前加载章节。
+- 图测试独立 import 全部章节，检查动态出口、物品引用、事件 ID 与回合守卫；`npm run verify` 保留既有静态规范检查。
+- 语义兜底是否恢复、真值偏差如何修复仍待决定。
 
 ## 7. 旧版实现说明
 - `prototype/game.js` 是历史单文件原型（可运行，但不再作为主入口）。

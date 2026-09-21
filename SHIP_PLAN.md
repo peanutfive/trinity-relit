@@ -14,18 +14,18 @@
 |---|---|
 | 11 个章节、约 130 个房间 | ✅ 全部完成，见 `prototype/CHAPTER_PLAN.md` |
 | 引擎：移动 / 物品 / 事件 / 计时器 / 死亡 / 章节异步加载 | ✅ `prototype/js/engine.js` |
-| 中英混合 parser + 语义向量兜底 | ✅ `parser.js` + `embedding-worker.js` |
+| 中英混合 parser | ✅ `parser.js`；语义兜底当前停用，相关文件保留待决策 |
 | 核心机制：日晷、Klein 瓶翻转、6 扇蘑菇门、渡船、壁橱谜题、剪线结局 | ✅ 见 `prototype/MECHANISMS_VS_PLAN.md` |
 | 章节规范静态校验 | ✅ `scripts/verify_chapters_rules.js` |
 | 原版数据文件的版权隔离 | ✅ `.gitignore` 已排除 `.DAT` / 提取产物 |
 
-### 缺失（本计划要补的）
+### 发布收尾状态
 
 | 项 | 现状 | 影响 |
 |---|---|---|
-| 在线试玩 | 无。README 要求 `python3 -m http.server` | **绝大多数人不会玩到这个游戏** |
-| 通关测试 | 只有静态规范校验 | 改一处可能悄悄断掉某条主线，无人发现 |
-| CI | 无 `.github/` | 校验脚本靠人记得跑 |
+| 在线试玩 | ✅ GitHub Pages，打开即玩 | 已完成阶段 1 |
+| 通关测试 | ✅ `npm test`，199 回合真实输入走到剪线结局 | 详见阶段 2 的覆盖边界 |
+| CI | `check.yml` + Pages 部署前复用检查 | 远端验收状态见阶段 2 |
 | 存档 | 无 | 关闭标签页 = 数小时进度归零 |
 | 提示系统 | 只有调试面板 | 日晷 / Klein 瓶 / 渡船三处是劝退点 |
 | 版权说明 | README 一句话 + MIT | 原版文本无开源授权，公开仓库有风险 |
@@ -37,7 +37,7 @@
 
    → **引擎可直接在 Node 中以 stub ui + stub embedding 运行，通关测试无需重构现有代码。**
 3. `prototype/` 为纯静态 ES module，无构建步骤，可直接静态托管。
-4. transformers.js 与模型权重均来自外部 CDN（jsdelivr / HuggingFace），本仓库不含模型文件。
+4. 保留的 embedding 模块使用外部 CDN；启动和通关测试均不加载模型，本仓库不含模型文件。
 
 ---
 
@@ -156,7 +156,7 @@
 
 线上版本已验证：打开即玩无需等待、无 JavaScript 错误、开局在 Palace Gate、房间移动与指令输入正常、`看手表` 等 examine 指令未被新增的 `看` 吞掉。
 
-**尚未验证**：序章走到 The Wabe 的完整流程，以及章节懒加载（动态 `import`）在线上是否正常。这是阶段 2 通关测试要覆盖的。
+**阶段 1 当时尚未验证**：序章走到 The Wabe 与后续章节懒加载。阶段 2 实际发现了预加载列表错误；修复和本地浏览器完整通关结果见下文。线上版本需随该修复部署后更新。
 
 ### 新增待决事项：语义兜底是否恢复
 
@@ -167,36 +167,51 @@
 
 ---
 
-## 4. 阶段 2 — 通关测试与 CI
+## 4. 阶段 2 — 通关测试与 CI（本地完成，远端 CI 待验收）
 
 **目标**：一条命令验证从 Kensington Gardens 到剪线结局的完整主线未断。
 
-**参照**：zork 项目 `tests/campaign.test.ts`。其核心是一个 `go()` 辅助函数，在房间图上 BFS 找路，**只走真实存在且 `requires` 条件已满足的出口**，逐个调用 `travel()` 真的走过去，绝不直接赋值 `state.room` 或 flags。整套测试从开局一路打到十九个宝藏上交。这是它敢大改 `world.ts` 而不怕弄坏主线的底气。
+参照 [zork 的 campaign.test.ts](https://github.com/emollick/zork-underground-empire/blob/codex/public-release/tests/campaign.test.ts) 的 `go()`：BFS 仅走真实存在且条件满足的出口，逐步调用玩家输入接口，不直接修改房间、物品、flags 或解谜结果。
 
-### 改动
+### 已实现
 
-1. **新增 `tests/harness.js`** — 无 DOM 环境的引擎装配
-   - `stubUi`：把 `text` / `system` / `location` / `userInput` 收集进数组，供断言检查文本。
-   - `stubEmbedding`：`findMatch()` 恒定返回未命中。**测试只允许走 parser 结构化路径**，语义兜底是模糊的，不适合作为回归基线。
-   - `createGame()`：装配 rooms / items / parser / chapterLoader（用真实动态 import），返回 `{ eng, state, output }`。
+| 文件 | 实际实现 |
+|---|---|
+| `tests/harness.mjs` | 无 DOM 的真实 GameEngine + Parser；收集 text/system/location/userInput/inventory；embedding 永远返回未命中 |
+| `tests/walkthrough.test.mjs` | 一个连续游戏，8 个顺序子阶段，失败即停止；逐章断言位置、关键物品、flags、分数、计时器和结局 |
+| `tests/graph.test.mjs` | 动态 import 全部 11 章；检查全局房间 ID、事件 ID、12 个方向键、出口目标、物品引用、onTurn 守卫；遍历七个符号、翻转、物品和 flags 开关 |
+| `tests/harness.test.mjs` | 防止懒加载章节再次被误标为已加载；验证全部出口方向能被 parser 识别 |
+| `prototype/js/chapters.mjs` | 从 main 抽出共用章节注册与装配，浏览器和测试使用同一条加载路径；每局独立 rooms 容器 |
+| `package.json` / `package-lock.json` | `npm test` 使用 Node 内置 runner，无新增依赖；锁文件使零依赖项目也可执行 `npm ci` |
+| `.github/workflows/check.yml` | push / pull_request / workflow_dispatch / workflow_call；只读权限、并发取消、超时、action SHA 锁定；Node 22 执行 `npm ci → npm test → npm run verify` |
+| `.github/workflows/deploy.yml` | 部署前复用 check，通关测试失败不能发布 Pages |
 
-2. **新增 `tests/walkthrough.test.js`** — 主线通关
-   - `go(eng, targetRoom)`：BFS + 真实 `processInput` 方向指令，禁止直接改 state。
-   - 按 `CHAPTER_PLAN.md` 的章节顺序推进：序章 → Wabe → 各分支章节 → Islet → Desert → Ranch → 剪线结局。
-   - 断言终局：`state.dead === false`、结局文本已输出、分数符合预期。
+`go()` 以当前状态的只读候选房间视图评估 `exits` / `when`，每走一步重新 BFS，以纳入翻转、计时器等变化。寻路不调用 `act`、不提前加载章节；跨章目的地可作为路径终点，实际方向输入触发真实动态 import。
 
-3. **新增 `tests/graph.test.js`** — 图完整性（把现有校验脚本的检查项测试化）
-   - 所有 `exit.to` 存在于对应章节的 ROOMS 中。
-   - 所有事件引用的 item id 存在于 `items.js`。
-   - 同房间内事件 id 唯一。
-   - 每个 `onTurn` 以房间守卫开头。
+### 测试发现并修复的两个阻断
 
-4. **新增 `.github/workflows/check.yml`**
-   - 参照 zork 的写法：`push` + `pull_request` + `workflow_dispatch`，`permissions: contents: read`，`concurrency` 取消重复运行，action 用 commit SHA 锁定版本。
-   - 步骤：`npm ci` → `npm test` → `npm run verify`。
-   - 单 OS（ubuntu）即可，本项目无 Windows 特定逻辑。
+1. **所有章节被误标为预加载**：原先 `preload !== false` 将没有声明 preload 的懒加载章节也放进 `loadedChapters`。进入白门时 `activateChapter` 直接返回成功，却没有房间数据。现仅 `preload === true` 计入首屏；先复现红测再修复。
+2. **`in` / `out` 在 parser 中缺失**：数据和校验白名单接受这两个方向，parser 却不产出它们，蘑菇门及牧场入口不可走。现补上标准方向及里/外别名；完整通关直接发送这些输入验证。
 
-**验收**：`npm test` 本地与 CI 均通过；故意删掉 wabe 的一扇蘑菇门，测试必须失败。
+### 实际验收
+
+- `npm ci && npm test && npm run verify` 通过：**16 个测试，0 失败、0 跳过**。
+- 单局 **199 回合、73 个不同房间、21/100 分**：序章 → Wabe → Japan → Underground → Orbit → Pacific → Tundra → Islet → Desert → Ranch → Desert 剪线 → Palace Gate；每一步均检查未死亡。
+- 覆盖六扇蘑菇门首次懒加载、关闭门拒绝通行、肥皂泡门槛、Klein 翻转、地下光源、太平洋计时、吉普车离开后下塔，以及章节往返。
+- 在临时副本中分别删除 Wabe 的六扇开放蘑菇门，六次通关测试都在对应入口报“没有满足条件的出口路径”。真实工作区未受故障注入影响。
+- **本地浏览器完整输入 199 条相同指令**，逐步核对房间，看到剪线结局和 21/100 分；页面无游戏错误，控制台无 warning/error。
+- GitHub CI：待本次分支推送后填写实际运行结果。
+
+### 与原计划不符的地方及原因
+
+- 测试文件使用 **`.mjs`**，不是早期草案的 `.js`；**没有给根 package.json 添加 `type: module`**。Node **≥22.7** 的语法检测可直接 import 既有浏览器 ES module，原 CommonJS 校验脚本保持可用。运行可能显示 `MODULE_TYPELESS_PACKAGE_JSON` 提示，这是已知兼容提示，不按其建议更改根包类型。
+- **结局不进入 finale.js**：实际剪线事件在 desert，直接回到 prologue；通关测试遵循真实路径，图测试仍加载并检查 finale 的 `the_end`。
+- **当前分数为 21/100，并非满分**：序章 15、Japan 4、Underground 2。分数是这条可执行路线的回归基线，不代表原版全部谜题完成。
+- **银币、鸟笼没有取得路径**：二者 `start: null`，当前章节代码没有放置/取得它们的入口。故付费渡船、旅鼠入笼、壁橱放旅鼠事件虽存在，却不能按文档所说完成。当前 Islet 白门不要求付费，剪线也不依赖壁橱事件，因此这条路线仍能通关。测试没有凭空赋予物品，也没有擅自增加通关门槛；后续修复范围需用户决定。
+- 机制表所称的 Underground “木片引出石龙子”事件也未出现在当前模块中，不能计为已验证；本次覆盖的是有实际代码的光源和灯笼流程。
+- 旧校验脚本的物品扫描对 event 使用 `JSON.stringify`，会丢掉函数；onTurn 的短源码窗口也可能漏检。图测试改为直接遍历函数源码和所有真实 onTurn，补齐这些盲点；旧脚本继续作为兼容检查保留。
+
+**对 115 项偏差的结论边界**：现在有证据证明“现有地图上存在一条经过全部六扇蘑菇门、牧场并到达结局的路线”；不能据此断言所有原版路线、谜题或偏差都无害。本阶段未修改任何章节出口、原版文本、真值豁免或语义兜底策略。
 
 ---
 
@@ -293,7 +308,7 @@
 | ~~国内用户加载不了模型~~ | — | — | 已消除：启动不再加载模型 |
 | ~~130MB 首次加载劝退~~ | — | — | 已消除：同上 |
 | ~~`findMatch` 串行 `await embed()` 慢~~ | — | — | 暂不适用：语义兜底当前未启用。若恢复需一并改批量推理 |
-| 章节懒加载在线上失效 | 中 | 高 | 动态 `import` 尚未在线上验证过，阶段 2 通关测试覆盖 |
+| 章节懒加载失效 | 已发现并修复 | 高 | 阶段 2 通过 Node 和本地浏览器完整通关；待随分支部署到线上 |
 | 存档格式发布后需变更 | 中 | 中 | 从第一版就带 `version` 字段 |
 | 原版文本版权 | 低 | 高 | 阶段 5 |
 
@@ -306,7 +321,7 @@
 | 0 ✅ | 建立 Z-machine 真值比对，修出口与方向键名 | 校验脚本 0 项不符合 |
 | 0.5 | 评估 115 项真值偏差 | 建议排在阶段 2 之后 |
 | 1 ✅ | 构建入口 + Pages 部署 + 移动端适配 | 有可点击的在线试玩链接 |
-| 2 | 通关测试 + 图测试 + CI | `npm test` 通过；CI 绿 |
+| 2 | 通关测试 + 图测试 + CI | 本地 16 测试通过；远端 CI 待验收 |
 | 3 | 存档 | 刷新页面进度不丢；存档可导出导入 |
 | 4 | 三级提示 + 日志 | 三个主卡点均可靠提示走出 |
 | 5 | CREDITS.md | 授权边界清晰 |
@@ -318,7 +333,7 @@
 - [x] 阶段 0：修复已知缺陷 — 2026-09-18（建立 Z-machine 真值比对；修正房间判定条件、方向键名、wabe 连通）
 - [ ] 阶段 0.5：真值偏差评估（115 项，建议排在阶段 2 之后）
 - [x] 阶段 1：上线可玩 — 2026-09-20（GitHub Pages 部署；根因是启动时加载了一个无调用方的 130MB 模型）
-- [ ] 阶段 2：通关测试与 CI
+- [ ] 阶段 2：通关测试与 CI — 本地 16 测试、浏览器 199 回合、六扇门删除实验通过；待远端 CI 验收
 - [ ] 阶段 3：存档
 - [ ] 阶段 4：提示与日志
 - [ ] 阶段 5：版权合规
