@@ -1,3 +1,5 @@
+import { ContextualIntentBoundary, classifyDeterministicIntent } from "./contextual-intent.js";
+
 // ═══════════════════════════════════════════════════
 //  GameState — 游戏全局状态
 // ═══════════════════════════════════════════════════
@@ -84,7 +86,7 @@ const MAX_CARRY = 8;
 const PRAM_NOUNS = new Set(["pram", "perambulator", "carriage", "婴儿车", "推车", "车"]);
 
 export class GameEngine {
-  constructor({ rooms, items, parser, embedding, ui, chapterLoader, preloadedChapters }) {
+  constructor({ rooms, items, parser, embedding, ui, chapterLoader, preloadedChapters, contextualIntent = null }) {
     this.rooms = rooms;
     this.items = items;
     this.parser = parser;
@@ -93,6 +95,7 @@ export class GameEngine {
     this.chapterLoader = chapterLoader || null;
     this.loadedChapters = new Set(preloadedChapters || ["prologue"]);
     this.state = new GameState();
+    this.contextualIntent = contextualIntent ? new ContextualIntentBoundary(contextualIntent) : null;
     this._initItems();
   }
 
@@ -177,6 +180,13 @@ export class GameEngine {
     const input = raw.trim();
     if (!input) return;
 
+    if (this.contextualIntent) {
+      return this.contextualIntent.run(input, (text, token) => this._processInput(text, token));
+    }
+    return this._processInput(input);
+  }
+
+  async _processInput(input, token) {
     this.ui.userInput(input);
     this.state.turns++;
 
@@ -186,6 +196,10 @@ export class GameEngine {
 
     // 2. Parser (structured matching)
     const cmd = this.parser.parse(input);
+    if (this.contextualIntent && classifyDeterministicIntent(this, cmd) === "unresolved") {
+      const handled = await this.contextualIntent.tryHandle(this, input, token);
+      if (handled) { this._postTurn(); return; }
+    }
     if (cmd) {
       const handled = await this._handleParsed(cmd);
       if (handled) { this._postTurn(); return; }
@@ -292,9 +306,18 @@ export class GameEngine {
   }
 
   _matchCommand(cmd, match) {
+    if (Array.isArray(match.alternatives)) {
+      return match.alternatives.some((alternative) => this._matchCommand(cmd, alternative));
+    }
+
     if (!match.verb) return false;
     const verbs = Array.isArray(match.verb) ? match.verb : [match.verb];
     if (!verbs.includes(cmd.verb)) return false;
+
+    if (match.prep) {
+      const preps = Array.isArray(match.prep) ? match.prep : [match.prep];
+      if (!cmd.prep || !preps.includes(cmd.prep)) return false;
+    }
 
     if (match.noun) {
       const nouns = Array.isArray(match.noun) ? match.noun : [match.noun];

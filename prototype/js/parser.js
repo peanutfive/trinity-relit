@@ -76,6 +76,14 @@ const VERB_EN = new Set([
   "wait","sit","enter","exit","wave","blow","smell",
 ]);
 
+const ENGLISH_ARTICLES = new Set(["a", "an", "the"]);
+
+// 这些是命令开头可安全去除的完整礼貌语，不把任意口语都当成命令。
+// 尤其不能把“不／别／不要”之类的否定词当作可忽略的前缀。
+const CN_POLITE_PREFIXES = ["请帮我", "请你", "请"];
+const CN_DEMONSTRATIVES = ["这个", "那个"];
+const CN_NEGATION_PREFIXES = ["不要", "别", "勿", "不"];
+
 const PREPS = new Set([
   "at","to","in","into","on","onto","with","from","about","under","through",
   "向","给","到","进","在","用","往",
@@ -85,6 +93,7 @@ const PREPS = new Set([
 // 被拆成「看」+「四周」，再当作 examine 一个不存在的物品处理。
 const META = {
   look:"look", l:"look", 看:"look", 看看:"look", 瞧瞧:"look",
+  "look around":"look",
   环顾:"look", 环视:"look", 环顾四周:"look", 环视四周:"look",
   看四周:"look", 看看四周:"look", 四周:"look",
   四处看看:"look", 四下看看:"look", 看看周围:"look", 观察四周:"look",
@@ -93,7 +102,9 @@ const META = {
 
 export class Parser {
   parse(input) {
-    const raw = input.trim();
+    const inputRaw = input.trim();
+    if (!inputRaw) return null;
+    const raw = this._stripChinesePolitePrefix(inputRaw);
     if (!raw) return null;
     const low = raw.toLowerCase();
 
@@ -139,47 +150,78 @@ export class Parser {
     }
 
     if (prepIdx > 0) {
-      const noun = words.slice(1, prepIdx).join(" ");
+      const noun = this._stripEnglishArticle(words.slice(1, prepIdx));
       const prep = words[prepIdx];
-      const noun2 = words.slice(prepIdx + 1).join(" ");
+      const noun2 = this._stripEnglishArticle(words.slice(prepIdx + 1));
       return { type: "compound", verb, noun, prep, noun2: noun2 || null };
     }
 
-    const noun = words.slice(1).join(" ");
+    const noun = this._stripEnglishArticle(words.slice(1));
     return { type: "simple", verb, noun };
+  }
+
+  _stripEnglishArticle(words) {
+    const nounWords = words.length > 1 && ENGLISH_ARTICLES.has(words[0]) ? words.slice(1) : words;
+    return nounWords.join(" ");
+  }
+
+  _stripChinesePolitePrefix(raw) {
+    for (const prefix of CN_POLITE_PREFIXES) {
+      if (!raw.startsWith(prefix)) continue;
+      const command = raw.slice(prefix.length).trim();
+      if (!command || CN_NEGATION_PREFIXES.some((negation) => command.startsWith(negation))) return raw;
+      if (this._startsChineseCommand(command)) return command;
+      return raw;
+    }
+    return raw;
+  }
+
+  _startsChineseCommand(raw) {
+    if (META[raw] || DIR_MAP[raw]) return true;
+    if (/^(?:把|用|设置?|指)/.test(raw)) return true;
+    return Object.keys(VERB_CN).some((verb) => raw.startsWith(verb));
+  }
+
+  _stripChineseDemonstrative(noun) {
+    for (const demonstrative of CN_DEMONSTRATIVES) {
+      if (noun.startsWith(demonstrative) && noun.length > demonstrative.length) {
+        return noun.slice(demonstrative.length);
+      }
+    }
+    return noun;
   }
 
   _parseChinese(raw) {
     // 把X扔向Y / 把X放进Y / 把X给Y
     const ba = raw.match(/^把(.+?)(?:扔向|扔到|投向|投到)(.+)$/);
-    if (ba) return { type: "compound", verb: "throw", noun: ba[1], prep: "at", noun2: ba[2] };
+    if (ba) return { type: "compound", verb: "throw", noun: this._stripChineseDemonstrative(ba[1]), prep: "at", noun2: this._stripChineseDemonstrative(ba[2]) };
 
     const baPut = raw.match(/^把(.+?)(?:放进|放入|放到|放在)(.+)$/);
-    if (baPut) return { type: "compound", verb: "put", noun: baPut[1], prep: "in", noun2: baPut[2] };
+    if (baPut) return { type: "compound", verb: "put", noun: this._stripChineseDemonstrative(baPut[1]), prep: "in", noun2: this._stripChineseDemonstrative(baPut[2]) };
 
     const baGive = raw.match(/^把(.+?)(?:给|交给)(.+)$/);
-    if (baGive) return { type: "compound", verb: "give", noun: baGive[1], prep: "to", noun2: baGive[2] };
+    if (baGive) return { type: "compound", verb: "give", noun: this._stripChineseDemonstrative(baGive[1]), prep: "to", noun2: this._stripChineseDemonstrative(baGive[2]) };
 
     // 用Y切X / 用Y打X / 用Y砸X
     const yong = raw.match(/^用(.+?)(?:切|割|剪|砍)(.+)$/);
-    if (yong) return { type: "compound", verb: "cut", noun: yong[2], prep: "with", noun2: yong[1] };
+    if (yong) return { type: "compound", verb: "cut", noun: this._stripChineseDemonstrative(yong[2]), prep: "with", noun2: this._stripChineseDemonstrative(yong[1]) };
 
     const yongHit = raw.match(/^用(.+?)(?:打|砸|敲|击)(.+)$/);
-    if (yongHit) return { type: "compound", verb: "hit", noun: yongHit[2], prep: "with", noun2: yongHit[1] };
+    if (yongHit) return { type: "compound", verb: "hit", noun: this._stripChineseDemonstrative(yongHit[2]), prep: "with", noun2: this._stripChineseDemonstrative(yongHit[1]) };
 
     // 设置X为Y / 把X设为Y
     const setMatch = raw.match(/^(?:设置?|把)(.+?)(?:设?为|调到|设到|设成)(.+)$/);
-    if (setMatch) return { type: "compound", verb: "set", noun: setMatch[1], prep: "to", noun2: setMatch[2] };
+    if (setMatch) return { type: "compound", verb: "set", noun: this._stripChineseDemonstrative(setMatch[1]), prep: "to", noun2: this._stripChineseDemonstrative(setMatch[2]) };
 
     // 指向X / 指着X
     const point = raw.match(/^指(?:向|着)(.+)$/);
-    if (point) return { type: "simple", verb: "point", noun: point[1] };
+    if (point) return { type: "simple", verb: "point", noun: this._stripChineseDemonstrative(point[1]) };
 
     // Simple Chinese verb+noun: try longest verb prefix
     const sortedVerbs = Object.keys(VERB_CN).sort((a, b) => b.length - a.length);
     for (const cv of sortedVerbs) {
       if (raw.startsWith(cv)) {
-        const noun = raw.slice(cv.length).trim();
+        const noun = this._stripChineseDemonstrative(raw.slice(cv.length).trim());
         const verb = VERB_CN[cv];
         if (noun) return { type: "simple", verb, noun };
         // Bare verb without noun
