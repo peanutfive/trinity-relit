@@ -53,6 +53,9 @@ _MAX_COMMAND_LENGTH = 120
 _MAX_MODEL_RESPONSE_LENGTH = 512
 _RENDER_TOKEN = object()
 _MULTI_COMMAND_TOKENS = frozenset({"and", "then"})
+_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_FILENAME_PROMPT_RE = re.compile(r"\b(?:file\s*name|filename)\b", re.IGNORECASE)
+_COMMAND_ALIASES = {"i": "inventory", "l": "look", "z": "wait"}
 
 _DIRECTION_ALIASES = {
     "n": "n", "north": "n", "s": "s", "south": "s",
@@ -152,6 +155,29 @@ class CompiledCommand:
         return self.text
 
 
+@dataclass(frozen=True)
+class FilenameReply:
+    """A constrained reply to dfrotz's save/restore filename prompt."""
+
+    text: str
+    _proof: InitVar[object] = None
+
+    def __post_init__(self, _proof):
+        if _proof is not _RENDER_TOKEN:
+            raise CommandRejected("FilenameReply 只能由 filename renderer 创建")
+        if not isinstance(self.text, str):
+            raise CommandRejected("文件名回复必须是字符串")
+        if self.text and not _FILENAME_RE.fullmatch(self.text):
+            raise CommandRejected("文件名只能包含字母、数字、点、下划线和连字符")
+
+
+def compile_filename_reply(filename):
+    """Compile one filename reply; an empty reply accepts dfrotz's default."""
+    if not isinstance(filename, str) or filename != filename.strip():
+        raise CommandRejected("文件名含首尾空白或不是字符串")
+    return FilenameReply(filename, _RENDER_TOKEN)
+
+
 def _reject_duplicate_keys(pairs):
     result = {}
     for key, value in pairs:
@@ -166,6 +192,7 @@ def _render_payload(payload, vocabulary=None, require_vocabulary=False):
         raise CommandRejected("命令必须严格符合四字段 JSON schema")
 
     verb = _normalise_term(payload["verb"], "动词")
+    verb = _COMMAND_ALIASES.get(verb, verb)
     direct = payload["object"]
     preposition = payload["preposition"]
     indirect = payload["indirect_object"]
@@ -242,7 +269,12 @@ def compile_model_command(model_text, vocabulary):
 
 
 def compile_user_command(command, vocabulary=None):
-    """Compile a direct English command without trusting raw text downstream."""
+    """Constrain one player's direct English line without narrowing dfrotz verbs.
+
+    Direct player input is not model output. dfrotz remains the authority on
+    verbs, grammar and visible objects. Model-produced commands still pass
+    through the strict four-field renderer and reliable vocabulary above.
+    """
     if not isinstance(command, str):
         raise CommandRejected("命令必须是字符串")
     if command != command.strip() or not _USER_COMMAND_RE.fullmatch(command):
@@ -250,33 +282,18 @@ def compile_user_command(command, vocabulary=None):
     words = command.lower().split()
     if not words:
         raise CommandRejected("命令为空")
-    verb = words[0]
-    payload = {"verb": verb, "object": None, "preposition": None, "indirect_object": None}
+    if _MULTI_COMMAND_TOKENS.intersection(words):
+        raise CommandRejected("命令含多命令连接词")
+    words[0] = _COMMAND_ALIASES.get(words[0], words[0])
+    return CompiledCommand(" ".join(words), _RENDER_TOKEN)
 
-    if verb in _DIRECTION_ALIASES or verb in _NO_OBJECT_VERBS:
-        if verb == "look" and len(words) > 1:
-            if len(words) < 3 or words[1] != "at":
-                raise CommandRejected("look 的宾语形式必须是 look at <object>")
-            payload["object"] = " ".join(words[2:])
-            payload["preposition"] = "at"
-        elif len(words) != 1:
-            raise CommandRejected(f"{verb} 后存在多余内容")
-    elif verb in _OBJECT_VERBS:
-        payload["object"] = " ".join(words[1:]) or None
-    elif verb in _RELATION_VERBS:
-        allowed = _RELATION_VERBS[verb]
-        positions = [i for i, word in enumerate(words[1:], 1) if word in allowed]
-        if len(positions) != 1:
-            raise CommandRejected(f"{verb} 必须包含一个受支持的介词")
-        position = positions[0]
-        payload["object"] = " ".join(words[1:position]) or None
-        payload["preposition"] = words[position]
-        payload["indirect_object"] = " ".join(words[position + 1:]) or None
-    else:
-        raise CommandRejected(f"不允许的动词: {verb}")
 
-    needs_vocabulary = payload["object"] is not None or payload["indirect_object"] is not None
-    return _render_payload(payload, vocabulary, require_vocabulary=needs_vocabulary)
+def _expects_filename_reply(command, response):
+    return (
+        command.text in {"save", "restore"}
+        and isinstance(response, str)
+        and bool(_FILENAME_PROMPT_RE.search(response))
+    )
 
 
 class GameRunner:
@@ -357,6 +374,12 @@ class GameRunner:
         if not isinstance(command, CompiledCommand):
             raise TypeError("dfrotz only accepts CompiledCommand values")
         self._write((command.text + "\n").encode("ascii"))
+
+    def send_filename_reply(self, reply):
+        """Reply to a detected save/restore filename prompt."""
+        if not isinstance(reply, FilenameReply):
+            raise TypeError("dfrotz filename prompts only accept FilenameReply values")
+        self._write((reply.text + "\n").encode("ascii"))
 
     @property
     def alive(self):
@@ -448,9 +471,10 @@ HELP_TEXT = """
 ║        检查、背包、等待                  ║
 ║  系统：存档、读档、退出                  ║
 ║                                          ║
-║  也可以输入完整的中文句子，如：          ║
-║    "拿起白色的伞" → take white umbrella  ║
-║    "仔细看那棵大树" → examine tree       ║
+║  可直接输入完整英文命令，如：             ║
+║    take white umbrella                    ║
+║    examine tree                           ║
+║  复杂中文翻译需由 API 提供可靠场景词表    ║
 ║                                          ║
 ║  输入 /原文  显示上次的英文原文          ║
 ║  输入 /帮助  显示此帮助信息              ║
@@ -483,6 +507,7 @@ def main():
     game = GameRunner(GAME_PATH)
 
     last_english = ""
+    awaiting_filename = False
 
     try:
         # 处理开头的 "[Press any key to begin.]"
@@ -509,9 +534,6 @@ def main():
             except EOFError:
                 break
 
-            if not user_input:
-                continue
-
             if user_input == "/原文":
                 print(f"\n--- 英文原文 ---\n{last_english}\n--- 原文结束 ---")
                 continue
@@ -520,16 +542,32 @@ def main():
                 print(HELP_TEXT)
                 continue
 
-            try:
-                english_cmd = translator.to_command(user_input)
-            except CommandRejected as exc:
-                print(f"  [命令被拒绝: {exc}]")
-                continue
-            print(f"  [{english_cmd.text}]")
-
-            game.send_command(english_cmd)
+            sent_command = None
+            if awaiting_filename:
+                try:
+                    filename_reply = compile_filename_reply(user_input)
+                except CommandRejected as exc:
+                    print(f"  [文件名被拒绝: {exc}]")
+                    continue
+                shown_filename = filename_reply.text or "<默认文件名>"
+                print(f"  [{shown_filename}]")
+                game.send_filename_reply(filename_reply)
+                awaiting_filename = False
+            else:
+                if not user_input:
+                    continue
+                try:
+                    sent_command = translator.to_command(user_input)
+                except CommandRejected as exc:
+                    print(f"  [命令被拒绝: {exc}]")
+                    continue
+                print(f"  [{sent_command.text}]")
+                game.send_command(sent_command)
             time.sleep(0.3)
             response = game.read_response()
+
+            if sent_command is not None and _expects_filename_reply(sent_command, response):
+                awaiting_filename = True
 
             if response:
                 last_english = response

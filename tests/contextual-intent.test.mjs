@@ -159,13 +159,15 @@ test("provider failure preserves the original parsed generic failure response", 
   assertOneTurn(game);
 });
 
-test("ask_user uses fixed local text and settles one turn without executing a candidate", async () => {
+test("ask_user uses fixed local text without advancing a turn or timer", async () => {
   const game = makeGame((request) => abstain(request, "ask_user"));
   await game.eng.processInput("do something with it");
   assert.equal(game.state.has("ball"), false);
   assert.equal(hasUnrecognized(game), false);
   assert.ok(game.output.some(({ text }) => text.includes("请说明你想做的一个动作")));
-  assertOneTurn(game);
+  assert.equal(game.state.turns, 0);
+  assert.equal(game.state.cnt("timer_ticks"), 0);
+  assert.equal(game.state.cnt("room_ticks"), 0);
 });
 
 for (const [name, mutate] of [
@@ -214,6 +216,29 @@ test("shadowed events and unavailable generic objects cannot be offered as candi
   game.eng.currentRoom().events.unshift({ id: "shadow", match: { verb: "take", noun: "umbrella" }, text: "shadow" });
   await game.eng.processInput("reach for it");
   assert.deepEqual(request.candidates.map(({ id }) => id), ["take_ball"]);
+});
+
+test("generic candidate cannot resolve through another item's alias", async () => {
+  let calls = 0;
+  const game = makeGame((request) => { calls++; return action(request); }, { candidates: [takeBall] });
+  game.eng.items = { decoy: { cn: "诱饵", aliases: ["ball"] }, ...game.eng.items };
+  game.state.placeItem("decoy", "palace_gate");
+  await game.eng.processInput("retrieve round thing");
+  assert.equal(calls, 0);
+  assert.equal(game.state.has("decoy"), false);
+  assert.equal(game.state.has("ball"), false);
+  assert.ok(hasUnrecognized(game));
+});
+
+test("unsupported mutable state containers decline selection instead of hiding revisions", async () => {
+  let calls = 0;
+  const game = makeGame((request) => { calls++; return action(request); });
+  game.state.custom = new Map([["revision", 1]]);
+  await game.eng.processInput("retrieve round thing");
+  assert.equal(calls, 0);
+  assert.equal(game.state.has("ball"), false);
+  assert.ok(hasUnrecognized(game));
+  assertOneTurn(game);
 });
 
 test("new input cancels a hung selection before the next complete turn begins", async () => {

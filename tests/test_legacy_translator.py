@@ -1,6 +1,8 @@
 import io
 import json
 import unittest
+from contextlib import redirect_stdout
+from unittest import mock
 
 import trinity_cn
 
@@ -107,12 +109,44 @@ class CommandCompilerTests(unittest.TestCase):
             )
 
     def test_user_ascii_is_compiled_and_multicommand_input_is_rejected(self):
-        command = trinity_cn.compile_user_command("look at tree", vocabulary())
+        command = trinity_cn.compile_user_command("look at tree")
         self.assertEqual(command.text, "look at tree")
         for raw in ("look\nquit", "look; quit", "look && quit", "look | quit"):
             with self.subTest(raw=raw):
                 with self.assertRaises(trinity_cn.CommandRejected):
                     trinity_cn.compile_user_command(raw, vocabulary())
+
+    def test_direct_english_object_command_needs_no_model_or_vocabulary(self):
+        client = FakeClient(response=model_json())
+        translator = trinity_cn.Translator(client=client)
+
+        command = translator.to_command("take white umbrella")
+
+        self.assertEqual(command.text, "take white umbrella")
+        self.assertEqual(client.models.calls, [])
+
+    def test_player_commands_keep_native_dfrotz_grammar(self):
+        for command in (
+            "buy bag", "feed birds", "look in pram", "x watch",
+            "get coin", "eat crumb", "rub hands",
+        ):
+            with self.subTest(command=command):
+                self.assertEqual(trinity_cn.compile_user_command(command).text, command)
+        with self.assertRaises(trinity_cn.CommandRejected):
+            trinity_cn.compile_user_command("take ball and drop it")
+
+    def test_classic_single_letter_aliases_are_rendered(self):
+        self.assertEqual(trinity_cn.compile_user_command("i").text, "inventory")
+        self.assertEqual(trinity_cn.compile_user_command("l").text, "look")
+        self.assertEqual(trinity_cn.compile_user_command("z").text, "wait")
+
+    def test_filename_reply_has_a_separate_restricted_renderer(self):
+        self.assertEqual(trinity_cn.compile_filename_reply("slot-1.sav").text, "slot-1.sav")
+        self.assertEqual(trinity_cn.compile_filename_reply("").text, "")
+        for filename in ("../slot", "folder/slot", "slot\nquit", "slot name"):
+            with self.subTest(filename=filename):
+                with self.assertRaises(trinity_cn.CommandRejected):
+                    trinity_cn.compile_filename_reply(filename)
 
     def test_vocabulary_schema_rejects_strings_and_embedded_newlines(self):
         with self.assertRaisesRegex(trinity_cn.CommandRejected, "必须是数组"):
@@ -151,6 +185,77 @@ class GameRunnerBoundaryTests(unittest.TestCase):
     def test_startup_keypress_has_separate_interface(self):
         self.runner.send_keypress()
         self.assertEqual(self.runner.proc.stdin.getvalue(), b"\n")
+
+    def test_filename_reply_has_a_separate_dfrotz_interface(self):
+        with self.assertRaises(TypeError):
+            self.runner.send_filename_reply("slot.sav")
+        reply = trinity_cn.compile_filename_reply("slot.sav")
+        self.runner.send_filename_reply(reply)
+        self.assertEqual(self.runner.proc.stdin.getvalue(), b"slot.sav\n")
+
+
+class MainInteractionTests(unittest.TestCase):
+    def test_main_accepts_objects_aliases_and_save_filename_without_model_calls(self):
+        class FakeTranslator:
+            def to_command(self, text):
+                return trinity_cn.compile_user_command(text)
+
+            def to_chinese(self, text):
+                return text
+
+        class FakeGame:
+            def __init__(self):
+                self.alive = True
+                self.commands = []
+                self.filename_replies = []
+                self.responses = iter((
+                    "",  # startup
+                    "Taken.",
+                    "You are carrying a white umbrella.",
+                    "Please enter a filename [trinity.sav]:",
+                    "Saved.",
+                    "Please enter a file name [trinity.sav]:",
+                    "Restored.",
+                ))
+                self.killed = False
+
+            def read_response(self, **_kwargs):
+                return next(self.responses)
+
+            def send_command(self, command):
+                self.commands.append(command.text)
+
+            def send_filename_reply(self, reply):
+                self.filename_replies.append(reply.text)
+
+            def kill(self):
+                self.killed = True
+
+        translator = FakeTranslator()
+        game = FakeGame()
+        user_inputs = (
+            "take white umbrella", "i",
+            "save", "slot1.sav",
+            "restore", "slot1.sav",
+            EOFError(),
+        )
+
+        with (
+            mock.patch.dict(trinity_cn.os.environ, {"GOOGLE_API_KEY": "test-key"}),
+            mock.patch.object(trinity_cn, "Translator", return_value=translator),
+            mock.patch.object(trinity_cn, "GameRunner", return_value=game),
+            mock.patch.object(trinity_cn.time, "sleep"),
+            mock.patch("builtins.input", side_effect=user_inputs),
+            redirect_stdout(io.StringIO()),
+        ):
+            trinity_cn.main()
+
+        self.assertEqual(
+            game.commands,
+            ["take white umbrella", "inventory", "save", "restore"],
+        )
+        self.assertEqual(game.filename_replies, ["slot1.sav", "slot1.sav"])
+        self.assertTrue(game.killed)
 
 
 if __name__ == "__main__":

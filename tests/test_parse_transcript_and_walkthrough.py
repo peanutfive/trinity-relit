@@ -1,6 +1,7 @@
 """Regression tests for auditable transcript parsing."""
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -43,6 +44,32 @@ class TranscriptParserTest(unittest.TestCase):
         self.assertEqual(hardcoded["source"]["kind"], "hardcoded_wabe_note")
         self.assertIn("Unverified", hardcoded["source"]["verification"])
         self.assertEqual(len(report["parsed_transcript"]), 2)
+
+    def test_real_transcript_includes_the_wabe(self):
+        path = ROOT / "prototype" / "trinity_transcript.txt"
+        records = parser.parse_transcript(path)
+        self.assertIn("the_wabe", [record["room_id"] for record in records])
+
+    def test_ambiguous_title_is_not_assigned_to_north_room(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.txt"
+            path.write_text(">>> look\nArborvitaes\nA path winds south.\n", encoding="utf-8")
+            record = parser.parse_transcript(path)[0]
+            self.assertIsNone(record["room_id"])
+            self.assertEqual(record["attribution"], "ambiguous_title")
+            self.assertEqual(record["room_candidates"], ["arborvitaes_n", "arborvitaes_s"])
+
+    def test_crlf_span_matches_displayed_description_and_frame_id_is_stable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.txt"
+            frame = ">>> look\r\nMeadow\r\n汉字 line\r\nAnother line\r\n"
+            path.write_bytes(frame.encode("utf-8"))
+            first = parser.parse_transcript(path)[0]
+            span = first["source"]["description"]
+            self.assertEqual(path.read_bytes()[span["byte_start"]:span["byte_end"]].decode("utf-8"), first["description"])
+            path.write_bytes((">>> wait\r\nNothing happens.\r\n" + frame).encode("utf-8"))
+            second = parser.parse_transcript(path)[0]
+            self.assertEqual(first["source"]["frame"]["id"], second["source"]["frame"]["id"])
 
 
 if __name__ == "__main__":

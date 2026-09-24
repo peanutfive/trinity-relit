@@ -147,7 +147,7 @@ function collectStaticLiterals(source) {
     } else if (source[index] === "'" || source[index] === '"' || source[index] === "`") {
       const start = index;
       const literal = source[index] === "`" ? readTemplateLiteral(source, index) : readQuotedLiteral(source, index);
-      if (!literal.dynamic) literals.push({ start, value: literal.value });
+      if (!literal.dynamic) literals.push({ start, end: literal.end, value: literal.value });
       index = literal.end;
     } else {
       index += 1;
@@ -160,15 +160,43 @@ function hasEnglish(text) { return /[A-Za-z]/.test(text); }
 function hasChinese(text) { return /[\u3400-\u9fff]/.test(text); }
 function normalizeText(text) { return text.replace(/\r\n/g, "\n").trim().replace(/\s+/g, " "); }
 
-function splitBilingualPairs(value) {
-  const segments = value.split(/\n[ \t]*\n+/).map((segment) => segment.trim()).filter(Boolean);
-  const pairs = [];
-  for (let index = 0; index < segments.length - 1; index += 1) {
-    if (hasEnglish(segments[index]) && hasChinese(segments[index + 1])) {
-      pairs.push({ english: segments[index], chinese: segments[index + 1] });
-      index += 1;
+function collectStaticExpressions(source) {
+  const expressions = [];
+  for (const literal of collectStaticLiterals(source)) {
+    const previous = expressions.at(-1);
+    if (previous && /^\s*\+\s*$/.test(source.slice(previous.end, literal.start))) {
+      previous.value += literal.value;
+      previous.end = literal.end;
+    } else {
+      expressions.push({ ...literal });
     }
   }
+  return expressions;
+}
+
+function splitBilingualPairs(value) {
+  const segments = value.split(/\r?\n+/).map((segment) => segment.trim()).filter(Boolean);
+  const pairs = [];
+  let english = [];
+  let chinese = [];
+  const flush = () => {
+    if (english.length && chinese.length) {
+      pairs.push({ english: english.join("\n\n"), chinese: chinese.join("\n\n") });
+    }
+    english = [];
+    chinese = [];
+  };
+  for (const segment of segments) {
+    if (hasChinese(segment)) {
+      if (english.length) chinese.push(segment);
+    } else if (hasEnglish(segment)) {
+      if (chinese.length) flush();
+      english.push(segment);
+    } else {
+      flush();
+    }
+  }
+  flush();
   return pairs;
 }
 
@@ -187,8 +215,19 @@ function reviewSignals(english, chinese) {
   return rubrics;
 }
 
-function makeId(file, english, chinese) {
-  const key = [file, normalizeText(english), normalizeText(chinese)].join("\0");
+function sourceOwner(source, offset) {
+  const prefix = source.slice(0, offset);
+  const ownerMatches = [...prefix.matchAll(/^  ([a-z][a-z0-9_]*): \{/gm)];
+  const owner = ownerMatches.at(-1);
+  const eventMatches = [...prefix.matchAll(/^\s+id:\s*["']([a-z][a-z0-9_]*)["']/gm)];
+  const event = eventMatches.at(-1);
+  if (!owner) return "module";
+  if (event && event.index > owner.index) return `${owner[1]}/event:${event[1]}`;
+  return owner[1];
+}
+
+function makeId(file, owner, english, chinese) {
+  const key = [file, owner, normalizeText(english), normalizeText(chinese)].join("\0");
   return `bi_${crypto.createHash("sha256").update(key).digest("hex").slice(0, 16)}`;
 }
 
@@ -197,14 +236,15 @@ function auditBilingualContent(inputPath = DEFAULT_INPUT, rootDir = REPOSITORY_R
   for (const filePath of walkJavaScriptFiles(inputPath)) {
     const source = fs.readFileSync(filePath, "utf8");
     const file = path.relative(rootDir, filePath).split(path.sep).join("/");
-    for (const literal of collectStaticLiterals(source)) {
+    for (const literal of collectStaticExpressions(source)) {
       const pairs = splitBilingualPairs(literal.value);
       pairs.forEach((pair, pairIndex) => {
-        const id = makeId(file, pair.english, pair.chinese);
+        const owner = sourceOwner(source, literal.start);
+        const id = makeId(file, owner, pair.english, pair.chinese);
         const signals = reviewSignals(pair.english, pair.chinese);
         items.push({
           id,
-          source: { file, line: lineAt(source, literal.start), pair: pairIndex + 1 },
+          source: { file, owner, line: lineAt(source, literal.start), pair: pairIndex + 1 },
           english: pair.english,
           chinese: pair.chinese,
           reviewRubrics: signals.map((signal) => signal.rubric),
@@ -215,14 +255,21 @@ function auditBilingualContent(inputPath = DEFAULT_INPUT, rootDir = REPOSITORY_R
   }
   items.sort((a, b) => a.source.file.localeCompare(b.source.file) || a.source.line - b.source.line || a.source.pair - b.source.pair || a.id.localeCompare(b.id));
   const seenIds = new Map();
+  const uniqueItems = [];
   for (const item of items) {
-    const occurrence = seenIds.get(item.id) || 0;
-    seenIds.set(item.id, occurrence + 1);
-    if (occurrence) item.id = `${item.id}_${occurrence + 1}`;
+    const previous = seenIds.get(item.id);
+    if (previous) {
+      previous.occurrences.push(item.source);
+    } else {
+      item.occurrences = [item.source];
+      seenIds.set(item.id, item);
+      uniqueItems.push(item);
+    }
   }
-  const reviewQueue = items.filter((item) => item.reviewRubrics.length > 0).map((item) => ({
+  const reviewQueue = uniqueItems.filter((item) => item.reviewRubrics.length > 0).map((item) => ({
     id: item.id,
     source: item.source,
+    occurrences: item.occurrences,
     english: item.english,
     chinese: item.chinese,
     reviewRubrics: item.reviewRubrics,
@@ -238,7 +285,7 @@ function auditBilingualContent(inputPath = DEFAULT_INPUT, rootDir = REPOSITORY_R
       "This report neither rewrites text nor certifies translation fidelity.",
       "Dynamic template expressions and non-JavaScript sources are outside this extractor's scope.",
     ],
-    items,
+    items: uniqueItems,
     reviewQueue,
   };
 }

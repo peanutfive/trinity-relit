@@ -103,6 +103,7 @@ function bindCandidate(engine, candidate) {
     if (!event || event.id !== action.eventId) return null;
   } else {
     if (event || !Object.hasOwn(engine.items, action.itemId)) return null;
+    if (engine._resolveItem(action.itemId) !== action.itemId) return null;
     const available = action.verb === "drop" ? engine.state.has(action.itemId) :
       engine.state.has(action.itemId) || engine.state.inRoom(action.itemId);
     if (!available) return null;
@@ -184,7 +185,12 @@ export class ContextualIntentBoundary {
       let result;
       if (value instanceof Set) result = ["set", [...value].map(encode)];
       else if (Array.isArray(value)) result = ["array", value.map(encode)];
-      else result = ["object", Object.keys(value).sort().map((key) => [key, encode(value[key])])];
+      else if (value === engine.state || Object.getPrototypeOf(value) === Object.prototype ||
+               Object.getPrototypeOf(value) === null) {
+        result = ["object", Object.keys(value).sort().map((key) => [key, encode(value[key])])];
+      } else {
+        throw new TypeError("Unsupported intent state value.");
+      }
       stack.delete(value);
       return result;
     };
@@ -232,7 +238,7 @@ export class ContextualIntentBoundary {
       if (choice.decision === "none") return false;
       if (choice.decision === "ask_user") {
         engine.ui.system("请说明你想做的一个动作，并说清目标和使用的物品。");
-        return true;
+        return "clarify";
       }
       const original = bindings.find(({ candidate }) => candidate.id === choice.candidateId);
       if (!original) return false;

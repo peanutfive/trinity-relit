@@ -9,6 +9,7 @@ them.
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 from dataclasses import dataclass
@@ -52,11 +53,11 @@ WABE_DESCRIPTIONS = {
 }
 
 TITLE_TO_ROOM = {
-    "Palace Gate": "palace_gate", "Flower Walk": "flower_walk", "Meadow": "meadow", "Summit": "summit",
+    "Palace Gate": "palace_gate", "Flower Walk": "flower_walk", "The Wabe": "the_wabe", "Meadow": "meadow", "Summit": "summit",
     "South Bog": "south_bog", "North Bog": "north_bog", "Bottom of Stairs": "bottom_of_stairs",
     "Vertex": "vertex", "Trellises": "trellises", "Arboretum": "arboretum",
     "Top of Arbor": "top_of_arbor", "North Arbor": "north_arbor", "South Arbor": "south_arbor",
-    "Arborvitaes": "arborvitaes_n",  # 两个共用
+    "Arborvitaes": None,  # 同名的南北房间不能仅凭标题判断
     "Chasm's Brink": "chasms_brink", "Waterfall": "waterfall", "Ice Cavern": "ice_cavern",
     "Under Cliff": "under_cliff", "Bluff": "bluff", "Cemetery": "cemetery", "Barrow": "barrow",
     "Ossuary": "ossuary", "Promontory": "promontory", "Cottage": "cottage",
@@ -76,6 +77,7 @@ class SourceLine:
     number: int
     byte_start: int
     byte_end: int
+    ending: str
 
 
 @dataclass
@@ -95,7 +97,7 @@ def _read_utf8_lines(path: os.PathLike[str] | str) -> list[SourceLine]:
         text = decoded.rstrip("\r\n")
         # This exact UTF-8 round trip locates content before any newline bytes.
         byte_end = byte_start + len(text.encode("utf-8"))
-        lines.append(SourceLine(text, number, byte_start, byte_end))
+        lines.append(SourceLine(text, number, byte_start, byte_end, decoded[len(text):]))
         byte_start += len(raw_line)
     return lines
 
@@ -123,6 +125,14 @@ def split_transcript_frames(path: os.PathLike[str] | str) -> list[TranscriptFram
 
 def _normalise_title(text: str) -> str:
     return " ".join(text.strip().split())
+
+
+def _frame_id(frame: TranscriptFrame) -> str:
+    """Content identity stays stable when other frames are inserted before it."""
+    content = frame.command + "\0" + "".join(
+        line.text + line.ending for line in frame.response
+    )
+    return "frame_" + hashlib.sha256(content.encode("utf-8")).hexdigest()[:20]
 
 
 def _description_lines(frame: TranscriptFrame, title_index: int) -> list[SourceLine]:
@@ -163,15 +173,20 @@ def parse_transcript(path: os.PathLike[str] | str) -> list[dict[str, Any]]:
 
         selected = frame.response[title_index]
         first, last = description_lines[0], description_lines[-1]
+        room_id = TITLE_TO_ROOM[title]
         records.append({
-            "room_id": TITLE_TO_ROOM[title],
+            "room_id": room_id,
+            "room_candidates": ["arborvitaes_n", "arborvitaes_s"] if title == "Arborvitaes" else [room_id],
+            "attribution": "ambiguous_title" if room_id is None else "title_map",
             "title": title,
-            "description": "\n".join(line.text.rstrip() for line in description_lines),
+            "description": "".join(line.text + (line.ending if index < len(description_lines) - 1 else "")
+                                   for index, line in enumerate(description_lines)),
             "source": {
                 "kind": "parsed_transcript",
                 "path": source_path,
                 "encoding": "utf-8",
                 "frame": {
+                    "id": _frame_id(frame),
                     "command": frame.command,
                     "command_line": frame.command_line.number,
                     "command_byte_start": frame.command_line.byte_start,

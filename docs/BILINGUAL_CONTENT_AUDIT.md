@@ -1,13 +1,13 @@
 # 双语内容审查
 
-`scripts/audit_bilingual_content.js` 从 `prototype/js/data/` 的静态 JavaScript 字符串中确定性提取英文段落及其紧随的中文段落。它不会 import 章节模块，因此不会运行游戏代码；也不会修改任何内容。
+`scripts/audit_bilingual_content.js` 从 `prototype/js/data/` 的静态 JavaScript 字符串中确定性提取英文段落及其紧随的中文段落。相邻的 `+` 拼接字面量会合并，英中段落之间可以是单换行或空行。它不会 import 章节模块，因此不会运行游戏代码；也不会修改任何内容。
 
 ```bash
 node scripts/audit_bilingual_content.js --out /tmp/bilingual-report.json
 node scripts/audit_bilingual_content.js --out /tmp/bilingual-report.json --dry-run /tmp/bilingual-review-request.json
 ```
 
-报告的 `id` 是相对源路径和规范化双语段落内容的 SHA-256 截断值。输出中没有时间戳，给定相同输入时内容与排序保持一致。相同文本在同一文件中重复时，后续记录加稳定的出现序号后缀以避免冲突。
+报告的 `id` 由相对源路径、词法定位的房间／事件或物品 owner，以及规范化双语段落内容计算。相同 owner 内完全相同的文本合并为一条，所有位置保存在 `occurrences`，因此插入同内容副本不会改变已有 ID。owner 是源代码的词法线索，不能证明运行时归属；改变 owner 或文本会产生新 ID。
 
 `reviewQueue` 是待人工审查的 advisory queue。词法信号把可能影响可玩性的文本归入以下 rubrics：
 
@@ -22,4 +22,4 @@ node scripts/audit_bilingual_content.js --out /tmp/bilingual-report.json --dry-r
 
 Jev 的任何结果都只是 advisory judgment，不能触发文本自动改写或构成翻译忠实度认证；`possible_mismatch` 和 `insufficient_context` 都应进入人工编辑复核。
 
-当前提取范围是本地 `.js` 文件中的静态字符串。带插值的模板字符串以及其他格式的内容会被明确排除，以避免执行或猜测动态内容。
+当前提取范围是本地 `.js` 文件中的静态字符串与直接 `+` 拼接。带插值的模板字符串、条件分支中的动态组合、经变量间接拼接的文本以及其他格式会被排除；报告不是全部可见文本的覆盖证明。

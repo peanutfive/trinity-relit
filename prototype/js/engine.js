@@ -198,6 +198,11 @@ export class GameEngine {
     const cmd = this.parser.parse(input);
     if (this.contextualIntent && classifyDeterministicIntent(this, cmd) === "unresolved") {
       const handled = await this.contextualIntent.tryHandle(this, input, token);
+      if (handled === "clarify") {
+        // Clarification is an interface prompt, not a game action or timer tick.
+        this.state.turns--;
+        return;
+      }
       if (handled) { this._postTurn(); return; }
     }
     if (cmd) {
