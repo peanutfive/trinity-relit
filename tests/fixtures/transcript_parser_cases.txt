@@ -1,0 +1,18 @@
+>>> look
+
+                                   Meadow
+An event-specific heading that is not the room description.
+
+Meadow
+A café beside the 汉字 marker.
+The grass is wet.
+>
+
+>>> examine marker
+The marker is legible.
+>
+
+>>> look
+ Meadow
+A later visit.
+>

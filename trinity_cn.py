@@ -10,13 +10,15 @@ import queue
 import time
 import sys
 import os
-
+import json
+import re
+from dataclasses import InitVar, dataclass
 try:
     from google import genai
 except ImportError:
-    print("错误：需要安装 google-genai 包")
-    print("运行: pip3 install google-genai")
-    sys.exit(1)
+    # Keep the command compiler importable for offline tests. The CLI still
+    # reports the missing optional dependency when Translator is constructed.
+    genai = None
 
 GAME_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -39,6 +41,259 @@ COMMAND_MAP = {
     "东北": "ne", "西北": "nw", "东南": "se", "西南": "sw",
     "是": "yes", "不": "no", "否": "no",
 }
+
+
+class CommandRejected(ValueError):
+    """A command was not safe enough to send to the game interpreter."""
+
+
+_TERM_RE = re.compile(r"^[a-z0-9]+(?:[ '-][a-z0-9]+)*$")
+_USER_COMMAND_RE = re.compile(r"^[A-Za-z0-9]+(?:[ '-][A-Za-z0-9]+)*$")
+_MAX_COMMAND_LENGTH = 120
+_MAX_MODEL_RESPONSE_LENGTH = 512
+_RENDER_TOKEN = object()
+_MULTI_COMMAND_TOKENS = frozenset({"and", "then"})
+_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_FILENAME_PROMPT_RE = re.compile(r"\b(?:file\s*name|filename)\b", re.IGNORECASE)
+_COMMAND_ALIASES = {"i": "inventory", "l": "look", "z": "wait"}
+
+_DIRECTION_ALIASES = {
+    "n": "n", "north": "n", "s": "s", "south": "s",
+    "e": "e", "east": "e", "w": "w", "west": "w",
+    "u": "u", "up": "u", "d": "d", "down": "d",
+    "ne": "ne", "northeast": "ne", "nw": "nw", "northwest": "nw",
+    "se": "se", "southeast": "se", "sw": "sw", "southwest": "sw",
+    "in": "in", "out": "out",
+}
+_NO_OBJECT_VERBS = frozenset({
+    "look", "inventory", "wait", "score", "quit", "yes", "no",
+    "save", "restore", "restart", "help", "verbose", "brief", "exit",
+})
+_OBJECT_VERBS = frozenset({
+    "take", "drop", "open", "close", "examine", "read", "wear",
+    "remove", "enter", "climb", "push", "pull", "turn", "move",
+    "search", "touch", "smell", "listen", "attack", "kiss", "wake",
+})
+_RELATION_VERBS = {
+    "look": frozenset({"at"}),
+    "put": frozenset({"in", "on"}),
+    "give": frozenset({"to"}),
+    "show": frozenset({"to"}),
+    "throw": frozenset({"at", "to"}),
+    "unlock": frozenset({"with"}),
+    "lock": frozenset({"with"}),
+    "cut": frozenset({"with"}),
+}
+_MODEL_KEYS = frozenset({"verb", "object", "preposition", "indirect_object"})
+
+
+def _normalise_term(value, label):
+    if not isinstance(value, str):
+        raise CommandRejected(f"{label} 必须是字符串")
+    value = value.lower()
+    if not value or len(value) > _MAX_COMMAND_LENGTH or not _TERM_RE.fullmatch(value):
+        raise CommandRejected(f"{label} 含有不受支持的字符")
+    if _MULTI_COMMAND_TOKENS.intersection(value.split()):
+        raise CommandRejected(f"{label} 含有多命令连接词")
+    return value
+
+
+@dataclass(frozen=True)
+class CommandVocabulary:
+    """Trusted terms visible in the current dfrotz scene.
+
+    ``scene`` contains fixed scenery nouns, ``items`` contains portable or
+    interactive object nouns, and ``exits`` contains direction names. Empty
+    groups are valid; ``reliable=False`` prevents model command compilation.
+    """
+
+    scene: tuple = ()
+    items: tuple = ()
+    exits: tuple = ()
+    reliable: bool = False
+
+    def __post_init__(self):
+        if not isinstance(self.reliable, bool):
+            raise CommandRejected("词表 reliable 标记必须是布尔值")
+        for label, terms in (("场景词", self.scene), ("物品词", self.items), ("出口词", self.exits)):
+            if not isinstance(terms, (tuple, list)):
+                raise CommandRejected(f"{label}表必须是数组")
+        scene = tuple(_normalise_term(term, "场景词") for term in self.scene)
+        items = tuple(_normalise_term(term, "物品词") for term in self.items)
+        exits = []
+        for term in self.exits:
+            normalised = _normalise_term(term, "出口词")
+            try:
+                exits.append(_DIRECTION_ALIASES[normalised])
+            except KeyError as exc:
+                raise CommandRejected(f"未知出口词: {normalised}") from exc
+        object.__setattr__(self, "scene", tuple(dict.fromkeys(scene)))
+        object.__setattr__(self, "items", tuple(dict.fromkeys(items)))
+        object.__setattr__(self, "exits", tuple(dict.fromkeys(exits)))
+
+    @property
+    def objects(self):
+        return frozenset(self.scene + self.items)
+
+
+@dataclass(frozen=True)
+class CompiledCommand:
+    """A single command that has passed schema validation and rendering."""
+
+    text: str
+    _proof: InitVar[object] = None
+
+    def __post_init__(self, _proof):
+        if _proof is not _RENDER_TOKEN:
+            raise CommandRejected("CompiledCommand 只能由 renderer 创建")
+        if not isinstance(self.text, str) or not _USER_COMMAND_RE.fullmatch(self.text):
+            raise CommandRejected("渲染结果不是合法的单条命令")
+        if len(self.text) > _MAX_COMMAND_LENGTH:
+            raise CommandRejected("命令过长")
+
+    def __str__(self):
+        return self.text
+
+
+@dataclass(frozen=True)
+class FilenameReply:
+    """A constrained reply to dfrotz's save/restore filename prompt."""
+
+    text: str
+    _proof: InitVar[object] = None
+
+    def __post_init__(self, _proof):
+        if _proof is not _RENDER_TOKEN:
+            raise CommandRejected("FilenameReply 只能由 filename renderer 创建")
+        if not isinstance(self.text, str):
+            raise CommandRejected("文件名回复必须是字符串")
+        if self.text and not _FILENAME_RE.fullmatch(self.text):
+            raise CommandRejected("文件名只能包含字母、数字、点、下划线和连字符")
+
+
+def compile_filename_reply(filename):
+    """Compile one filename reply; an empty reply accepts dfrotz's default."""
+    if not isinstance(filename, str) or filename != filename.strip():
+        raise CommandRejected("文件名含首尾空白或不是字符串")
+    return FilenameReply(filename, _RENDER_TOKEN)
+
+
+def _reject_duplicate_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise CommandRejected(f"模型 JSON 含重复字段: {key}")
+        result[key] = value
+    return result
+
+
+def _render_payload(payload, vocabulary=None, require_vocabulary=False):
+    if not isinstance(payload, dict) or set(payload) != _MODEL_KEYS:
+        raise CommandRejected("命令必须严格符合四字段 JSON schema")
+
+    verb = _normalise_term(payload["verb"], "动词")
+    verb = _COMMAND_ALIASES.get(verb, verb)
+    direct = payload["object"]
+    preposition = payload["preposition"]
+    indirect = payload["indirect_object"]
+    for label, value in (
+        ("object", direct), ("preposition", preposition),
+        ("indirect_object", indirect),
+    ):
+        if value is not None and not isinstance(value, str):
+            raise CommandRejected(f"{label} 必须是字符串或 null")
+
+    direct = _normalise_term(direct, "直接宾语") if direct is not None else None
+    preposition = _normalise_term(preposition, "介词") if preposition is not None else None
+    indirect = _normalise_term(indirect, "间接宾语") if indirect is not None else None
+
+    direction = _DIRECTION_ALIASES.get(verb)
+    if direction:
+        if any(value is not None for value in (direct, preposition, indirect)):
+            raise CommandRejected("方向命令不能包含其他字段")
+        verb = direction
+    elif verb in _NO_OBJECT_VERBS:
+        if verb == "look" and direct is not None:
+            if preposition != "at" or indirect is not None:
+                raise CommandRejected("look 的宾语形式必须是 look at <object>")
+        elif any(value is not None for value in (direct, preposition, indirect)):
+            raise CommandRejected(f"{verb} 不接受宾语")
+    elif verb in _OBJECT_VERBS:
+        if preposition is not None or indirect is not None:
+            raise CommandRejected(f"{verb} 不接受介词或间接宾语")
+    elif verb in _RELATION_VERBS:
+        if direct is None or indirect is None or preposition not in _RELATION_VERBS[verb]:
+            raise CommandRejected(f"{verb} 的命令结构无效")
+    else:
+        raise CommandRejected(f"不允许的动词: {verb}")
+
+    if require_vocabulary:
+        if vocabulary is None or not isinstance(vocabulary, CommandVocabulary):
+            raise CommandRejected("缺少显式场景/物品/出口词表")
+        if not vocabulary.reliable:
+            raise CommandRejected("场景/物品/出口词表未标记为可靠")
+        if direction and verb not in vocabulary.exits:
+            raise CommandRejected(f"当前词表没有出口: {verb}")
+        for noun in (direct, indirect):
+            if noun is not None and noun not in vocabulary.objects:
+                raise CommandRejected(f"当前词表没有对象: {noun}")
+
+    parts = [verb]
+    if direct is not None:
+        if verb == "look":
+            parts.extend(("at", direct))
+        else:
+            parts.append(direct)
+    if preposition is not None and verb != "look":
+        parts.extend((preposition, indirect))
+    return CompiledCommand(" ".join(parts), _RENDER_TOKEN)
+
+
+def compile_model_command(model_text, vocabulary):
+    """Validate strict model JSON and render one dfrotz command."""
+    if not isinstance(model_text, str):
+        raise CommandRejected("模型回复必须是文本")
+    if not model_text or len(model_text) > _MAX_MODEL_RESPONSE_LENGTH:
+        raise CommandRejected("模型回复为空或过长")
+    if not model_text.isascii() or any(ord(ch) < 32 or ord(ch) == 127 for ch in model_text):
+        raise CommandRejected("模型回复含非 ASCII 字符、换行或控制字符")
+    if ";" in model_text or "&&" in model_text or "||" in model_text:
+        raise CommandRejected("模型回复疑似包含多条命令")
+    try:
+        payload = json.loads(model_text, object_pairs_hook=_reject_duplicate_keys)
+    except CommandRejected:
+        raise
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise CommandRejected("模型回复不是单个合法 JSON 对象") from exc
+    return _render_payload(payload, vocabulary, require_vocabulary=True)
+
+
+def compile_user_command(command, vocabulary=None):
+    """Constrain one player's direct English line without narrowing dfrotz verbs.
+
+    Direct player input is not model output. dfrotz remains the authority on
+    verbs, grammar and visible objects. Model-produced commands still pass
+    through the strict four-field renderer and reliable vocabulary above.
+    """
+    if not isinstance(command, str):
+        raise CommandRejected("命令必须是字符串")
+    if command != command.strip() or not _USER_COMMAND_RE.fullmatch(command):
+        raise CommandRejected("命令含换行、分隔符或不受支持的字符")
+    words = command.lower().split()
+    if not words:
+        raise CommandRejected("命令为空")
+    if _MULTI_COMMAND_TOKENS.intersection(words):
+        raise CommandRejected("命令含多命令连接词")
+    words[0] = _COMMAND_ALIASES.get(words[0], words[0])
+    return CompiledCommand(" ".join(words), _RENDER_TOKEN)
+
+
+def _expects_filename_reply(command, response):
+    return (
+        command.text in {"save", "restore"}
+        and isinstance(response, str)
+        and bool(_FILENAME_PROMPT_RE.search(response))
+    )
 
 
 class GameRunner:
@@ -104,11 +359,27 @@ class GameRunner:
                 cleaned.append(line)
         return "\n".join(cleaned).strip()
 
-    def send(self, command):
+    def _write(self, data):
         if self.proc.poll() is not None:
             return
-        self.proc.stdin.write((command + "\n").encode("utf-8"))
+        self.proc.stdin.write(data)
         self.proc.stdin.flush()
+
+    def send_keypress(self):
+        """Send the one startup keypress requested by Trinity."""
+        self._write(b"\n")
+
+    def send_command(self, command):
+        """Send only a command produced by the validated renderer."""
+        if not isinstance(command, CompiledCommand):
+            raise TypeError("dfrotz only accepts CompiledCommand values")
+        self._write((command.text + "\n").encode("ascii"))
+
+    def send_filename_reply(self, reply):
+        """Reply to a detected save/restore filename prompt."""
+        if not isinstance(reply, FilenameReply):
+            raise TypeError("dfrotz filename prompts only accept FilenameReply values")
+        self._write((reply.text + "\n").encode("ascii"))
 
     @property
     def alive(self):
@@ -122,8 +393,13 @@ class GameRunner:
 class Translator:
     """使用 Google Gemini 进行游戏文本的中英互译。"""
 
-    def __init__(self, api_key):
-        self.client = genai.Client(api_key=api_key)
+    def __init__(self, api_key=None, client=None):
+        if client is not None:
+            self.client = client
+        elif genai is None:
+            raise RuntimeError("需要安装 google-genai 包: pip3 install google-genai")
+        else:
+            self.client = genai.Client(api_key=api_key)
         self.model = "gemini-2.0-flash"
 
     def to_chinese(self, english_text):
@@ -149,33 +425,38 @@ class Translator:
         except Exception as e:
             return f"[翻译出错: {e}]\n\n原文：\n{english_text}"
 
-    def to_command(self, chinese_input):
+    def to_command(self, chinese_input, vocabulary=None):
         chinese_input = chinese_input.strip()
         if not chinese_input:
-            return ""
+            raise CommandRejected("命令为空")
 
         if chinese_input.isascii():
-            return chinese_input
+            return compile_user_command(chinese_input, vocabulary)
 
         if chinese_input in COMMAND_MAP:
-            return COMMAND_MAP[chinese_input]
+            return compile_user_command(COMMAND_MAP[chinese_input], vocabulary)
+
+        if vocabulary is None or not isinstance(vocabulary, CommandVocabulary):
+            raise CommandRejected("缺少显式场景/物品/出口词表，未调用模型")
+        if not vocabulary.reliable:
+            raise CommandRejected("场景/物品/出口词表不可靠，未调用模型")
 
         prompt = (
             "你是 Infocom 文字冒险游戏命令翻译器。"
-            "将中文指令翻译成最简洁的英文游戏命令。\n"
-            "常见命令：看→look, 拿X→take X, 检查X→examine X, "
-            "打开X→open X, 北→n, 南→s, 东→e, 西→w\n"
-            "只输出英文命令本身，不加任何解释或标点。\n\n"
+            "把中文指令编译为一条命令的严格 JSON 对象。\n"
+            "对象必须且只能包含 verb、object、preposition、indirect_object 四个字段；"
+            "后三个字段不用时必须为 null。不要输出 Markdown、解释或换行。\n"
+            "只能使用提供的场景词、物品词和出口词；不要发明名词或出口。\n"
+            f"可信词表：{json.dumps({'scene': vocabulary.scene, 'items': vocabulary.items, 'exits': vocabulary.exits})}\n"
             f"中文指令：{chinese_input}"
         )
         try:
             resp = self.client.models.generate_content(
                 model=self.model, contents=prompt
             )
-            cmd = resp.text.strip().strip("`").strip('"').strip("'")
-            return cmd
-        except Exception:
-            return chinese_input
+        except Exception as exc:
+            raise CommandRejected("模型调用失败，命令未发送") from exc
+        return compile_model_command(resp.text, vocabulary)
 
 
 HELP_TEXT = """
@@ -190,9 +471,10 @@ HELP_TEXT = """
 ║        检查、背包、等待                  ║
 ║  系统：存档、读档、退出                  ║
 ║                                          ║
-║  也可以输入完整的中文句子，如：          ║
-║    "拿起白色的伞" → take white umbrella  ║
-║    "仔细看那棵大树" → examine tree       ║
+║  可直接输入完整英文命令，如：             ║
+║    take white umbrella                    ║
+║    examine tree                           ║
+║  复杂中文翻译需由 API 提供可靠场景词表    ║
 ║                                          ║
 ║  输入 /原文  显示上次的英文原文          ║
 ║  输入 /帮助  显示此帮助信息              ║
@@ -225,6 +507,7 @@ def main():
     game = GameRunner(GAME_PATH)
 
     last_english = ""
+    awaiting_filename = False
 
     try:
         # 处理开头的 "[Press any key to begin.]"
@@ -233,7 +516,7 @@ def main():
         if intro:
             last_english = intro
             # 发送回车跳过 "Press any key"
-            game.send("")
+            game.send_keypress()
             time.sleep(0.5)
             opening = game.read_response(timeout=5.0)
             if opening:
@@ -251,9 +534,6 @@ def main():
             except EOFError:
                 break
 
-            if not user_input:
-                continue
-
             if user_input == "/原文":
                 print(f"\n--- 英文原文 ---\n{last_english}\n--- 原文结束 ---")
                 continue
@@ -262,12 +542,32 @@ def main():
                 print(HELP_TEXT)
                 continue
 
-            english_cmd = translator.to_command(user_input)
-            print(f"  [{english_cmd}]")
-
-            game.send(english_cmd)
+            sent_command = None
+            if awaiting_filename:
+                try:
+                    filename_reply = compile_filename_reply(user_input)
+                except CommandRejected as exc:
+                    print(f"  [文件名被拒绝: {exc}]")
+                    continue
+                shown_filename = filename_reply.text or "<默认文件名>"
+                print(f"  [{shown_filename}]")
+                game.send_filename_reply(filename_reply)
+                awaiting_filename = False
+            else:
+                if not user_input:
+                    continue
+                try:
+                    sent_command = translator.to_command(user_input)
+                except CommandRejected as exc:
+                    print(f"  [命令被拒绝: {exc}]")
+                    continue
+                print(f"  [{sent_command.text}]")
+                game.send_command(sent_command)
             time.sleep(0.3)
             response = game.read_response()
+
+            if sent_command is not None and _expects_filename_reply(sent_command, response):
+                awaiting_filename = True
 
             if response:
                 last_english = response

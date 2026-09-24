@@ -48,7 +48,7 @@ npm run dev
 
 ### 方案 A：保留原作，加一层中文接口
 
-`trinity_cn.py` 不动原版游戏逻辑，只在外面包一层 Gemini API：游戏输出翻译成中文，玩家的中文输入翻译成游戏命令。
+`trinity_cn.py` 不动原版游戏逻辑，只在外面包一层 Gemini API：游戏输出翻译成中文。英文命令可以直接输入；中文方向等固定命令也可使用。复杂中文翻译需由集成方提供可信场景词表，当前 CLI 不自动启用这条路径。
 
 ```bash
 # 需要: dfrotz, python3, google-genai, Gemini API Key
@@ -56,19 +56,27 @@ python3 trinity_cn.py
 ```
 
 - 游戏输出实时翻译成简体中文
-- 支持中文指令输入（"往北走"、"拿起伞"）
+- 支持固定中文方向和系统指令；复杂中文动作编译接口需可信词表
 - 输入 `/原文` 显示上次英文原文
 
 ---
 
 ## 开发
 
+需要 Node.js ≥22.7（CI 使用 Node 22），无运行时或测试依赖。
+
 ```bash
+npm ci                 # 使用零依赖锁文件初始化
+npm test               # 无 DOM 的完整主线通关 + 图完整性测试
 npm run dev            # 本地起服务器
 npm run verify         # 章节规范校验（CHAPTER_RULES.md §10）
 npm run truth          # 从 TRINITY.DAT 生成出口真值表（需自备游戏文件）
 npm run verify:exits   # 把章节出口与 Z-machine 真值逐条比对
 ```
+
+测试通过真实中英文指令走完六扇蘑菇门、牧场和剪线结局；不会直接改房间或 flags。当前路线为 199 回合、73 个房间、21/100 分，覆盖边界与已发现的谜题缺口见 `SHIP_PLAN.md` 阶段 2。
+
+测试文件使用 `.mjs`；不要给根 `package.json` 添加 `"type": "module"`，否则既有 CommonJS 校验脚本会失效。Node 对浏览器 `.js` 模块可能输出 `MODULE_TYPELESS_PACKAGE_JSON` 提示，不影响测试。
 
 文档索引：
 

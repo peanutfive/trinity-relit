@@ -6,38 +6,14 @@ import { GameEngine } from "./engine.js";
 import { Parser } from "./parser.js";
 import { ui } from "./ui.js";
 import { ITEMS } from "./data/items.js";
-import { ROOMS as PROLOGUE } from "./data/prologue.js";
-
-// 按章节注册房间。preload: true 的章节随首屏加载；
-// 其余章节通过 loader 函数懒加载（动态 import）。
-const CHAPTERS = [
-  { id: "prologue", rooms: PROLOGUE, preload: true },
-  { id: "wabe", loader: () => import("./data/wabe.js") },
-  { id: "japan", loader: () => import("./data/japan.js") },
-  { id: "underground", loader: () => import("./data/underground.js") },
-  { id: "orbit", loader: () => import("./data/orbit.js") },
-  { id: "pacific", loader: () => import("./data/pacific.js") },
-  { id: "tundra", loader: () => import("./data/tundra.js") },
-  { id: "islet", loader: () => import("./data/islet.js") },
-  { id: "desert", loader: () => import("./data/desert.js") },
-  { id: "ranch", loader: () => import("./data/ranch.js") },
-  { id: "finale", loader: () => import("./data/finale.js") },
-];
-
-const CHAPTER_REGISTRY = new Map(CHAPTERS.map((c) => [c.id, c]));
-const PRELOADED_CHAPTERS = CHAPTERS.filter((c) => c.preload !== false).map((c) => c.id);
-
-const ALL_ROOMS = CHAPTERS.filter((c) => c.preload !== false).reduce((acc, chapter) => {
-  if (chapter.rooms) Object.assign(acc, chapter.rooms);
-  return acc;
-}, {});
+import { createChapterSource } from "./chapters.mjs";
 
 async function boot() {
   ui.setLoading("正在载入…", 0);
 
   const parser = new Parser();
   const engine = new GameEngine({
-    rooms: ALL_ROOMS,
+    ...createChapterSource(),
     items: ITEMS,
     parser,
     // 语义兜底目前未启用：engine.processInput 只走 parser 结构化匹配，
@@ -51,18 +27,6 @@ async function boot() {
     // 改成命中失败时按需懒加载，不要放回启动路径。
     embedding: null,
     ui,
-    chapterLoader: async (id) => {
-      const ch = CHAPTER_REGISTRY.get(id);
-      if (!ch) return null;
-      if (ch.rooms) return ch.rooms;
-      if (ch.loader) {
-        const mod = await ch.loader();
-        ch.rooms = mod.ROOMS || null;
-        return ch.rooms;
-      }
-      return null;
-    },
-    preloadedChapters: PRELOADED_CHAPTERS,
   });
 
   ui.hideLoading();

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "summary": {
+    "chapters": 11,
+    "rooms": 129,
+    "events": 115,
+    "triggers": 338,
+    "auditedTriggers": 333,
+    "matched": 267,
+    "structuralMisses": 37,
+    "unparsed": 29,
+    "withoutMatchDefinition": 5,
+    "unmatched": 66,
+    "recordsSha256": "d671f9bd25a0c2f90004b053defdeec194a6e1737b51bf00becc53db0008269a"
+  }
+}

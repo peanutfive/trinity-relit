@@ -681,7 +681,22 @@ export const ROOMS = {
       },
       {
         id: "throw_ball_tree",
-        match: { verb: ["throw", "hit", "toss"], noun: ["ball", "soccer", "足球", "球"], noun2: ["umbrella", "tree", "伞", "树"] },
+        match: {
+          alternatives: [
+            {
+              verb: ["throw", "toss"],
+              noun: ["ball", "soccer", "足球", "球"],
+              prep: "at",
+              noun2: ["umbrella", "tree", "伞", "树"],
+            },
+            {
+              verb: "hit",
+              noun: ["umbrella", "tree", "伞", "树"],
+              prep: "with",
+              noun2: ["ball", "soccer", "足球", "球"],
+            },
+          ],
+        },
         triggers: [
           "把球扔向树", "扔球打伞", "用球砸伞",
           "throw ball at tree", "throw ball at umbrella", "hit tree with ball",

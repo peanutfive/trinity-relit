@@ -1,6 +1,6 @@
 # 已实现机制 vs 计划子任务 对照表
 
-> 依据 `CHAPTER_PLAN.md` 逐章对照，随实现更新。  
+> 依据 `CHAPTER_PLAN.md` 逐章对照，随实现更新。阶段 2 的实际通关覆盖与缺口见 `SHIP_PLAN.md`；存在事件代码不等于玩家能完成该谜题。
 > 验证命令：`node scripts/verify_chapters_rules.js`
 
 ---
@@ -50,8 +50,8 @@
 |-----------------|------|------|
 | 从 Ossuary 蘑菇门进入（Pluto ♇） | ✅ | wabe ossuary in → activateChapter("underground") |
 | 需灯光、尸妖无光即死 | ✅ | hasLight(s)；underground_2 无光 eng.die |
-| 灯笼开/关、放中间再过尸妖 | ✅ | turn on lantern；drop lantern 设 lantern_dropped_middle |
-| 裂缝木片→石龙子、石龙子入口袋 | ✅ | put_splinter_into_crevice；take_skink；put_skink_in_pocket |
+| 灯笼开启、放中间再过尸妖 | ✅ | 当前 parser 可用 `turn lantern`；`drop lantern` 设 lantern_dropped_middle，通关已验证；关闭未实现 |
+| 裂缝木片→石龙子、石龙子入口袋 | ⬜ | 阶段 2 核查：当前 underground.js 中没有这些事件；旧表误记为完成 |
 | 白门回 Ossuary | ✅ | underground_1 out → ossuary |
 | 3 房间、子任务 4.1–4.4 | ✅ | 3 间，验证通过 |
 
@@ -87,7 +87,7 @@
 |-----------------|------|------|
 | 从 Herb Garden 蘑菇门进入（Libra ♎） | ✅ | wabe herb_garden in → activateChapter("tundra") |
 | 11 房间（含 tundra_1–8, under_platform, cliff_edge, platform） | ✅ | 11 间 |
-| 悬崖裂缝、旅鼠、笼子 | ✅ | cliff_edge 裂缝描述；lemming 放置；look/take/put_lemming_in_cage |
+| 悬崖裂缝、旅鼠、笼子 | 部分 | 旅鼠可取得；入笼事件存在，但 cage 无取得路径，无法实际完成 |
 | 白门回 Herb Garden | ✅ | tundra_1 out → herb_garden |
 | 隐蔽/时间限制机制 | ⬜ | 计划有；未单独实现 |
 | 子任务 7.1–7.4 | ✅ | 验证通过 |
@@ -99,8 +99,8 @@
 | 计划机制/子任务 | 状态 | 说明 |
 |-----------------|------|------|
 | 从 The River 蘑菇门/渡船到达（Alpha α） | ✅ | wabe the_river in → activateChapter("islet")，文案为「渡船」 |
-| **渡船/银币（Charon）** | ✅ | give silver coin to oarsman → ferry_paid，银币消耗 |
-| 白门→New Mexico Desert | ✅ | enter_door → activateChapter("desert") + moveTo("shack") |
+| **渡船/银币（Charon）** | 部分 | 付费事件存在，但 silver_coin 无取得路径；当前进入 Desert 白门不要求付费 |
+| 白门→New Mexico Desert | ✅ | enter_door → transitionChapter("desert") → shallow_crater |
 | 2 房间（islet, sand_bar） | ✅ | 2 间，两处均可进白门到 desert |
 | 子任务 8.1–8.4 | ✅ | 验证通过 |
 
@@ -127,7 +127,7 @@
 | 25 房间（室内/院子/水库/风车等） | ✅ | 实为 26 间（含 under_windmill），与计划一致 |
 | 与 Desert 互通（nw_ranch ↔ behind_shed） | ✅ | nw_ranch n → desert；behind_shed s → ranch |
 | Assembly Room、响尾蛇描述、壁橱 | ✅ | 描述中有 rattlesnake、closet 旅鼠/蛇谜题 |
-| **壁橱谜题（关门→开笼→开门→蛇杀旅鼠）** | ✅ | close door、open cage、open door 事件链；蛇杀旅鼠后 assembly_room 描述更新 |
+| **壁橱谜题（关门→开笼→开门→蛇杀旅鼠）** | 部分 | 事件链存在，但 cage 无来源；阶段 2 仅验证关门/开门，未凭空注入笼子或 flags |
 | 水库/水下/风车/风车下 | ✅ | 房间与出口均有；edge_reservoir u→windmill，windmill d→under_windmill |
 | 游泳/潜水机制（引擎扩展） | ⬜ | 计划🟡；当前为房间切换，无单独游泳状态 |
 | 子任务 10.1–10.7 | ✅ | 验证通过 |
