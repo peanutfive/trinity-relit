@@ -5,6 +5,24 @@
 const $ = (sel) => document.querySelector(sel);
 const MAX_LOG_NODES = 500;
 
+// 场景文本里英文原文和中文译文是同一个字符串，以空行分段。站点上两者
+// 用亮暗区分（原文亮，译文暗），这里按段落还原同一层次：含汉字的段落
+// 视作译文。中文段里夹着 "BBC"、"Broad Walk" 这类拉丁词不影响判断，
+// 英文段则不含汉字。
+const HAS_CJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/;
+
+function splitByLanguage(t) {
+  return String(t)
+    .split(/\n{2,}/)
+    .map((para) => para.trim())
+    .filter(Boolean)
+    .map((para) => {
+      const lang = HAS_CJK.test(para) ? "zh" : "en";
+      return `<div class="scene-text lang-${lang}">${para}</div>`;
+    })
+    .join("");
+}
+
 export const ui = {
   _append(html) {
     const el = document.createElement("div");
@@ -24,7 +42,7 @@ export const ui = {
   },
 
   text(t) {
-    this._append(`<div class="scene-text">${t}</div>`);
+    this._append(splitByLanguage(t));
   },
 
   userInput(t) {

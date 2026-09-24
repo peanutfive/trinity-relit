@@ -99,6 +99,11 @@ body {
   white-space: pre-wrap;
 }
 
+/* 原文亮，译文暗 —— 和站点上引用这段文字时的层次一致 */
+.scene-text.lang-en { color: var(--text); }
+.scene-text.lang-zh { color: var(--dim); }
+.scene-text.lang-zh + .scene-text.lang-en { margin-top: 18px; }
+
 .user-input {
   color: var(--bright);
   margin: 14px 0 4px 0;
