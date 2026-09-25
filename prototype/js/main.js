@@ -25,9 +25,15 @@ const CHAPTERS = [
 ];
 
 const CHAPTER_REGISTRY = new Map(CHAPTERS.map((c) => [c.id, c]));
-const PRELOADED_CHAPTERS = CHAPTERS.filter((c) => c.preload !== false).map((c) => c.id);
 
-const ALL_ROOMS = CHAPTERS.filter((c) => c.preload !== false).reduce((acc, chapter) => {
+// 判定必须是 preload === true，不能写成 preload !== false。
+// 懒加载章节根本没有 preload 字段，undefined !== false 为真，会把 11 章全部
+// 算进 PRELOADED_CHAPTERS；引擎据此认为它们都已装载，activateChapter 于是
+// 直接返回 true、loader 一次都不调用，章节房间永远进不到 rooms 里。
+const PRELOADED = CHAPTERS.filter((c) => c.preload === true);
+const PRELOADED_CHAPTERS = PRELOADED.map((c) => c.id);
+
+const ALL_ROOMS = PRELOADED.reduce((acc, chapter) => {
   if (chapter.rooms) Object.assign(acc, chapter.rooms);
   return acc;
 }, {});
