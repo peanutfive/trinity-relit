@@ -23,6 +23,25 @@
 - 说明：CI 已存在于 `deploy.yml` 的 check job，扩展它即可，不要另建 `check.yml`。详见 `SHIP_PLAN.md` 阶段 2。
 - 验收：`npm test` 通过；故意删掉 wabe 的一扇蘑菇门时测试失败。
 
+**2026-10-08 人类裁决：`codex/phase-2-walkthrough-ci` 先拆分，不按现状合并。**
+
+该分支实际改动 35 个文件，超出上方「涉及文件」范围，其中包含 `prototype/js/engine.js`
+（文件锁持有者为 Claude）、`parser.js`、`main.js`、`data/prologue.js`，并新建了运行时模块
+`contextual-intent.js`（256 行）与 `chapters.mjs`，以及 `.github/workflows/check.yml`。
+
+拆法：
+1. **范围内的测试与 CI 单独成支**，可独立评审合并。
+2. **越界的运行时改动另作提案**，由人类逐项判断。其中 `contextual-intent.js` 对应
+   `SHIP_PLAN.md` 阶段 1 末尾那条尚未拍板的待决事项「语义兜底是否恢复」，属产品决策。
+
+合并时务必注意（否则会静默损坏）：`chapters.mjs` 的 `chapterLoader` 只返回 `.ROOMS`，
+丢掉了 T2 在 `main.js` 里做的 `registerTimerHandlers(mod.TIMERS)` 登记。若该侧胜出，
+计时器回调在读档后不会被装回——不报错、无测试失败、`npm run verify` 也抓不到，
+只有玩家刷新页面后才暴露。必须把登记补进 `chapters.mjs` 的 loader。
+
+衔接：T1 的通关测试落地后，可直接驱动 `scripts/capture_original_text.mjs` 取全部 129 个
+房间的原版描述真值，用于 `scripts/audit_original_prose.mjs` 的 §0 审查。
+
 ### T2 阶段 3：存档 — Claude
 - 分支：`claude/save-system`
 - 状态：⬜
