@@ -17,7 +17,11 @@
 //
 // 用法:
 //   node scripts/crawl_real_map.mjs --dat "/path/TRINITY.DAT" [--json out.json]
-import { writeFileSync, openSync, closeSync, unlinkSync } from "node:fs";
+//   node scripts/crawl_real_map.mjs --dat "..." --prefix scripts/commands_prologue.txt
+//
+// --prefix 指定一份先于爬行重放的指令（例如序章通关指令），用来爬后续章节。
+// 每次探测都会完整重放它，所以 prefix 越长单次越慢，但保证每次探测的起点一致。
+import { writeFileSync, readFileSync, openSync, closeSync, unlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,13 +29,18 @@ const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? p
 const DAT = arg("dat");
 const DIRS = ["n","s","e","w","ne","nw","se","sw","u","d"];
 const OUT = arg("json");
+const PREFIX_FILE = arg("prefix");
+const PREFIX = PREFIX_FILE
+  ? readFileSync(PREFIX_FILE, "utf8").split("\n").map(l => l.trim())
+      .filter(l => l && !l.startsWith("#"))
+  : [];
 if (!DAT) { console.error("必须用 --dat 指定 TRINITY.DAT 路径（受版权保护，不在本仓库中）。"); process.exit(2); }
 
 let runs = 0;
 function play(cmds) {
   runs++;
   const f = join(tmpdir(), `cr_${process.pid}_${runs}.txt`);
-  writeFileSync(f, ["verbose", ...cmds, "quit", "y"].join("\n") + "\n");
+  writeFileSync(f, ["verbose", ...PREFIX, ...cmds, "quit", "y"].join("\n") + "\n");
   const fd = openSync(f, "r");
   try {
     const r = spawnSync("dfrotz", ["-q","-p","-h","200","-w","200", DAT],
@@ -42,7 +51,9 @@ function play(cmds) {
 // 状态行把房间名右对齐推到行尾，且只在房间变化时出现。
 // 取整个序列，才能分辨「第一步被打断、第二步才成功」。
 function roomSeq(out) {
-  return [...out.matchAll(/^>?\s{20,}([A-Z][A-Za-z' ]{2,30})\s*$/gm)].map(m => m[1].trim());
+  return [...out.matchAll(/^>?\s{20,}([A-Z][A-Za-z' ]{2,30})\s*$/gm)]
+    .map(m => m[1].trim())
+    .filter(n => !/\s{2,}/.test(n));   // 排除 "T  R  I  N  I  T  Y" 这类标题画面
 }
 const roomOf = (out) => { const s = roomSeq(out); return s.length ? s[s.length-1] : null; };
 

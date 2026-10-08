@@ -72,6 +72,16 @@
 
 `cottage.s -> cemetery` 经核查**不是笔误**。真值里没有任何已解析出口指向 Cemetery，其入口藏在未反汇编的 routine 中。删掉它会使 Barrow 与 Ossuary 蘑菇门所在的 **Underground 整章不可达**。已保留并登记进 `verify_exits_vs_zmachine.js` 的 `EXIT_DEVIATIONS`，定位到真实入口后应替换。
 
+> **2026-10-08 更新：真实入口已定位，是 Waterfall。**
+>
+> 用 `scripts/crawl_real_map.mjs` 跑真机爬出 wabe 地图，直接观察到
+> `Waterfall --n--> Cemetery` 与 `Cemetery --s--> Waterfall` 这一对双向出口；
+> 整轮 287 次探测中 **Cottage 一次都没有出现**。
+>
+> 也就是说 Cemetery 的入口并不在 routine 里，只是真值表没解析到而已。
+> 按本节原本的约定，`cottage.s -> cemetery` 应替换为 `waterfall.n -> cemetery`，
+> 并从 `EXIT_DEVIATIONS` 中移除这两条。改动涉及 `wabe.js`，尚未执行。
+
 ---
 
 ## 2.5 阶段 0.5 — 真值偏差评估（新增，待决策）
@@ -88,6 +98,33 @@
 
 **这些偏差是否阻塞主线通关，目前没有证据**——需要阶段 2 的通关测试才能回答。在那之前不要凭感觉判断严重性。
 
+### 2026-10-08：wabe 章真机实测（新增）
+
+`scripts/crawl_real_map.mjs` 以序章通关指令为前缀，从 Meadow 开始 BFS 爬行，
+287 次 dfrotz 运行，得到 26 个房间、107 条出口。与 `wabe.js` 比对后：
+
+| 类别 | 条数 | 说明 |
+|---|---|---|
+| 真机有、实现没有 | 15 | 含 `waterfall -> cemetery`、`arboretum -> north/south_arbor`、`craters_edge <-> crater` |
+| 方向存在但目标不同 | 1 | `cemetery.s`：真机通往 Waterfall，实现写的是 Cottage |
+| 实现有、真机走不到 | 3 | 均在 `meadow`（`s`/`e`/`w`）；真机的 Meadow 只有 `n`/`u` 通往 Summit |
+| u/d 冗余别名 | 1 | 不影响连通 |
+
+**真值表低估了偏差。** `verify_exits_vs_zmachine.js` 对 wabe 只报 3 项，
+真机实测影响连通性的有 19 项。这印证了本节「真实偏差数可能高于 115」的判断，
+原因就是真值表对 routine 出口一律宽容跳过。
+
+真机另有三个房间在实现中没有对应：**Halfway Up、Halfway Down、Darkness**。
+前两者与第 8 节「明确不做」里提到的 halfway 房间同名，需确认是否为同一处。
+
+**方法局限，结论按此折扣**：
+
+- 爬虫无道具无 flag，走不到带前置条件的出口。6 个实现房间未到达：
+  `top_of_arbor`、`ice_cavern`、`barrow`、`ossuary`、`cottage`、`herb_garden`，
+  其中多数在蘑菇门或光源之后，「真机走不到」不等于「真机没有」。
+- 实现里 `arborvitaes_n` / `arborvitaes_s` 同名，爬虫按房间名建键会把两间合并，
+  该房间的所有出口已整体排除、未参与比对。
+- Klein 瓶翻转会改变方向关系，Arboretum 一带的结果需要人工复核。
 ### 已知的工具局限
 
 - **通用阻挡 routine 未识别**。`454f0000` 一类 routine 在大量房间的多个方向上重复出现，实为「你不能往那走」。脚本目前对所有 routine 方向一律宽容跳过，因此**真实偏差数可能高于 115**。改进方法：统计 routine hex 的出现频次，高频者判为通用阻挡。
