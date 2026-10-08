@@ -12,6 +12,7 @@ $DOCS.zip
 trinity_objects.json
 trinity_strings.json
 trinity_print_strings.json
+trinity_strings_sample.json
 trinity_prologue_text.txt
 scripts/exit_truth.json
 
