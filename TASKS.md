@@ -65,7 +65,6 @@
 - 关键约束：只画走过的房间；不能用刚性网格布局（真值只有 68.9% 双向自洽，且 Klein 瓶翻转会改方向关系），用力导向；按章节分图。
 
 ## 发现的问题
-
 （任一 agent 在工作中发现的、超出自己任务范围的问题记在这里，由人类决定如何处理）
 
 - **T1 分支已远超其「涉及文件」范围，且与 T2 有实质冲突**（2026-09-24 由 Claude 在 T2 收尾时发现，供人类裁决）。
@@ -129,3 +128,26 @@
 - 不新增原版对话、不改地图、物品或英文剧情。状态：本地修复与验证完成，59/59 测试、规范、13 条真实模型语料、慢下载/重试/刷新缓存和买→喂鸟交互通过；按此前人类的合并部署授权进入发布流程。
 
 - T10 线上闭环：PR #4 已合并部署，公开站实际验证模型只下载一次、超时重试/刷新缓存/候选确认/买→喂鸟通过；59/59 远端测试。线上进一步发现“压缩传输提前显示 100%”，PR #5 修正为已接收字节量，并提供线上长等待验收参数。
+
+### T11 语义失败可诊断与下载稳健性 — pi（2026-10-12，待审查）
+- 背景：试玩反馈“模型加载失败时重试也无法恢复，也没有报错码可以辅助排查”，与上游 PR #4/#5 属于同一问题域，但上游只改了超时复用与进度文案，失败仍是无阶段的通用错误。
+- 范围：`prototype/js/{intent-worker,intent-model,main,ui}.js`、`tests/intent.test.mjs`、`prototype/SEMANTIC_PLAN.md`。**不动 `engine.js`，不引入设置层/同意流程**（设置层见 T13）。
+- 内容：失败阶段（runtime/download/initializing/infer/worker）+ 原始 message 经 `onFailure` 进调试面板；库内部未处理 rejection 不再升级成 Worker 死亡事件（否则会作废正在进行的下载，与 PR #4 目标相冲）；运行时 huggingface.co → hf-mirror.com 回退；进度补文件名与 initializing 阶段（替换按小文件 done 闪烁的写法，已就绪不再多闪“复用”）。
+- 验收：`npm test` 63/63、`npm run verify` 通过；浏览器实测冷启动无假 100%、初始化阶段可见、不可达源时镜像提示与 `stage=download` 诊断可见。
+
+### T12 语义失败归因与「更多」入口 — pi（2026-10-12，待审查）
+- 范围：新建 `prototype/js/intent-notice.js`、`tests/intent-notice.test.mjs`；修改 `ui.js`、`engine.js`（仅两行 `semanticHint?.()` 钩子）、`main.js`、`index.html`、`tests/boot-save.test.mjs`（stub 补 `setSemanticControls`/`semanticDebug`）、文档。
+- 内容：失败提示后的小字归因 + 「更多」弹窗（× 可关、可重复点开、失败类提供重试）；超时/取消不重复播报；弹窗里说明原版动词表限制。不改执行行为、不动设置层。
+- 验收：`npm test` 71/71、`npm run verify` 通过；浏览器实测归因小字、弹窗内容与 ×/重开交互。
+
+### T13 同意流程、设置层与取消语义 — pi（2026-10-12，待审查）
+- 范围：新建 `prototype/js/settings.js`；修改 `prototype/js/intent-notice.js`、`prototype/js/ui.js`、`tests/intent-notice.test.mjs`、文档。**不需要再改 engine.js**（钩子 T12 已加）。
+- 内容：设备级设置（默认 `ask`，与存档分离）；首次需要时先征求同意才下载；取消下载＝停止并写回 `off`；就绪后的取消只放弃当次；超时不改设置、不毁 Worker；「更多」菜单在开启态可关闭/重试。
+- 产品影响：首次自然语言输入不再自动开始下载模型，需玩家确认；其他行为不变。
+- 验收：`npm test` 77/77、`npm run verify` 通过；浏览器实测征求→拒绝→「更多」启用→自动重跑→候选确认执行。
+
+### T14 PR #6 审查修复 — Codex（2026-10-13）
+- 授权：人类要求“修复问题，再合并”，允许更新 Traveler0014 的 PR 并经检查合并部署。
+- 范围：`prototype/js/{intent,intent-model,intent-worker,intent-notice,ui}.js`、相关 tests / 浏览器验证脚本；TASKS、SHIP_PLAN、SEMANTIC_PLAN、progress。
+- 计划：取消保留已就绪模型与真实就绪通知 → 过期同意窗口失效、重试核对状态 → 修正原版动词说明 → 集成与浏览器回归 → CI → 合并部署。
+- 状态：👀 修复与本地验收完成，82/82 测试、规范及真实模型浏览器回归通过；出口无新增偏差。待远端 CI 后合并 PR #6；不改章节、地图、物品或原版英文剧情。

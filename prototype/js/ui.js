@@ -16,6 +16,16 @@ const escapeText = (value) => String(value).replace(/[&<>"']/g, ch => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[ch]);
 
+// 进度文案里给文件起个中文名字，玩家才知道百分比变化是换了文件。
+const FILE_LABELS = [
+  [/onnx\/.*\.onnx$/, "模型权重"],
+  [/^tokenizer(_config)?\.json$/, "分词器"],
+  [/^config\.json$/, "模型配置"],
+];
+function fileLabel(file) {
+  return FILE_LABELS.find(([pattern]) => pattern.test(file))?.[1] || String(file).split("/").pop() || "识别资源";
+}
+
 function splitByLanguage(t) {
   return String(t)
     .split(/\n{2,}/)
@@ -180,7 +190,17 @@ export const ui = {
     window.location.reload();
   },
 
+  // 决策层接管进度呈现（同意门控与取消语义都在它那里）后，这里不再自建面板。
   intentProgress(cancel) {
+    return this._semantic ? null : this.intentPanel(cancel);
+  },
+
+  // 决策层自己制面板时用（同意开启后、或已开启时的每一次识别）。
+  semanticProgress(cancel) {
+    return this.intentPanel(cancel);
+  },
+
+  intentPanel(cancel) {
     const box = document.createElement("div");
     box.className = "intent-panel system-msg";
     const status = document.createElement("span");
@@ -197,16 +217,111 @@ export const ui = {
         if (progress.status === "recognizing") status.textContent = "正在理解你的意思…";
         else if (progress.status === "loading") status.textContent = "首次使用正在准备语言模型，慢网可能需要几分钟；可以取消并使用标准指令。";
         else if (progress.status === "preparing") status.textContent = "正在复用已加载或正在准备的语言模型…";
-        else if (progress.status === "done") status.textContent = "资源文件已接收，正在准备语言模型…";
+        else if (progress.status === "initializing") status.textContent = "资源已接收，正在初始化语言模型（首次较慢），可取消…";
+        else if (progress.status === "mirror") status.textContent = "模型源站不可用，正在切换镜像下载…";
         else if (progress.status === "progress") {
-          // 压缩后的 Content-Length 可能小于解压后的已读字节，库会提前报 100%。
-          // 只展示已接收量，完成与否以 done/recognizing 事件为准。
-          const received = Number.isFinite(progress.loaded) ? ` · 当前文件已接收 ${(progress.loaded / 1048576).toFixed(1)} MB` : "";
-          status.textContent = `正在下载${progress.language === "zh" ? "中文" : "英文"}识别资源${received}（可取消）`;
+          // 库按 loaded/total 算百分比：响应头长度缺失（gzip 分块）或只是压缩长度时，
+          // total 会被顶成当前 loaded，百分比提前变 100%。只展示已接收量，
+          // 完成与否以 done / initializing / recognizing 事件为准。
+          const received = Number.isFinite(progress.loaded) ? ` · 已接收 ${(progress.loaded / 1048576).toFixed(1)} MB` : "";
+          status.textContent = `正在下载${progress.language === "zh" ? "中文" : "英文"}识别资源：${fileLabel(progress.file)}${received}（可取消）`;
         }
       },
       close: () => box.remove(),
     };
+  },
+
+  // 仅调试面板可见的技术明细（失败阶段 + 原始错误），玩家默认看不到。
+  semanticDebug(text) {
+    const el = document.createElement("div");
+    const visible = ($("#debug-toggle")?.textContent || "").includes("开");
+    el.className = `debug-info${visible ? " visible" : ""}`;
+    el.textContent = text;
+    this._appendEl(el);
+  },
+
+  // 失败提示后的轻量入口：归因小字 + 一个小链接，详细说明在弹窗里。
+  semanticHint() {
+    if (!this._semantic) return;
+    const line = document.createElement("div");
+    line.className = "hint-line";
+    const cause = this._semantic.cause?.();
+    if (cause) {
+      const note = document.createElement("span");
+      note.className = "hint-cause";
+      note.textContent = cause;
+      line.append(note, document.createTextNode(" · "));
+    }
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "hint-link";
+    link.textContent = "更多";
+    // 不设 once：关掉菜单后同一条目还能再点开。
+    link.addEventListener("click", () => this._semantic.onMore());
+    line.appendChild(link);
+    this._appendEl(line);
+  },
+
+  // 通用确认菜单：标题 + 说明 + 动作按钮，右上角 × 关闭，Escape 视为取消。
+  // 同时只允许一个，避免旧日志里的「更多」叠加出多个面板。
+  semanticDialog({ title, body, actions, signal }) {
+    if (signal?.aborted || this._dialogOpen) return Promise.resolve(null);
+    return new Promise(resolve => {
+      this._dialogOpen = true;
+      const box = document.createElement("div");
+      box.className = "intent-panel system-msg";
+      const head = document.createElement("div");
+      head.className = "dialog-head";
+      const heading = document.createElement("div");
+      heading.className = "dialog-title";
+      heading.textContent = title;
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "dialog-close";
+      close.textContent = "×";
+      close.setAttribute("aria-label", "关闭");
+      head.append(heading, close);
+      const content = document.createElement("div");
+      content.className = "dialog-body";
+      content.textContent = body;
+      const row = document.createElement("div");
+      row.className = "dialog-actions";
+      let finished = false;
+      const abort = () => finish(null);
+      const finish = (action) => {
+        if (finished) return;
+        finished = true;
+        signal?.removeEventListener("abort", abort);
+        this._dialogOpen = false;
+        box.replaceChildren(Object.assign(document.createElement("div"), {
+          className: "resume-chosen",
+          textContent: `· ${action?.done || "已关闭"}`,
+        }));
+        resolve(action ? action.value : null);
+      };
+      signal?.addEventListener("abort", abort, { once: true });
+      close.addEventListener("click", () => finish(null), { once: true });
+      for (const action of actions) {
+        const button = document.createElement("button");
+        button.className = "btn" + (action.primary ? " btn-primary" : "");
+        button.textContent = action.label;
+        button.addEventListener("click", () => finish(action), { once: true });
+        row.appendChild(button);
+      }
+      box.append(head, content, row);
+      this._appendEl(box);
+      box.addEventListener("keydown", event => { if (event.key === "Escape") finish(null); });
+      // 不聚焦主按钮：提交命令的回车尚未抬起时对话框已出现，
+      // 焦点在主按钮上会被同一/下一次回车误触发送动作。
+      // 聚焦容器本身：Escape 直接可用，按钮用 Tab 到达。
+      box.tabIndex = -1;
+      box.focus();
+    });
+  },
+
+  // 语义层注入：失败提示找得到弹菜单的回调与归因。
+  setSemanticControls({ onMore, cause }) {
+    this._semantic = { onMore, cause };
   },
 
   chooseIntent(choices) {
