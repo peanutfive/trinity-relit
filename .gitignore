@@ -37,3 +37,6 @@ wabe*.qzl
 
 # Downloaded, licensed inference assets (prepare-intent-assets.mjs)
 prototype/vendor/intent/
+
+# Local original-game research: sources, transcripts, indexes and REA evidence
+.local-research/

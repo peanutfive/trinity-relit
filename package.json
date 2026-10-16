@@ -15,6 +15,7 @@
     "verify:exits": "node scripts/verify_exits_vs_zmachine.js",
     "truth": "python3 scripts/extract_exit_truth.py --json scripts/exit_truth.json",
     "test": "node --test tests/*.test.mjs",
-    "prepare:models": "node scripts/prepare-intent-assets.mjs"
+    "prepare:models": "node scripts/prepare-intent-assets.mjs",
+    "research": "node scripts/original-research/cli.mjs"
   }
 }

@@ -1,0 +1,534 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "16a024ce6bc5b9da85f42e65d7f9fd93b32c808c",
+  "target": {
+    "release": 12,
+    "serial": "860926"
+  },
+  "evidencePolicy": "仅 commands/符号/中文观察入库；原版响应和源码索引保存在本地。runtime-verified 表示人工在目标发行版执行过；source-output 只检查至少一个足够长的源码字面量命中，不等同完整分支断言。",
+  "pilots": [
+    {
+      "id": "old_woman_umbrella",
+      "title": "老妇人、吹伞与取伞",
+      "symbols": [
+        {
+          "file": "people.zil",
+          "name": "JWOMAN-F"
+        },
+        {
+          "file": "places.zil",
+          "name": "LAN-GATE-F"
+        },
+        {
+          "file": "places.zil",
+          "name": "SEE-JWOMAN?"
+        },
+        {
+          "file": "events.zil",
+          "name": "I-BLOW"
+        },
+        {
+          "file": "things.zil",
+          "name": "PARASOL-F"
+        },
+        {
+          "file": "things.zil",
+          "name": "TREE-SWITCH"
+        }
+      ],
+      "cases": [
+        {
+          "id": "woman_help",
+          "commands": [
+            "verbose",
+            "n",
+            "ne",
+            "e",
+            "help woman",
+            "find woman",
+            "score"
+          ],
+          "description": "向尚未离开的老妇人求助或表示帮助，然后寻找已离开者。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "people.zil",
+              "symbol": "JWOMAN-F",
+              "minLength": 16,
+              "commandIndex": 4
+            },
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-BLOW",
+              "minLength": 16,
+              "commandIndex": 4
+            }
+          ],
+          "observations": [
+            "面容响应与吹伞均发生；没有成功替她撑伞的结果。",
+            "原版最后为 0 分、3 moves；接近事件以 RFATAL 返回，不能假定所有已识别输入都增加回合。"
+          ]
+        },
+        {
+          "id": "woman_ask",
+          "commands": [
+            "verbose",
+            "n",
+            "ne",
+            "e",
+            "ask woman about umbrella",
+            "ask woman about umbrella",
+            "score"
+          ],
+          "description": "询问伞与重复询问。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "people.zil",
+              "symbol": "JWOMAN-F",
+              "minLength": 16,
+              "commandIndex": 4
+            },
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-BLOW",
+              "minLength": 16,
+              "commandIndex": 4
+            }
+          ],
+          "observations": [
+            "首次出现说话受阻分支、面容与吹伞；重复询问提示老妇人已经离开。",
+            "原版最后为 0 分、3 moves。"
+          ]
+        },
+        {
+          "id": "woman_wait",
+          "commands": [
+            "verbose",
+            "n",
+            "ne",
+            "e",
+            "wait",
+            "find woman",
+            "score"
+          ],
+          "description": "等待排队的吹伞事件，不主动查看老妇人。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-BLOW",
+              "minLength": 16,
+              "commandIndex": 4
+            }
+          ],
+          "observations": [
+            "等待可直接吹伞，不先显示面容叙述。",
+            "原版最后为 0 分、4 moves。"
+          ]
+        },
+        {
+          "id": "woman_unknown",
+          "commands": [
+            "verbose",
+            "n",
+            "ne",
+            "e",
+            "score",
+            "xyzzyfoo",
+            "score",
+            "wait",
+            "score"
+          ],
+          "description": "比较未知单词前后回合数，再等待触发剧情。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-BLOW",
+              "minLength": 16,
+              "commandIndex": 7
+            }
+          ],
+          "observations": [
+            "两次 score 都为 3 moves，未知单词没有使吹伞发生。",
+            "wait 后变为 4 moves 并吹伞；数值与时序为人工核对，不由 source-output 片段检查单独证明。"
+          ]
+        },
+        {
+          "id": "umbrella_early",
+          "commands": [
+            "verbose",
+            "e",
+            "take ball",
+            "n",
+            "n",
+            "throw ball at umbrella",
+            "throw ball at umbrella",
+            "take umbrella",
+            "score"
+          ],
+          "description": "立即投球触发接近场景，再投球取下伞。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "PARASOL-F",
+              "minLength": 16,
+              "commandIndex": 5
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "TREE-SWITCH",
+              "minLength": 16,
+              "commandIndex": 6
+            }
+          ],
+          "observations": [
+            "第一次投球被伞仍在老妇人手上的接近场景取代。",
+            "第二次投球使球留树上、伞落地；take 后总分 6（球 1、伞 5）。"
+          ]
+        },
+        {
+          "id": "umbrella_ball",
+          "commands": [
+            "verbose",
+            "e",
+            "take ball",
+            "n",
+            "n",
+            "look",
+            "take umbrella",
+            "throw ball at umbrella",
+            "take umbrella",
+            "take umbrella",
+            "score"
+          ],
+          "description": "等待吹伞、尝试直接取树上伞、用球换取伞及重复拿取。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-BLOW",
+              "minLength": 16,
+              "commandIndex": 5
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "TREE-SWITCH",
+              "minLength": 16,
+              "commandIndex": 7
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "PARASOL-F",
+              "minLength": 16,
+              "commandIndex": 8
+            }
+          ],
+          "observations": [
+            "直接拿树上伞失败；投球后可拿，重复拿不重复加分。",
+            "最终总分 6、9 moves。"
+          ]
+        }
+      ],
+      "unknowns": [
+        "返场循环时 TR? 为真的结局分支尚未真机复现。",
+        "中文“帮她撑伞”与哪个原版英文动作对应属于解析产品决策；不能把 help woman 视为实际撑伞成功。"
+      ]
+    },
+    {
+      "id": "round_pond_paper_bird",
+      "title": "圆池塘纸鸟与线索",
+      "symbols": [
+        {
+          "file": "places.zil",
+          "name": "ROUND-POND-F"
+        },
+        {
+          "file": "events.zil",
+          "name": "I-CRANE-APPEARS"
+        },
+        {
+          "file": "things.zil",
+          "name": "CRANE-F"
+        },
+        {
+          "file": "things.zil",
+          "name": "HANDLE-OPEN-BIRD?"
+        },
+        {
+          "file": "things.zil",
+          "name": "FUMBLE"
+        }
+      ],
+      "cases": [
+        {
+          "id": "paper_timing",
+          "commands": [
+            "verbose",
+            "e",
+            "n",
+            "w",
+            "take paper bird",
+            "take paper bird",
+            "score"
+          ],
+          "description": "入场即反复拿尚未出现的纸鸟。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "places.zil",
+              "symbol": "ROUND-POND-F",
+              "minLength": 16,
+              "commandIndex": 3
+            }
+          ],
+          "observations": [
+            "连续两次都不可见，最后仍为 0 分、3 moves。",
+            "不能依靠不可见对象的失败输入让纸鸟出现；需要有效回合。"
+          ]
+        },
+        {
+          "id": "paper",
+          "commands": [
+            "verbose",
+            "e",
+            "n",
+            "w",
+            "look",
+            "read paper bird",
+            "unfold paper bird",
+            "take paper bird",
+            "take paper bird",
+            "read paper bird",
+            "unfold paper bird",
+            "unfold paper",
+            "read paper",
+            "fold paper",
+            "inventory",
+            "score"
+          ],
+          "description": "纸鸟出现、未持有展开失败、拿取/重复、展开/重复、阅读与折回失败。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "events.zil",
+              "symbol": "I-CRANE-APPEARS",
+              "minLength": 16,
+              "commandIndex": 4
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "CRANE-F",
+              "minLength": 16,
+              "commandIndex": 7
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "HANDLE-OPEN-BIRD?",
+              "minLength": 16,
+              "commandIndex": 12
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "FUMBLE",
+              "minLength": 16,
+              "commandIndex": 13
+            }
+          ],
+          "observations": [
+            "look 后出现纸鸟；首次拿取加 3 分，重复不再加分。",
+            "折叠时阅读要求先展开；未持有不能展开。",
+            "展开后持有的是 OCRANE 对应的纸；再次展开无效，不能自己重新折成鸟。",
+            "最终 3 分、12 moves；没有验证纸在后续章节的全部用途。"
+          ]
+        },
+        {
+          "id": "paper_damage",
+          "commands": [
+            "verbose",
+            "e",
+            "n",
+            "w",
+            "look",
+            "take paper bird",
+            "hit paper bird",
+            "read paper",
+            "fold paper",
+            "score"
+          ],
+          "description": "击打纸鸟得到皱纸，验证线索和重新折叠失败。",
+          "status": "runtime-verified",
+          "checks": [
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "CRANE-F",
+              "minLength": 16,
+              "commandIndex": 6
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "HANDLE-OPEN-BIRD?",
+              "minLength": 16,
+              "commandIndex": 7
+            },
+            {
+              "type": "source-output",
+              "file": "things.zil",
+              "symbol": "FUMBLE",
+              "minLength": 16,
+              "commandIndex": 8
+            }
+          ],
+          "observations": [
+            "hit 将鸟转为 BAD-CRANE 对应的皱纸；仍能读线索，自己折回失败。",
+            "最终 3 分、8 moves。"
+          ]
+        }
+      ],
+      "unknowns": [
+        "LIGHTED 发光状态、女孩折纸和后续乘鸟分支尚未作为本试点复现。",
+        "FLIPPED 导致的反向文字、放入水中及所有破坏动词未全部覆盖。"
+      ]
+    },
+    {
+      "id": "ranch_reservoir",
+      "title": "Ranch 水库、屏息及物品后果",
+      "symbols": [
+        {
+          "file": "places.zil",
+          "name": "ENTER-RESERVOIR"
+        },
+        {
+          "file": "places.zil",
+          "name": "INTO-RESERVOIR"
+        },
+        {
+          "file": "places.zil",
+          "name": "IN-CIST-D"
+        },
+        {
+          "file": "places.zil",
+          "name": "RISE-TO-SURFACE"
+        },
+        {
+          "file": "events.zil",
+          "name": "I-HOLD-BREATH"
+        },
+        {
+          "file": "things.zil",
+          "name": "RESERVOIR-F"
+        },
+        {
+          "file": "things.zil",
+          "name": "DO-DROWN"
+        },
+        {
+          "file": "things.zil",
+          "name": "SPILL-MILL"
+        },
+        {
+          "file": "verbs.zil",
+          "name": "RESERVOIR-BLOCKS"
+        },
+        {
+          "file": "things.zil",
+          "name": "WTK-F"
+        }
+      ],
+      "cases": [
+        {
+          "id": "reservoir_enter_exit",
+          "preconditionSymbol": "SCIST",
+          "commands": [
+            "up",
+            "in",
+            "south",
+            "down"
+          ],
+          "description": "从水库南侧登台阶、入水、爬回边缘再下台阶；入水前有物品副作用，不能只迁移坐标。",
+          "status": "static-only",
+          "checks": []
+        },
+        {
+          "id": "reservoir_breath",
+          "preconditionSymbol": "IN-CIST",
+          "commands": [
+            "down",
+            "wait",
+            "wait",
+            "wait"
+          ],
+          "description": "下潜时若尚未屏息则设 BREATH-HELD? 为 4，排队 I-HOLD-BREATH；警告及自动上浮的确切命令边界待真机核验。",
+          "status": "static-only",
+          "checks": []
+        },
+        {
+          "id": "reservoir_walls",
+          "preconditionSymbol": "UNDER-WATER",
+          "commands": [
+            "north",
+            "down",
+            "up"
+          ],
+          "description": "水下水平八方向撞壁、再下到底提示，up/out 返回水面；需光源与屏息前置的真机核验。",
+          "status": "static-only",
+          "checks": []
+        },
+        {
+          "id": "reservoir_items",
+          "preconditionSymbol": "ON-CIST",
+          "commands": [
+            "in",
+            "inventory"
+          ],
+          "description": "分别携带 WTK、BAG、EBAG 及内嵌容器入水，源码显示受潮标志、浸湿与物品替换；暂未在目标发行版观察内部状态。",
+          "status": "static-only",
+          "checks": []
+        },
+        {
+          "id": "reservoir_caged_animals",
+          "preconditionSymbol": "ON-CIST",
+          "commands": [
+            "in"
+          ],
+          "description": "携带 CAGE 时 DO-DROWN 检查 LEM/MAGPIE/MEEP 并替换为对应死亡对象；不表示玩家溺死。",
+          "status": "static-only",
+          "checks": []
+        },
+        {
+          "id": "reservoir_mill_spill",
+          "preconditionSymbol": "IN-MILL",
+          "commands": [],
+          "description": "SPILL-MILL 涉及台面坍塌、物品转移及动物状态，触发路线与载重/计时条件尚未复现；不能直接执行例程充作正常玩法。",
+          "status": "static-only",
+          "checks": []
+        }
+      ],
+      "unknowns": [
+        "本轮没有从开局到 Ranch 水库的原版正常指令路线或已知版本存档，全部水库分支仅为源码线索。",
+        "原版开发快照与 Release 12/860926 的一致性、物品副作用、屏息确切命令边界和风车坍塌仍须发行版真机验证。",
+        "后续先建立到 SCIST 的正常玩法存档并验证原版指纹，再逐一执行本表后缀；不通过修改内存或直接调用例程冒充正常路线。"
+      ]
+    }
+  ]
+}

@@ -106,3 +106,7 @@ Trinity (1986) 的著作权归属 Infocom / Activision。本项目是非商业�
 ## License
 
 项目代码采用 [MIT](./LICENSE)。原版文本的权利不在此授权范围内。
+
+## 原版研究工具
+
+新增开发期原版研究入口 `npm run research -- --help`，支持固定版本源码获取与索引、原版逐命令采集、三个谜题试点和 REA 证据采集/比较。先看[开发计划](docs/ORIGINAL_RESEARCH_PLAN.md)、[使用说明](docs/ORIGINAL_RESEARCH.md)和[试点规格](docs/ORIGINAL_PILOTS.md)。原版资料与派生证据只保留本地；水库及全章覆盖仍有明确未验证项。

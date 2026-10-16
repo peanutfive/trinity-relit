@@ -150,4 +150,12 @@
 - 授权：人类要求“修复问题，再合并”，允许更新 Traveler0014 的 PR 并经检查合并部署。
 - 范围：`prototype/js/{intent,intent-model,intent-worker,intent-notice,ui}.js`、相关 tests / 浏览器验证脚本；TASKS、SHIP_PLAN、SEMANTIC_PLAN、progress。
 - 计划：取消保留已就绪模型与真实就绪通知 → 过期同意窗口失效、重试核对状态 → 修正原版动词说明 → 集成与浏览器回归 → CI → 合并部署。
-- 状态：👀 修复与本地验收完成，82/82 测试、规范及真实模型浏览器回归通过；出口无新增偏差。待远端 CI 后合并 PR #6；不改章节、地图、物品或原版英文剧情。
+- 状态：👀 修复与本地验收完成，82/82 测试、规范及真实模型浏览器回归通过；出口无新增偏差。PR #6 已于 2026-10-13 合并部署；不改章节、地图、物品或原版英文剧情。
+
+### T15 原版研究与 REA 接入 — Codex（2026-10-16）
+- 人类要求先生成开发计划并按计划实施，明确允许 subagents 协作。
+- 分支：`codex/original-research`；基线 main 57c5f9d。
+- 涉及文件：`docs/ORIGINAL_RESEARCH*.md`、`docs/{REA_ADAPTER,ORIGINAL_PILOTS}.md`、`scripts/original-research/`、`research/pilots.json`、相关 `tests/*research*` / `tests/rea-adapter.test.mjs`、package.json（仅研究命令）、.gitignore、README、TASKS、SHIP_PLAN、progress。
+- 分工与 P0–P5 验收：见开发计划。子代理分别持有 ZIL 索引、REA 适配、试点规格；主代理持有公共入口、运行器、基线、报告与共享文档。
+- 不涉及游戏运行时、章节、物品和地图；原版与源码/派生证据均不提交。
+- 状态：👀 P0–P5 本地交付完成，105/105测试、规范与9原版场景通过，19项片段检查全命中，REA两次真实采集/比较已跑通；水库6场景仅静态。详细限制见计划与试点报告。本轮未推送、合并或部署。
