@@ -1,12 +1,14 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { args, required, assertEvidencePath, SOURCE, hash, writeEvidence, main } from './lib/common.mjs';
 
 const api = endpoint => JSON.parse(execFileSync('gh', ['api', endpoint], { encoding: 'utf8', timeout: 45000, maxBuffer: 8 * 1024 * 1024 }));
 export async function fetchSource(destination) {
   const root = await assertEvidencePath(destination);
+  const existing = await lstat(root).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+  if (existing && (!existing.isDirectory() || (await readdir(root)).length)) throw new Error('Source destination must be absent or an empty directory; refusing to overwrite existing content');
   const tree = api(`repos/${SOURCE.repository}/git/trees/${SOURCE.commit}`);
   if (tree.truncated) throw new Error('Source tree response was truncated');
   const selected = tree.tree.filter(entry => entry.type === 'blob' && (/\.zil$/i.test(entry.path) || entry.path === 'README.md'));
@@ -21,7 +23,7 @@ export async function fetchSource(destination) {
     const gitBlob = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
     if (gitBlob !== entry.sha) throw new Error(`Git blob digest mismatch: ${entry.path}`);
     const file = await assertEvidencePath(path.join(root, entry.path));
-    await writeFile(file, bytes, { mode: 0o600 });
+    await writeFile(file, bytes, { mode: 0o600, flag: 'wx' });
     files.push({ path: entry.path, gitBlob, sha256: hash(bytes), bytes: bytes.length });
   }
   const provenance = { schemaVersion: 1, ...SOURCE, files };

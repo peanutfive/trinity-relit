@@ -4,7 +4,7 @@
 
 ## 从源码到可重复的原版证据
 
-需要 Node、已安装的 `dfrotz` 和自行提供的目标 `TRINITY.DAT`。下载公开源码时另需可访问 GitHub 的 `gh`；源码准备完成后，索引和原版场景采集可离线运行。目标固定为 Z-machine v4 / Release 12 / Serial 860926。
+需要 Node、已安装的 `dfrotz` 和自行提供的目标 `TRINITY.DAT`。下载公开源码时另需可访问 GitHub 的 `gh`；源码准备完成后，索引和原版场景采集可离线运行。目标固定为 Z-machine v4 / Release 12 / Serial 860926，并核对完整文件SHA256；同头部或同16位校验和但内容不同的文件也会被拒绝。
 
 在仓库根目录执行：
 
@@ -20,10 +20,10 @@ npm run research -- run \
 
 1. 验证游戏文件头、长度、校验和，记录 SHA-256；核对源码文件与本地来源清单。
 2. 生成所有 ZIL 文件的定义、词法引用、字符串来源及出口分类索引。
-3. 从新游戏独立执行所有 `runtime-verified` 场景，按提示符边界关联每条命令与响应。
-4. 检查指定响应中的源码字面量，输出分场景报告；水库的 `static-only` 场景保留静态状态。
+3. 从新游戏独立执行所有 `runtime-verified` 场景，按提示符边界关联每条命令与响应。长路线的过场按键只在声明行摘要命中后发送，并单独记录。
+4. 检查指定响应中的源码字面量与score/moves数值，输出分场景报告；未验证物品/动物/坍塌场景保留静态状态。
 
-默认 `dfrotz` 从 PATH 寻找，必要时加 `--dfrotz /absolute/path/to/dfrotz`。运行器单独处理开局按键和退出确认，场景里不包含这两项。超时、缺失提示符、启动错误、截断和非正常退出不会标记 `complete:true`；已经采集的局部证据仍会保存，便于排查。
+所有研究输出采用独占新建，不覆盖已有证据或输入文件；每次运行请选择新的输出目录。源码拉取目标必须不存在或为空。默认 `dfrotz` 从 PATH 寻找，必要时加 `--dfrotz /absolute/path/to/dfrotz`。运行器单独处理开局按键和退出确认，场景里不包含这两项。超时、缺失提示符、启动错误、截断和非正常退出不会标记 `complete:true`；已经采集的局部证据仍会保存，便于排查。
 
 主要本地产物：
 
@@ -46,15 +46,15 @@ npm run research -- baseline \
 
 npm run research -- capture \
   --dat '/absolute/path/to/TRINITY.DAT' \
-  --case woman_help --out .local-research/run/captures/woman_help.json
+  --case woman_help --out .local-research/single-case/woman_help.json
 
 npm run research -- report \
   --index .local-research/run/index.json \
   --captures .local-research/run/captures \
-  --out .local-research/run/report.json
+  --out .local-research/report-review.json
 ```
 
-`report` 把每个场景绑定到转录文件摘要，并重新核对场景指令序列；更改场景后不能把旧转录算作新场景已完成。`source-output` 仅检查指定命令响应是否包含该例程的某个足够长字面量，ZIL 的显式换行映射为空白再比较。它不证明全部分支、隐藏状态、回合数或完整文本已还原。不同版本和随机输出导致未命中时，应保留差异继续研究，不自动补写原文。
+`report` 核对精确原版指纹、manifest/场景指纹、正常退出、无截断、指令数量/顺序/index、逐字对应原始转录的连续响应跨度、以及过场控制。重复case证据直接拒绝。`captured`表示过程与身份完整，`verified`仅表示声明的可见检查通过；错误、缺证据或检查失败使验收命令非零。更改场景或检查后必须重新采集，不能复用旧指纹。`source-output` 仅检查指定命令响应是否包含该例程的某个足够长字面量，ZIL 的显式换行映射为空白再比较。它不证明全部分支、隐藏状态或完整文本已还原。`score-output`只从明确的score命令响应解析唯一的分数/回合数，不解释其他隐藏状态。不同版本和随机输出导致未命中时，应保留差异继续研究，不自动补写原文。
 
 ## REA 接入
 
@@ -97,4 +97,4 @@ REA 输出路径采用更严格规则：必须位于所有 Git checkout 之外�
 
 源码、DAT、转录、索引与 REA Evidence 均保留在 `.local-research/` 或仓库外。研究工具拒绝向可提交目录输出原版派生证据，包括常见符号链接绕过；测试只使用合成夹具。工具不会修改游戏文件、配置全局 MCP 或把原版资料加入提交。
 
-本轮没有解决水库的完整原版到达路线、源码与发行版的全面对应、随机性的固定、VM 内部状态观测及全章行为覆盖。继续开发时按计划逐章扩展场景，把正常/失败/重复/计时分支及其证据分别登记，再进入重制版内容迁移。
+第二轮已验证水库的正常到达、基本进出、屏息和方向阻挡，并加入[原版检查点](ORIGINAL_CHECKPOINTS.md)。REA定时scenario不能执行带输出摘要门控的过场，生成器会明确拒绝此类场景；使用提示符capture或checkpoint，不丢弃按键。水库物品/动物/风车坍塌、源码与发行版全面对应、固定随机性、VM内部状态及全章覆盖仍待推进。继续开发时按计划逐章扩展场景，把正常/失败/重复/计时分支及其证据分别登记，再进入重制版内容迁移。

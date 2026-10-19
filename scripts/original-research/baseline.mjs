@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { args, required, writeEvidence, SOURCE, REA, TARGET, hash, json, main } from './lib/common.mjs';
+import { args, required, assertNewEvidencePath, writeEvidence, SOURCE, REA, TARGET, hash, json, main } from './lib/common.mjs';
 
 export function identifyStory(bytes) {
   if (bytes.length < 64) throw new Error('Story file is shorter than its header');
@@ -12,9 +12,12 @@ export function identifyStory(bytes) {
   let actualChecksum = 0;
   for (const byte of bytes.subarray(64, declaredBytes)) actualChecksum = (actualChecksum + byte) & 0xffff;
   const identity = { version, release: word(2), serial: bytes.toString('ascii', 18, 24), checksum: word(28) };
-  return { ...identity, sha256: hash(bytes), bytes: bytes.length, declaredBytes, trailingBytes: bytes.length - declaredBytes,
-    checksumValid: actualChecksum === identity.checksum,
-    matchesTarget: Object.entries(TARGET).every(([key, value]) => identity[key] === value) };
+  const sha256 = hash(bytes);
+  const checksumValid = actualChecksum === identity.checksum;
+  const headerMatchesTarget = ['version', 'release', 'serial', 'checksum'].every(key => identity[key] === TARGET[key]);
+  return { ...identity, sha256, bytes: bytes.length, declaredBytes, trailingBytes: bytes.length - declaredBytes,
+    checksumValid, headerMatchesTarget,
+    matchesTarget: headerMatchesTarget && checksumValid && sha256 === TARGET.sha256 };
 }
 export async function baseline({ dat, source }) {
   const story = identifyStory(await readFile(dat));
@@ -40,6 +43,7 @@ export async function runBaseline(argv) {
   const options = args(argv, ['dat', 'source', 'out']);
   if (options.help) { console.log('baseline --dat FILE [--source DIR] --out LOCAL_JSON'); return; }
   required(options, ['dat', 'out']);
+  await assertNewEvidencePath(options.out);
   const result = await baseline(options);
   await writeEvidence(options.out, result);
   console.log(JSON.stringify({ story: result.story, sourceVerified: result.source.verifiedFiles, out: options.out }));

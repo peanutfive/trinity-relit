@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, realpath, writeFile, lstat, readlink } from 'node:fs/promises';
+import { mkdir, readFile, realpath, lstat, readlink, open, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 export const SOURCE = { repository: 'historicalsource/trinity', commit: '16a024ce6bc5b9da85f42e65d7f9fd93b32c808c' };
 export const REA = { repository: 'peanutfive/rea', commit: 'd901561640121272bf1498d85e38e1ac8b3f5793', release: '6.4.0' };
-export const TARGET = { version: 4, release: 12, serial: '860926', checksum: 0x16ab };
+export const TARGET = { version: 4, release: 12, serial: '860926', checksum: 0x16ab, sha256: 'c49ce555bf4a9f0703587ff3462a7cb998c82ef9d72e461b18e5444dc6d6ac35' };
 export const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 export const normalize = text => text.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').replace(/\s+/g, ' ').trim();
 export function args(argv, names) {
@@ -52,12 +52,25 @@ export async function assertEvidencePath(destination, repoRoot = ROOT) {
   }
   return file;
 }
+export async function assertNewEvidencePath(destination, repoRoot = ROOT) {
+  // Check the supplied leaf as well as its canonical target: dangling symlinks
+  // must not silently redirect a newly created evidence file.
+  for (const file of new Set([path.resolve(destination), await assertEvidencePath(destination, repoRoot)])) {
+    const entry = await lstat(file).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+    if (entry) throw new Error(`Evidence destination already exists; refusing to overwrite: ${destination}`);
+  }
+  return assertEvidencePath(destination, repoRoot);
+}
 export async function writeEvidence(destination, evidence) {
-  const file = await assertEvidencePath(destination);
+  const file = await assertNewEvidencePath(destination);
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, JSON.stringify(evidence, null, 2) + '\n', { mode: 0o600 });
+  const handle = await open(file, 'wx', 0o600);
+  try { await handle.writeFile(JSON.stringify(evidence, null, 2) + '\n'); }
+  catch (error) { await handle.close(); await unlink(file).catch(() => {}); throw error; }
+  await handle.close();
   return file;
 }
+
 export async function json(file) { return JSON.parse(await readFile(file, 'utf8')); }
 export function main(run) {
   run().catch(error => { console.error(error.message); process.exitCode = 1; });

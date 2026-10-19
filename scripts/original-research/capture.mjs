@@ -1,9 +1,11 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { args, required, assertEvidencePath, writeEvidence, json, main } from './lib/common.mjs';
+import { args, required, assertNewEvidencePath, writeEvidence, json, hash, main } from './lib/common.mjs';
 import { identifyStory } from './baseline.mjs';
 import { captureTranscript } from './lib/capture.mjs';
+import { validateManifest } from './report.mjs';
 export function findCase(manifest, id) {
+  validateManifest(manifest);
   for (const pilot of manifest.pilots) {
     const scenario = pilot.cases.find(candidate => candidate.id === id);
     if (scenario) return { pilot, scenario };
@@ -17,14 +19,15 @@ export async function captureCase({ dat, manifest, caseId, dfrotz = 'dfrotz', ti
   if (!story.matchesTarget || !story.checksumValid) throw new Error('Story does not match the research target');
   const result = await captureTranscript({ executable: dfrotz,
     arguments: ['-q', '-m', '-p', '-w', '200', '-h', '200', path.resolve(dat)],
-    commands: scenario.commands, timeoutMs });
-  return { ...result, caseId, pilotId: pilot.id, story, sourceCommit: manifest.sourceCommit };
+    commands: scenario.commands, continuations: scenario.continuations || [], timeoutMs });
+  return { ...result, caseId, pilotId: pilot.id, story, sourceCommit: manifest.sourceCommit,
+    manifestSha256: hash(JSON.stringify(manifest)), scenarioSha256: hash(JSON.stringify(scenario)), origin: { kind: 'fresh-game' } };
 }
 export async function runCapture(argv) {
   const options = args(argv, ['dat', 'case', 'manifest', 'out', 'dfrotz', 'timeout-ms']);
   if (options.help) { console.log('capture --dat FILE --case ID --out LOCAL_JSON [--manifest research/pilots.json] [--dfrotz PATH] [--timeout-ms N]'); return; }
   required(options, ['dat', 'case', 'out']);
-  await assertEvidencePath(options.out);
+  await assertNewEvidencePath(options.out);
   const result = await captureCase({ dat: options.dat, manifest: await json(options.manifest || 'research/pilots.json'), caseId: options.case,
     dfrotz: options.dfrotz, timeoutMs: Number(options['timeout-ms'] || 30000) });
   await writeEvidence(options.out, result);

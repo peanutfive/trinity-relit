@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, readFile, mkdir, symlink, rm } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { identifyStory } from '../scripts/original-research/baseline.mjs';
-import { assertEvidencePath, ROOT, writeEvidence } from '../scripts/original-research/lib/common.mjs';
+import { assertEvidencePath, ROOT, writeEvidence, SOURCE, TARGET } from '../scripts/original-research/lib/common.mjs';
 import { captureTranscript } from '../scripts/original-research/lib/capture.mjs';
 import { indexSources } from '../scripts/original-research/lib/zil.mjs';
 import { checkSourceOutput, buildReport } from '../scripts/original-research/report.mjs';
@@ -82,8 +82,8 @@ test('源码片段命中绑定指定命令，支持ZIL换行且不推断隐藏�
   assert.equal(checkSourceOutput(check, capture, index).status, 'observed-fragment');
   assert.equal(checkSourceOutput({ ...check, commandIndex: 1 }, capture, index).status, 'not-observed');
   assert.equal(checkSourceOutput({ ...check, symbol: 'MISSING' }, capture, index).status, 'unknown');
-  const manifest = { sourceCommit: 'abc', pilots: [{ id: 'sample', cases: [{ id: 'a', commands: ['alpha'], status: 'runtime-verified' }, { id: 'b', status: 'static-only' }] }] };
-  const report = buildReport({ manifest, index, captures: [{ ...capture, caseId: 'a', complete: true, sourceCommit: 'abc', story: { matchesTarget: true, checksumValid: true } }] });
+  const manifest = { schemaVersion: 1, sourceCommit: SOURCE.commit, target: { ...TARGET }, pilots: [{ id: 'sample', cases: [{ id: 'a', commands: ['alpha'], status: 'runtime-verified' }, { id: 'b', status: 'static-only', commands: [] }] }] };
+  const report = buildReport({ manifest, index: { ...index, sourceCommit: SOURCE.commit }, captures: [{ ...capture, caseId: 'a', complete: true, sourceCommit: SOURCE.commit, story: { ...TARGET, matchesTarget: true, checksumValid: true } }] });
   assert.equal(report.pilots[0].cases[0].status, 'incomplete', '不同指令序列的旧转录不可冒充新场景');
   assert.equal(report.pilots[0].cases[1].status, 'static-only');
 });
