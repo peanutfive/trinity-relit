@@ -22,8 +22,21 @@ test('含冠词的纸鸟和老妇人指令直接执行，离线也不需要模�
     const game = createGame({intentResolver: {resolve() { assert.fail('明确命令不得调用模型'); }}});
     game.eng.moveTo(room);
     await game.eng.processInput(input);
-    assert.equal(game.state.turns, 1);
+    assert.equal(game.state.turns, room === 'lancaster_gate' ? 0 : 1);
     if (room === 'round_pond') assert.ok(game.state.has('paper_bird'));
     else assert.ok(game.state.hasFlag(flag));
+  }
+});
+
+test('听平台与屏息的中英文命令使用同一标准动作', () => {
+  const parser = new Parser();
+  for (const input of ['listen to the landing', 'listen landing', '听平台', '聆听平台']) {
+    const parsed = parser.parse(input);
+    assert.equal(parsed.type, 'simple');
+    assert.equal(parsed.verb, 'listen');
+    assert.equal(parsed.noun, input.includes('平台') ? '平台' : 'landing');
+  }
+  for (const input of ['hold breath', 'hold the breath', '屏息', '憋气', '屏住呼吸']) {
+    assert.deepEqual(parser.parse(input), { type: 'simple', verb: 'hold', noun: 'breath' });
   }
 });

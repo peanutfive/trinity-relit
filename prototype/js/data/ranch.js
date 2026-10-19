@@ -20,7 +20,91 @@ const FAIL_TEXT = {
   broken_landing: "The landing overhead is broken. You can't climb up to it anymore.\n\n头顶的平台已经损坏。你再也无法爬上去了。",
 };
 function blocked(room, reason) {
-  return { to: room, when: () => false, fail: FAIL_TEXT[reason] };
+  return {
+    to: room, when: () => false, fail: FAIL_TEXT[reason],
+    // UNDER-WATER 的 SORRY 出口不执行 CLOCKER（fresh 场景 reservoir_walls）。
+    ...(room === "underwater" ? { advancesTurn: false } : {}),
+  };
+}
+
+// Release 12 / 860926：I-MILL、SPILL-MILL、I-HOLD-BREATH。
+// 只使用可序列化的计数/标志；不占用其他章节的单个 state.timer。
+function landingBroken(s) {
+  return s.hasFlag("ranch_landing_collapsed") || s.hasFlag("binoculars_broken");
+}
+
+function spillMill(s, eng) {
+  s.setFlag("ranch_landing_collapsed");
+  s.setCnt("ranch_landing_life", 0);
+  for (const { id, loc } of s.inventoryList()) {
+    if (loc === "inventory") s.placeItem(id, "underwater");
+  }
+  for (const id of s.roomItems()) s.placeItem(id, "underwater");
+  if (s.cnt("ranch_breath_remaining") > 0) s.setCnt("ranch_breath_remaining", 1);
+  eng.print("CRACK! The landing tips wildly under your feet. You manage a brief, hysterical shriek...\n\n... and your mouth fills with water.\n\n咔嚓！平台在你脚下猛烈倾斜。你勉强发出一声短促、歇斯底里的尖叫……\n\n……接着，水灌进了你的嘴里。");
+  eng.moveTo("reservoir");
+}
+
+function startMill(s) {
+  if (!s.hasFlag("ranch_landing_started")) {
+    s.setFlag("ranch_landing_started");
+    s.setCnt("ranch_landing_life", 4);
+    // 原版新入队的 I-MILL 位于已有屏息回调之前；屏息以后重新入队
+    // 会复用原来的槽位，不因新一次 hold 调换两者次序。仅记录本批两回调。
+    if (s.cnt("ranch_breath_remaining") > 0) s.setFlag("ranch_mill_before_breath");
+  }
+}
+
+function millTick(s, eng) {
+  if (landingBroken(s)) return;
+  // 旧存档可能已在平台上，恢复不会重放 onEnter。
+  startMill(s);
+  const life = s.cnt("ranch_landing_life") - 1;
+  s.setCnt("ranch_landing_life", life);
+  if (life <= 0) { spillMill(s, eng); return; }
+  const warnings = {
+    3: "The landing creaks under your weight. It isn't in very good shape.\n\n平台在你的重量下吱呀作响。它的状况很不好。",
+    2: "The landing emits a wooden moan of discomfort.\n\n平台发出木头不堪重负的呻吟。",
+    1: "The landing is sagging dangerously. It's not going to last much longer!\n\n平台危险地下垂着。它撑不了多久了！",
+  };
+  eng.print(warnings[life]);
+}
+
+function breathTick(s, eng) {
+  const remaining = s.cnt("ranch_breath_remaining");
+  if (remaining <= 0) return;
+  s.setCnt("ranch_breath_remaining", remaining - 1);
+  if (remaining === 2) {
+    eng.print("You can't hold your breath much longer.\n\n你无法再屏息多久了。");
+  } else if (remaining === 1) {
+    if (s.room === "underwater") {
+      eng.print("You claw your way to the surface as your breath gives out.\n\n气息耗尽时，你拼命划向水面。");
+      eng.moveTo("reservoir");
+    } else {
+      eng.print("With an involuntary gasp, you begin to breathe normally.\n\n你不由自主地吸了一口气，开始正常呼吸。");
+    }
+  }
+}
+
+function breathWait(s) {
+  if (s.cnt("ranch_breath_remaining") <= 0) return;
+  return {
+    handled: true, maxTurns: 3,
+    stopAfterTurn: (state) => state.cnt("ranch_breath_remaining") <= 1,
+  };
+}
+
+function dive(s, eng) {
+  if (s.cnt("ranch_breath_remaining") <= 0) {
+    s.setCnt("ranch_breath_remaining", 4);
+    eng.print("[holding your breath first]\n\n[先屏住呼吸]");
+  }
+  eng.print("You sink below the surface.\n\n你沉入水面之下。");
+}
+
+function surface(s, eng) {
+  s.setCnt("ranch_breath_remaining", 0);
+  eng.print("You rise to the surface, gasping for air.\n\n你浮到水面，大口喘气。");
 }
 
 // 原版 6 字节门出口先检查 #26/#39 的 open 属性，再送往目标房间。
@@ -37,6 +121,11 @@ export const ROOMS = {
   nw_ranch: {
     name: "Northwest of Ranch",
     cn: "牧场西北",
+    onTurn(s, eng) {
+      if (s.room !== "nw_ranch") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're at the northwest corner of a stone wall. A closed iron gate leads in to a dilapidated ranch house.\n\nA paved road bears northwest into the desert. Other paths curve east and south, along the wall's perimeter.\n\n你来到一堵石墙的西北角。一扇关闭的铁门通向破败的牧场屋内。\n\n一条铺设道路向西北延伸进入沙漠。其他小路沿墙的外围向东和南蜿蜒。";
     },
@@ -47,12 +136,20 @@ export const ROOMS = {
         s: "sw_ranch",
         nw: {
           to: "shallow_crater", when: () => true,
-          async act(s2, eng) { await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] }); },
+          async act(s2, eng) {
+            if (await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] })) {
+              s2.setCnt("ranch_breath_remaining", 0);
+            }
+          },
         },
         in: "back_yard",
         n: {
           to: "behind_shed", when: () => true,
-          async act(s2, eng) { await eng.transitionChapter({ to: "desert", roomCandidates: ["behind_shed"] }); },
+          async act(s2, eng) {
+            if (await eng.transitionChapter({ to: "desert", roomCandidates: ["behind_shed"] })) {
+              s2.setCnt("ranch_breath_remaining", 0);
+            }
+          },
         },
       };
     },
@@ -62,6 +159,11 @@ export const ROOMS = {
   front_yard: {
     name: "Front Yard",
     cn: "前院",
+    onTurn(s, eng) {
+      if (s.room !== "front_yard") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "This patch of ground lies between the ranch house to the west, and a huge cement reservoir to the east. Well-worn paths curve north and south, around the stone wall enclosing the house. Other trails skirt the reservoir on either side.\n\nA ramp slopes up through a gap in the stone wall, ending on a raised deck.\n\n这片地位于西面的牧场屋和东面的巨大水泥蓄水池之间。踩踏已久的小径沿围住房屋的石墙向南北两侧弯去。其他小路沿蓄水池两边延伸。\n\n一道斜坡穿过石墙的缺口向上，通到一处高起的平台。";
     },
@@ -85,6 +187,11 @@ export const ROOMS = {
   front_deck: {
     name: "Front Deck",
     cn: "前平台",
+    onTurn(s, eng) {
+      if (s.room !== "front_deck") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       const left = s.hasFlag("front_deck_left_door_open");
       const right = s.hasFlag("front_deck_right_door_open");
@@ -160,6 +267,11 @@ export const ROOMS = {
   hallway: {
     name: "Hallway",
     cn: "走廊",
+    onTurn(s, eng) {
+      if (s.room !== "hallway") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "This short hallway opens outdoors to the north and south. A closed outer door leads east into a kitchen. Turning west, you see a stairway descending into darkness.\n\n这条短走廊向南北两侧通往户外。一扇关闭的外门向东通往厨房。转向西面，可以看到一道通入黑暗的楼梯。";
     },
@@ -180,6 +292,11 @@ export const ROOMS = {
   assembly_room: {
     name: "Assembly Room",
     cn: "组装室",
+    onTurn(s, eng) {
+      if (s.room !== "assembly_room") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       const closed = s.hasFlag("closet_door_closed");
       const frontOpen = s.hasFlag("front_deck_right_door_open");
@@ -222,6 +339,11 @@ export const ROOMS = {
   closet: {
     name: "Closet",
     cn: "壁橱",
+    onTurn(s, eng) {
+      if (s.room !== "closet") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       const closed = s.hasFlag("closet_door_closed");
       return `There's barely enough room to turn around in this puny closet. Its single ${closed ? "closed" : "open"} door is in the south wall.\n\n这个小壁橱仅容你勉强转身。唯一一扇${closed ? "关闭" : "敞开"}的门位于南墙。`;
@@ -279,6 +401,11 @@ export const ROOMS = {
   kitchen: {
     name: "Kitchen",
     cn: "厨房",
+    onTurn(s, eng) {
+      if (s.room !== "kitchen") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       // 原版 GET_CHILD(cupboard) 非空时由 13d98 输出清单；当前物品层
       // 没有 cupboard 容器，只有显式放在该位置的刀可还原单物品分支。
@@ -306,6 +433,11 @@ export const ROOMS = {
   spare_room: {
     name: "Spare Room",
     cn: "备用房间",
+    onTurn(s, eng) {
+      if (s.room !== "spare_room") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "Aside from a closed screen door to the west, this squarish room offers no amenities. Other exits lead north and east.\n\n除了西面一扇关闭的纱门，这间方形房间没有任何设施。其他出口通往北面和东面。";
     },
@@ -325,6 +457,11 @@ export const ROOMS = {
   nw_room: {
     name: "Northwest Room",
     cn: "西北房间",
+    onTurn(s, eng) {
+      if (s.room !== "nw_room") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "The original purpose of this stark room is uncertain; it might have been used for dining. Exits lead north, south and east.\n\n这间空荡房间原本的用途并不明确；它也许曾用作餐厅。出口通往北、南、东三个方向。";
     },
@@ -343,6 +480,11 @@ export const ROOMS = {
   se_room: {
     name: "Southeast Room",
     cn: "东南房间",
+    onTurn(s, eng) {
+      if (s.room !== "se_room") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       const open = s.hasFlag("front_deck_left_door_open");
       return "Something about this room gives you the impression that it was hastily vacated. The front door in the east wall is " +
@@ -379,6 +521,11 @@ export const ROOMS = {
   sw_yard: {
     name: "Southwest Yard",
     cn: "西南院子",
+    onTurn(s, eng) {
+      if (s.room !== "sw_yard") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "This is the southwest corner of the ranch house, just inside the stone wall. A hallway opens north into the house, and a closed iron gate in the wall leads southwest.\n\n这里是牧场屋的西南角，就在石墙里面。一条走廊向北进入屋内，墙上的一扇关闭的铁门通往西南。";
     },
@@ -402,6 +549,11 @@ export const ROOMS = {
   ne_yard: {
     name: "Northeast Yard",
     cn: "东北院子",
+    onTurn(s, eng) {
+      if (s.room !== "ne_yard") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "There aren't any openings in this corner of the stone wall. A raised deck stands immediately to the south, and a closed outside door leads west, into the ranch.\n\n石墙这一角没有开口。南边紧挨着一处高起的平台，一扇关闭的外门向西通往牧场屋内。";
     },
@@ -425,6 +577,11 @@ export const ROOMS = {
   back_yard: {
     name: "Back Yard",
     cn: "后院",
+    onTurn(s, eng) {
+      if (s.room !== "back_yard") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "This patch of dust lies within the elbow of the ranch house, and is enclosed by a stone wall to the north and west.\n\nAn open hallway leads south, into the house. There's also a closed screen door to the east, and a closed iron gate in the northwest corner of the stone wall.\n\n这片尘土位于牧场屋的转角内，北面和西面被石墙围住。\n\n敞开的走廊向南通往屋内。东面还有一扇关闭的纱门，石墙西北角有一扇关闭的铁门。";
     },
@@ -448,6 +605,11 @@ export const ROOMS = {
   bathroom: {
     name: "Bathroom",
     cn: "浴室",
+    onTurn(s, eng) {
+      if (s.room !== "bathroom") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "An old porcelain sink, broken and faucetless, is the only fixture left in this tiny chamber. The south exit doesn't even have a door.\n\n一个破损且没有水龙头的旧瓷洗手池是这间小屋仅存的设施。南边的出口甚至没有门。";
     },
@@ -464,6 +626,11 @@ export const ROOMS = {
   bedroom: {
     name: "Bedroom",
     cn: "卧室",
+    onTurn(s, eng) {
+      if (s.room !== "bedroom") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "This room is stripped bare of all furnishings. Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\nA closed outside door in the east wall leads outside. Another exit opens west, into the ranch house.\n\n这间屋子里的家具已被搬空。只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。\n\n东墙上一扇关闭的外门通往屋外。另一出口向西通往牧场屋内。";
     },
@@ -481,6 +648,11 @@ export const ROOMS = {
   se_yard: {
     name: "Southeast Yard",
     cn: "东南院子",
+    onTurn(s, eng) {
+      if (s.room !== "se_yard") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're just inside the stone wall, near the ranch house's southeast corner. A raised deck stands immediately to the north, and an open iron gate in the wall leads southeast.\n\n你在石墙内侧，靠近牧场屋的东南角。北边紧挨着一处高起的平台，墙上一扇敞开的铁门通往东南。";
     },
@@ -505,6 +677,11 @@ export const ROOMS = {
   icehouse: {
     name: "Icehouse",
     cn: "冰库",
+    onTurn(s, eng) {
+      if (s.room !== "icehouse") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "The walls of this underground chamber are cool and clammy to your touch. It feels as if nobody's been down here for a long time.\n\nGray light seeps in from a stairway climbing east.\n\n这间地下室的墙壁摸起来冰凉潮湿。似乎很久没有人下来过。\n\n灰色的光从东面向上的楼梯渗进来。";
     },
@@ -521,6 +698,11 @@ export const ROOMS = {
   se_ranch: {
     name: "Southeast of Ranch",
     cn: "牧场东南",
+    onTurn(s, eng) {
+      if (s.room !== "se_ranch") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "The low stone wall enclosing this dilapidated ranch house has an open iron gate leading inside. Paths follow the wall's perimeter to the north and west, and another curves east along a cement reservoir.\n\n围着破败牧场屋的低矮石墙上有一扇敞开的铁门通向里面。小路沿墙向北和西延伸，另一条沿水泥蓄水池向东弯去。";
     },
@@ -540,6 +722,11 @@ export const ROOMS = {
   sw_ranch: {
     name: "Southwest of Ranch",
     cn: "牧场西南",
+    onTurn(s, eng) {
+      if (s.room !== "sw_ranch") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "The low stone wall before you is almost as run-down as the ranch house inside it. Paths follow the wall's perimeter to the north and east, and a closed iron gate leads northeast into a dusty yard.\n\n眼前的低矮石墙和墙内的牧场屋一样破败。小路沿墙向北和东延伸，一扇关闭的铁门通向东北面满是尘土的院子。";
     },
@@ -557,6 +744,11 @@ export const ROOMS = {
   ne_ranch: {
     name: "Northeast of Ranch",
     cn: "牧场东北",
+    onTurn(s, eng) {
+      if (s.room !== "ne_ranch") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "A dilapidated ranch house stands nearby, bounded by dusty patches of ground and a low stone wall. Paths lead south and east, on either side of a cement reservoir. A paved road bends off to the west.\n\n附近立着一座破败的牧场屋，周围是尘土地和低矮的石墙。小路沿水泥蓄水池两侧向南和东延伸。一条铺设道路向西弯去。";
     },
@@ -576,9 +768,14 @@ export const ROOMS = {
   under_windmill: {
     name: "Under the Windmill",
     cn: "风车下",
+    onTurn(s, eng) {
+      if (s.room !== "under_windmill") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       // 原版根据望远镜的 broken 属性切换这两个逐字片段。
-      const broken = s.hasFlag("binoculars_broken");
+      const broken = landingBroken(s);
       const en = "A squat wooden windmill rises overhead, its dark timbers tapering up to a " +
         (broken ? "broken landing that's tilted over" : "square landing that overlooks") +
         " the east side of an adjacent reservoir.\n\nThe bottom rungs of a ladder are just within reach.";
@@ -591,8 +788,9 @@ export const ROOMS = {
       return {
         sw: "south_reservoir",
         nw: "north_reservoir",
-        u: s.hasFlag("binoculars_broken")
-          ? blocked("under_windmill", "broken_landing") : "windmill",
+        u: landingBroken(s)
+          ? blocked("under_windmill", "broken_landing")
+          : { to: "windmill", text: "The ladder squeaks and complains as you ascend.\n\n你爬上梯子，梯子吱呀作响。" },
         w: blocked("under_windmill", "reservoir_wall"),
       };
     },
@@ -602,6 +800,11 @@ export const ROOMS = {
   south_reservoir: {
     name: "South of Reservoir",
     cn: "水库南",
+    onTurn(s, eng) {
+      if (s.room !== "south_reservoir") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're near the south side of a big cement reservoir. Dusty paths lead west and northwest around a ranch house. Another curves northeast, to the base of a windmill.\n\nA stairway climbs up to the reservoir's edge.\n\n你在一座大型水泥蓄水池的南侧附近。尘土小路绕着牧场屋向西和西北延伸。另一条向东北弯到风车脚下。\n\n一道楼梯通向蓄水池边缘。";
     },
@@ -620,6 +823,11 @@ export const ROOMS = {
   north_reservoir: {
     name: "North of Reservoir",
     cn: "水库北",
+    onTurn(s, eng) {
+      if (s.room !== "north_reservoir") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're resting at the north side of a big cement reservoir. Dusty paths curve west and southwest around a ranch house, and a trail leads southeast to the base of a windmill.\n\n你停在一座大型水泥蓄水池的北侧。尘土小路绕着牧场屋向西和西南弯去，另一条向东南通往风车脚下。";
     },
@@ -637,6 +845,11 @@ export const ROOMS = {
   edge_reservoir: {
     name: "Edge of Reservoir",
     cn: "水库边缘",
+    onTurn(s, eng) {
+      if (s.room !== "edge_reservoir") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're on the edge of a big concrete reservoir, filled with dark water. A short flight of steps leads down to the ground.\n\n你站在一座盛满深色水的大型混凝土蓄水池边缘。短短一段台阶向下通往地面。";
     },
@@ -660,6 +873,11 @@ export const ROOMS = {
   reservoir: {
     name: "Reservoir",
     cn: "水库",
+    onTurn(s, eng) {
+      if (s.room !== "reservoir") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "You're treading water in a big cement reservoir, too deep for your feet to touch bottom.\n\n你在一座大型水泥蓄水池里踩水，水深得脚无法触底。";
     },
@@ -668,8 +886,8 @@ export const ROOMS = {
         s: "edge_reservoir",
         u: "edge_reservoir",
         out: "edge_reservoir",
-        d: "underwater",
-        in: "underwater",
+        d: { to: "underwater", act: dive },
+        in: { to: "underwater", act: dive },
         n: blocked("reservoir", "reservoir_only_south"),
         ne: blocked("reservoir", "reservoir_only_south"),
         e: blocked("reservoir", "reservoir_only_south"),
@@ -685,13 +903,18 @@ export const ROOMS = {
   underwater: {
     name: "Underwater",
     cn: "水下",
+    onTurn(s, eng) {
+      if (s.room !== "underwater") return;
+      breathTick(s, eng);
+    },
+    onWait: breathWait,
     desc(s) {
       return "Suspended particles of muck swirl in the beam of the lantern. It's impossible to see more than a few feet.\n\n悬浮的污泥颗粒在灯笼光束里旋转。几英尺外便什么也看不清了。";
     },
     exits() {
       return {
-        u: "reservoir",
-        out: "reservoir",
+        u: { to: "reservoir", act: surface },
+        out: { to: "reservoir", act: surface },
         n: blocked("underwater", "underwater_wall"),
         ne: blocked("underwater", "underwater_wall"),
         e: blocked("underwater", "underwater_wall"),
@@ -703,21 +926,116 @@ export const ROOMS = {
         d: blocked("underwater", "underwater_bottom"),
       };
     },
-    events: [],
+    events: [
+      {
+        id: "underwater_take_binoculars",
+        match: { verb: ["take"], noun: ["binoculars"] },
+        triggers: ["拿望远镜", "捡起双筒望远镜", "take binoculars", "take the binoculars"],
+        when: (s) => s.inRoom("binoculars"),
+        act(s, eng) {
+          if (!eng.hasCarrySpace()) {
+            eng.print("你拿不下更多东西了。");
+            return;
+          }
+          s.take("binoculars");
+          eng.print("Taken.\n\n拿到了。");
+          if (!s.hasFlag("ranch_binoculars_scored")) {
+            s.setFlag("ranch_binoculars_scored");
+            s.addScore(1);
+          }
+        },
+        text: "",
+      },
+    ],
   },
 
   windmill: {
     name: "Windmill",
     cn: "风车",
+    onTurn(s, eng) {
+      if (s.room !== "windmill") return;
+      startMill(s);
+      if (s.hasFlag("ranch_mill_before_breath")) {
+        millTick(s, eng);
+        breathTick(s, eng);
+      } else {
+        breathTick(s, eng);
+        millTick(s, eng);
+      }
+    },
+    onWait() { return { handled: true, maxTurns: 1 }; },
     desc(s) {
       return "You're on a square landing near the top of the windmill. The rotting planks underfoot creak ominously as you stand on them.\n\nA rickety ladder leads downward.\n\n你站在风车顶部附近的一处方形平台。脚下腐朽的木板在你站立时发出不祥的吱呀声。\n\n一道摇晃的梯子通向下方。";
     },
     exits() {
       return {
-        d: "under_windmill",
-        out: "under_windmill",
+        d: { to: "under_windmill", text: "The ladder groans under your weight.\n\n梯子在你的重量下发出呻吟。" },
+        out: { to: "under_windmill", text: "The ladder groans under your weight.\n\n梯子在你的重量下发出呻吟。" },
       };
     },
-    events: [],
+    onEnter(s) {
+      if (!landingBroken(s)) startMill(s);
+    },
+    events: [
+      {
+        id: "windmill_take_binoculars",
+        match: { verb: ["take"], noun: ["binoculars"] },
+        triggers: ["拿望远镜", "捡起双筒望远镜", "take binoculars", "take the binoculars"],
+        when: (s) => s.inRoom("binoculars") && !landingBroken(s),
+        advancesTurn: false,
+        act(s, eng) {
+          // reservoir_mill_recover 的已验证 ALL-IS-STILL 变体。
+          eng.print("A loud, plaintive CREAK makes you draw your hand back in alarm. You hold your breath as the landing sways uncertainly for a moment, back and forth. Then all is still.\n\nSlowly, carefully, you stretch your arm towards the pair of binoculars...\n\n一声响亮而哀怨的吱嘎声让你惊恐地缩回了手。平台来回摇晃了一阵，你屏住呼吸。随后，一切归于静止。\n\n慢慢地，小心地，你朝那副双筒望远镜伸出手……");
+          spillMill(s, eng);
+        },
+        text: "",
+      },
+      {
+        id: "windmill_listen_landing",
+        match: { verb: ["listen"], noun: ["landing", "platform", "planks", "plank", "平台", "木板"] },
+        triggers: ["听平台", "聆听平台", "听木板", "listen to landing", "listen to the landing", "listen to planks"],
+        when: (s) => !landingBroken(s),
+        act(s, eng) { millTick(s, eng); },
+        text: "",
+      },
+    ],
   },
 };
+
+// BREATH 是原版全局对象；本批迁移仅在 Ranch 注册其动作。
+// 每个房间有独立 ID，动作数据复用不携带闭包游戏状态。
+for (const [roomId, room] of Object.entries(ROOMS)) {
+  room.events.push({
+    id: `${roomId}_hold_breath`,
+    match: { verb: ["hold", "take"], noun: ["breath", "your breath", "呼吸", "气"] },
+    triggers: ["屏息", "憋气", "屏住呼吸", "hold breath", "hold your breath"],
+    act(s, eng) {
+      if (s.cnt("ranch_breath_remaining") > 0) {
+        eng.print("You're already holding your breath.\n\n你已经屏住呼吸了。");
+      } else {
+        s.setCnt("ranch_breath_remaining", 4);
+        eng.print("You take a deep breath.\n\n你深吸了一口气。");
+      }
+    },
+    text: "",
+  }, {
+    id: `${roomId}_binoculars_already_worn`,
+    match: { verb: ["wear"], noun: ["binoculars"] },
+    triggers: ["戴上望远镜", "佩戴双筒望远镜", "wear binoculars", "put on binoculars"],
+    when: (s) => s.wearing("binoculars"),
+    text: "You're already wearing the pair of binoculars.\n\n你已经戴着这副双筒望远镜了。",
+  }, {
+    id: `${roomId}_wear_binoculars`,
+    match: { verb: ["wear"], noun: ["binoculars"] },
+    triggers: ["戴上望远镜", "佩戴双筒望远镜", "wear binoculars", "put on binoculars"],
+    when: (s) => s.has("binoculars") && !s.wearing("binoculars"),
+    act(s) { s.wear("binoculars"); },
+    text: "You put on the pair of binoculars.\n\n你戴上这副双筒望远镜。",
+  }, {
+    id: `${roomId}_binoculars_not_held`,
+    match: { verb: ["wear"], noun: ["binoculars"] },
+    triggers: ["戴上望远镜", "佩戴双筒望远镜", "wear binoculars", "put on binoculars"],
+    when: (s) => s.inRoom("binoculars"),
+    text: "You're not holding the pair of binoculars.\n\n你没有拿着这副双筒望远镜。",
+  });
+}

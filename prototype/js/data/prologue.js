@@ -683,6 +683,7 @@ export const ROOMS = {
     events: [
       {
         id: "help_umbrella_woman",
+        advancesTurn: false,
         match: { verb: ["help"], noun: ["woman", "old woman", "老妇人", "老太太", "她"] },
         triggers: ["帮她撑伞", "帮老妇人打开雨伞", "帮帮那位老太太", "help the old woman", "help woman"],
         when: (s) => s.hasFlag("umbrella_woman_seen") && !s.hasFlag("umbrella_woman_done"),

@@ -228,9 +228,14 @@ export const ITEMS = {
     start: null,
   },
   binoculars: {
-    cn: "望远镜", aliases: ["binoculars","望远镜","双筒望远镜"],
-    desc: "一副军用双筒望远镜。可以用来看远处的东西。",
-    start: null,
+    cn: "望远镜", aliases: ["binoculars","pair of binoculars","binocs","glasses","望远镜","双筒望远镜"],
+    desc: "The binoculars are of standard Army issue, with a strap for wearing.\n\n这副双筒望远镜是军队的标准配备，带有供佩戴的背带。",
+    roomDesc(s) {
+      return s.itemAt("binoculars") === "windmill"
+        ? "Somebody has left a nice pair of binoculars at the landing's edge.\n\n有人把一副不错的双筒望远镜留在了平台边缘。"
+        : "pair of binoculars\n\n双筒望远镜";
+    },
+    start: "windmill",
   },
   key_padlock: {
     cn: "挂锁钥匙", aliases: ["padlock key","small key","挂锁钥匙","小钥匙"],

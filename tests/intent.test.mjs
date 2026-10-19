@@ -172,7 +172,7 @@ test('帮她撑伞由候选确认进入原版帮助剧情，不持有伞、不�
   await g.eng.processInput('帮她撑伞');
   assert.equal(g.state.hasFlag('umbrella_woman_done'),true);
   assert.equal(g.state.has('umbrella'),false);
-  assert.equal(g.state.turns,1);
+  assert.equal(g.state.turns,0);
   assert.equal(g.saves,1);
   assert.match(g.output.map(x=>x.text).join('\n'),/You begin to approach the old woman/);
 });

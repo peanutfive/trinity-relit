@@ -9,9 +9,9 @@
 
 | 文件 | 当前持有者 |
 |---|---|
-| `prototype/js/engine.js` | Claude（阶段 3） |
-| `prototype/js/parser.js` | — |
-| `prototype/js/data/items.js` | — |
+| `prototype/js/engine.js` | Codex（T18，人类已授权，待审查） |
+| `prototype/js/parser.js` | Codex（T18，人类已授权，待审查） |
+| `prototype/js/data/items.js` | Codex（T18，人类已授权，待审查） |
 
 ## 进行中
 
@@ -174,3 +174,16 @@
 - 计划P11–P14：精确字面量检查 → 受潮/笼中动物/风车正常路径探索 → 正式采集器从全新开局独立验证 → 迁移规格、未知项与整体验收。详细标准见开发计划第三轮。
 - 分工：pilot_specs研究受潮与容器；rea_adapter研究笼中动物；zil_index研究风车并独立审查检查强度；主代理实现检查、整合场景与文档并重采集。
 - 状态：👀 P11–P14本地完成；134/134测试与规范通过，29个原版fresh场景/180项可见检查通过（新增17场景），剩余2组未覆盖组合继续静态。已写后续迁移规格，出口旧43项无新增，未修改运行时、推送或部署。
+
+### T18 首批原版行为迁移 M1–M3 — Codex（2026-10-19）
+- 人类明确授权修改engine.js、parser.js、items.js、prologue.js、ranch.js及相关测试/文档，实现动作回合区分、老妇人已核实的回合行为、风车坍塌取镜和水下呼吸；保留全部现有房间ID，不合并main或部署。
+- 分支codex/ranch-mechanics，基于已上传ad19d9a。开工Git fetch连接失败，GitHub API核对main仍57c5f9d；提交前重试同步。
+- 范围：上述5个运行时文件、tests/action-turns.test.mjs、tests/ranch-mechanics.test.mjs、tests/woman-intent.test.mjs及必要的现有回归调整、scripts/verify_ranch_mechanics_browser.mjs、prototype/{ARCHITECTURE,CHAPTER_RULES,CHAPTER_PLAN,RANCH_REWRITE_PLAN,RANCH_REWRITE_GAPS}.md、docs/ORIGINAL_MIGRATION.md、TASKS/SHIP_PLAN/progress。
+- 分工：action_contract负责engine.js和动作测试；ranch_runtime负责ranch.js和机制测试；research_verify负责证据与独立审查；主代理负责parser/items/prologue、整合、文档和浏览器验收。共享文件未由多个代理同时修改。
+- 验收按迁移规格M1–M3/M6：未知输入不推进；已处理不推进动作仍正确持久化；取镜坍塌/平台警告暂停/水底回收首次计分/穿戴；屏息警告、自动/主动上浮与失败方向时序；中途存档恢复；完整测试、规范、出口无新增及浏览器验证。
+- 状态：👀 本地实现与验收完成，待审查。168/168测试、章节规范和7组真实页面流程通过，页面异常0；出口报告与main基线逐字一致，仍为既有43项。M1–M3和本批M6已完成，完整容器/动物/光照及全局跨章呼吸未实现；开发分支提交，不合并main或部署。
+
+### T19 风车物品与动物组合证据 — Codex（2026-10-19）
+- 延续T15–T17原版研究授权；仅scripts/original-research、research/pilots.json、相关研究tests和docs/README/TASKS/SHIP_PLAN/progress。不扩大运行时范围。
+- pilot_specs研究BAG/EBAG/WTK的持有/平台坍塌组合；rea_adapter研究三种笼内动物持有/平台组合，探索证据只写.local-research；主代理最终独立fresh重采集后才更新清单。
+- 状态：👀 正式fresh验收完成，待审查。新增12条持有/平台物品与笼内动物取镜坍塌路径，总计41场景/350检查全部通过（304源码片段、46数值）。2组深层/混合条件仍static-only；旧29场景/180检查基线和失败采集保持可追溯。原始数据仅在被忽略的.local-research中。

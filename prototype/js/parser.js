@@ -66,6 +66,7 @@ const VERB_CN = {
   指:"point", 指向:"point",
   解锁:"unlock", 倒:"pour", 倒入:"pour",
   展示:"show", 出示:"show",
+  听:"listen", 聆听:"listen", 倾听:"listen",
 };
 
 const VERB_EN = new Set([
@@ -73,7 +74,7 @@ const VERB_EN = new Set([
   "push","pull","turn","read","wear","remove","throw","give","cut",
   "set","enter","climb","ride","search","feed","buy","fold","point",
   "unscrew","unlock","pour","show","hit","break","chop","kill",
-  "wait","sit","enter","exit","wave","blow","smell","help","hold",
+  "wait","sit","enter","exit","wave","blow","smell","help","hold","listen",
 ]);
 
 const PREPS = new Set([
@@ -99,6 +100,9 @@ export class Parser {
 
     // Meta commands
     if (META[low]) return { type: "meta", cmd: META[low] };
+    if (["屏息", "憋气", "屏住呼吸"].includes(raw)) {
+      return { type: "simple", verb: "hold", noun: "breath" };
+    }
 
     // Direction (exact)
     if (DIR_MAP[low]) return { type: "direction", dir: DIR_MAP[low] };
@@ -125,6 +129,7 @@ export class Parser {
     let verb = words[0];
     if (verb === "pick" && words[1] === "up") { verb = "take"; words.splice(1, 1); }
     if (verb === "look" && words[1] === "at") { verb = "examine"; words.splice(1, 1); }
+    if (verb === "listen" && words[1] === "to") words.splice(1, 1);
     if (verb === "get" && words[1] === "in") { verb = "enter"; words.splice(1, 1); }
     if (verb === "get" && words[1] === "out") { verb = "exit"; words.splice(1, 1); }
     if (verb === "get") verb = "take";

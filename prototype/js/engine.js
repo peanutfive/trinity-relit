@@ -305,6 +305,10 @@ export class GameEngine {
     return this.rooms[this.state.room];
   }
 
+  hasCarrySpace() {
+    return this.state.carryCount() < MAX_CARRY;
+  }
+
   // ── Room display ──
   describeRoom() {
     const room = this.currentRoom();
@@ -454,11 +458,41 @@ export class GameEngine {
 
   async _runCommandTurn(command) {
     if (!command) return false;
-    this.state.turns++;
-    const handled = await this._handleParsed(command);
-    if (handled) { this._postTurn(); return true; }
-    this.state.turns--;
-    return false;
+    // 旧事件在 act/onEnter 中看到的始终是当前动作的回合数。先暂增，
+    // 再由动作结果决定是否提交；未知输入、免推进动作和异常均撤销暂增。
+    let pendingTick = null;
+    const beginTick = () => {
+      pendingTick = { state: this.state, turns: this.state.turns };
+      this.state.turns++;
+    };
+    const cancelTick = () => {
+      if (pendingTick) pendingTick.state.turns = pendingTick.turns;
+      pendingTick = null;
+    };
+    beginTick();
+    try {
+      const result = await this._handleParsed(command);
+      if (result !== true && result?.handled !== true) return false;
+      if (result?.advancesTurn === false) {
+        cancelTick();
+        this._finishAction();
+        return true;
+      }
+
+      // 只有 WAIT 的显式结构会带上批次参数；旧 boolean 结果仍推进一次。
+      const maxTurns = Number.isInteger(result?.maxTurns) && result.maxTurns >= 1 && result.maxTurns <= 3
+        ? result.maxTurns : 1;
+      const stopAfterTurn = typeof result?.stopAfterTurn === "function" ? result.stopAfterTurn : null;
+      for (let index = 0; index < maxTurns; index++) {
+        this._postTurn();
+        pendingTick = null;
+        if (this.state.dead || stopAfterTurn?.(this.state, this)) break;
+        if (index + 1 < maxTurns) beginTick();
+      }
+      return true;
+    } finally {
+      cancelTick();
+    }
   }
 
   _handleMeta(input) {
@@ -498,26 +532,29 @@ export class GameEngine {
     }
     const target = exits[dir];
     if (typeof target === "object") {
+      const result = { handled: true, advancesTurn: target.advancesTurn !== false };
       if (target.when && !target.when(this.state)) {
         const failMsg = typeof target.fail === "function" ? target.fail(this.state) : target.fail;
         this.ui.text(failMsg || "你不能往那个方向走。");
-        return true;
+        return result;
       }
       if (target.text) this.ui.text(target.text);
       if (target.act) await target.act(this.state, this);
       this.moveTo(target.to);
+      return result;
     } else {
       this.moveTo(target);
     }
     return true;
   }
 
-  _handleMetaCmd(cmd) {
+  async _handleMetaCmd(cmd) {
     if (cmd === "look") { this.describeRoom(); return true; }
     if (cmd === "wait") {
       this.ui.text("时间流逝。");
       const room = this.currentRoom();
-      if (room.onWait) room.onWait(this.state, this);
+      const result = room.onWait && await room.onWait(this.state, this);
+      if (result?.handled === true) return result;
       return true;
     }
     return false;
@@ -532,7 +569,7 @@ export class GameEngine {
       if (!ev.match) continue;
       if (this._matchCommand(cmd, ev.match)) {
         await this._executeEvent(ev);
-        return true;
+        return { handled: true, advancesTurn: ev.advancesTurn !== false };
       }
     }
 
@@ -614,6 +651,11 @@ export class GameEngine {
       }
     }
 
+    this._finishAction();
+  }
+
+  // 免推进动作仍可能改变剧情状态或造成死亡，但不得运行房间/计时器回调。
+  _finishAction() {
     if (this.state.dead) {
       this.ui.system("\n你死了。\n\n点击页面上方「重新开始」开始新游戏，或刷新页面续玩最后的存档。");
     }
@@ -635,7 +677,7 @@ export class GameEngine {
     if (!this.state.inRoom(itemId)) { this.ui.system("这里没有那个东西。"); return true; }
     const item = this.items[itemId];
     if (item && item.fixed) { this.ui.system(item.fixedMsg || "你拿不动它。"); return true; }
-    if (this.state.carryCount() >= MAX_CARRY) { this.ui.system("你拿不下更多东西了。"); return true; }
+    if (!this.hasCarrySpace()) { this.ui.system("你拿不下更多东西了。"); return true; }
     this.state.take(itemId);
     this.ui.text(item?.takeTxt || `你拿起了${item?.cn || noun}。`);
     return true;

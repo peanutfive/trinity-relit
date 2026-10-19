@@ -213,6 +213,7 @@ room_id: {
 | `eng.die(msg)` | 输出消息并标记死亡 |
 | `eng.transitionChapter({to, roomCandidates, fallbackRoom})` | 章节过渡（async） |
 | `eng.describeRoom()` | 重新描述当前房间 |
+| `eng.hasCarrySpace()` | 当前inventory是否仍有携带空位；章节特殊拿取应复用，避免绕过通用上限 |
 
 ---
 
@@ -239,6 +240,9 @@ room_id: {
 - 如果 `act` 中已用 `eng.print()` 输出文本，`text` 应为 `""` 避免重复
 - 如果 `act` 中调用 `eng.moveTo()`，注意 moveTo 会触发目标房间的 onEnter
 - `act` 可以是 `async` 函数（用于 `await eng.transitionChapter()`）
+- 已被处理但不推进回合的事件声明`advancesTurn: false`；条件出口同名字段对成功和`when`阻挡都生效。不要在章节里手动增减`turns`或调用`_postTurn()`。
+- 免推进仍保存已改变的活状态并处理死亡反馈，但不调用onTurn/计时器；未知输入不保存。`act()`返回值继续被忽略，不能用`return false`代替上述声明。
+- `onWait(s, eng)`可返回`{ handled: true, maxTurns: 3, stopAfterTurn(s, eng) { /* 布尔停止条件 */ } }`，范围为1–3。引擎逐tick结算和保存，遇死亡或条件成立停止；旧的void/boolean返回保持一次。也可返回`{handled:true, advancesTurn:false}`。只在已有原版证据支持时使用，多tick不能手工改计数冒充全局回合。
 
 ### 事件优先级
 
