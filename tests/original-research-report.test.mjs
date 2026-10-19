@@ -5,8 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { buildReport, reportSummary, validateManifest } from '../scripts/original-research/report.mjs';
-import { fingerprints, parseScoreOutput } from '../scripts/original-research/lib/checks.mjs';
-import { SOURCE, TARGET, hash } from '../scripts/original-research/lib/common.mjs';
+import { checkSourceOutput, fingerprints, parseScoreOutput } from '../scripts/original-research/lib/checks.mjs';
+import { SOURCE, TARGET, hash, normalize } from '../scripts/original-research/lib/common.mjs';
 import { indexSources } from '../scripts/original-research/lib/zil.mjs';
 
 // Synthetic headers exercise the numeric grammar; no original transcript/rank is copied.
@@ -159,6 +159,62 @@ test('输出断言不匹配或不可解析会分别报告failed/unknown，不能
   const corrupt = fixture();
   corrupt.index.strings[0].span.file = 'different.zil';
   assert.throws(() => report(corrupt), /provenance/);
+});
+
+test('精确源码片段不能由同例程的其他响应替代，规范化处理ZIL换行', () => {
+  const index = indexSources([{ path: 'fixture.zil', source: '<ROUTINE SAMPLE () <TELL "fixture dry branch"> <TELL "fixture|wet    branch">> <ROUTINE OTHER () <TELL "unrelated selected branch">>' }], { sourceCommit: SOURCE.commit });
+  const check = { type: 'source-output', file: 'fixture.zil', symbol: 'SAMPLE', commandIndex: 0, literalSha256: hash(normalize('fixture\nwet    branch')) };
+  const capture = { steps: [{ index: 0, output: 'fixture dry branch' }, { index: 1, output: 'fixture wet branch' }] };
+  assert.equal(checkSourceOutput(check, capture, index).pass, false);
+  assert.equal(checkSourceOutput({ ...check, commandIndex: 1 }, capture, index).pass, true);
+  assert.equal(checkSourceOutput({ ...check, literalSha256: hash('unrelated selected branch') }, capture, index).pass, null);
+  assert.equal(checkSourceOutput({ ...check, literalSha256: '0'.repeat(64) }, capture, index).status, 'unknown');
+  assert.equal(checkSourceOutput({ ...check, literalSha256: undefined }, capture, index).pass, true);
+});
+
+test('manifest拒绝格式错误的字面量摘要，报告区分指定文字缺失和输出未命中', () => {
+  for (const digest of [null, 17, '', 'a'.repeat(63), 'A'.repeat(64)]) {
+    const value = fixture();
+    value.manifest.pilots[0].cases[0].checks[0].literalSha256 = digest;
+    assert.throws(() => validateManifest(value.manifest), /literal digest/);
+  }
+  const value = fixture(), scenario = value.manifest.pilots[0].cases[0];
+  scenario.checks[0].literalSha256 = hash('fixture recorded message');
+  Object.assign(value.capture, fingerprints(value.manifest, scenario));
+  assert.equal(first(report(value)).verification, 'verified');
+  scenario.checks[0].literalSha256 = '0'.repeat(64);
+  Object.assign(value.capture, fingerprints(value.manifest, scenario));
+  assert.equal(first(report(value)).verification, 'unknown');
+});
+
+test('已选字面量短于检查门槛属于配置未知，显式小门槛才执行匹配', () => {
+  const index = indexSources([{ path: 'fixture.zil', source: '<ROUTINE SAMPLE () <TELL "tiny">>' }], { sourceCommit: SOURCE.commit });
+  const check = { file: 'fixture.zil', symbol: 'SAMPLE', literalSha256: hash('tiny'), commandIndex: 0 };
+  const capture = { steps: [{ index: 0, output: 'tiny' }] };
+  assert.equal(checkSourceOutput(check, capture, index).pass, null);
+  assert.equal(checkSourceOutput({ ...check, minLength: 4 }, capture, index).pass, true);
+  capture.steps[0].output = 'different';
+  assert.equal(checkSourceOutput({ ...check, minLength: 4 }, capture, index).pass, false);
+});
+
+test('原版随机文字允许明确的有限候选，未声明文字或缺失来源不能通过', () => {
+  const index = indexSources([{ path: 'fixture.zil', source: '<ROUTINE SAMPLE () <TELL "fixture first variation" "fixture second variation" "fixture other branch" "tiny">>' }], { sourceCommit: SOURCE.commit });
+  const check = { file: 'fixture.zil', symbol: 'SAMPLE', commandIndex: 0, literalSha256AnyOf: [hash('fixture first variation'), hash('fixture second variation')] };
+  const capture = { steps: [{ index: 0, output: 'fixture first variation' }] };
+  assert.equal(checkSourceOutput(check, capture, index).pass, true);
+  capture.steps[0].output = 'fixture second variation';
+  assert.equal(checkSourceOutput(check, capture, index).pass, true);
+  capture.steps[0].output = 'fixture other branch';
+  assert.equal(checkSourceOutput(check, capture, index).pass, false);
+  capture.steps[0].output = 'fixture first variation';
+  assert.equal(checkSourceOutput({ ...check, literalSha256AnyOf: [...check.literalSha256AnyOf, '0'.repeat(64)] }, capture, index).pass, null);
+  assert.equal(checkSourceOutput({ ...check, literalSha256AnyOf: [...check.literalSha256AnyOf, hash('tiny')] }, capture, index).pass, null);
+  for (const alternatives of [[], null, ['invalid'], [hash('one'), hash('one')], Array(33).fill(hash('one'))]) {
+    const value = fixture();value.manifest.pilots[0].cases[0].checks[0].literalSha256AnyOf = alternatives;
+    assert.throws(() => validateManifest(value.manifest), /literal alternatives/);
+  }
+  const value = fixture();Object.assign(value.manifest.pilots[0].cases[0].checks[0], { literalSha256: hash('one'), literalSha256AnyOf: [hash('one')] });
+  assert.throws(() => validateManifest(value.manifest), /literal alternatives/);
 });
 
 test('report CLI 对重复转录和失败检查返回失败，不产出歧义成功报告', async () => {

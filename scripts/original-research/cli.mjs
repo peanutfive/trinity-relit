@@ -48,7 +48,9 @@ async function runAll(argv) {
   await writeEvidence(path.join(out, 'report.json'), report);
   const observations = report.pilots.flatMap(pilot => pilot.cases).flatMap(scenario => scenario.checks || []);
   const summary = reportSummary(report);
-  console.log(JSON.stringify({ ...summary, sourceChecks: observations.length,
+  console.log(JSON.stringify({ ...summary, checks: observations.length,
+    sourceChecks: observations.filter(result => result.check.type === 'source-output').length,
+    scoreChecks: observations.filter(result => result.check.type === 'score-output').length,
     matched: observations.filter(check => check.status === 'observed-fragment').length, report: path.join(out, 'report.json'),
     staticOnly: summary.staticOnly }));
   if (summary.failed || summary.unknown) process.exitCode = 1;

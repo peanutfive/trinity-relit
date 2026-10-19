@@ -3,6 +3,7 @@ import { SOURCE, TARGET, hash, normalize } from './common.mjs';
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const command = value => typeof value === 'string' && !!value.trim() && !/[\r\n\0]/.test(value);
 const safeId = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(value);
+const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 export const fingerprints = (manifest, scenario) => ({
   manifestSha256: hash(JSON.stringify(manifest)), scenarioSha256: hash(JSON.stringify(scenario)),
 });
@@ -35,6 +36,8 @@ export function validateManifest(manifest) {
         if (check.commandIndex !== undefined && (!Number.isSafeInteger(check.commandIndex) || check.commandIndex < 0 || check.commandIndex >= scenario.commands.length)) throw new Error(`Invalid check commandIndex: ${scenario.id}`);
         if (check.type === 'source-output') {
           if (typeof check.file !== 'string' || !check.file || typeof check.symbol !== 'string' || !check.symbol || (check.minLength !== undefined && (!Number.isSafeInteger(check.minLength) || check.minLength < 1))) throw new Error(`Invalid source-output check: ${scenario.id}`);
+          if (check.literalSha256 !== undefined && !digest(check.literalSha256)) throw new Error(`Invalid source literal digest: ${scenario.id}`);
+          if (check.literalSha256AnyOf !== undefined && (check.literalSha256 !== undefined || !Array.isArray(check.literalSha256AnyOf) || !check.literalSha256AnyOf.length || check.literalSha256AnyOf.length > 32 || check.literalSha256AnyOf.some(value => !digest(value)) || new Set(check.literalSha256AnyOf).size !== check.literalSha256AnyOf.length)) throw new Error(`Invalid source literal alternatives: ${scenario.id}`);
         } else if (!Number.isSafeInteger(check.commandIndex) || scenario.commands[check.commandIndex].trim().toLowerCase() !== 'score' || !Number.isSafeInteger(check.score) || check.score < 0 || check.score > 100 || !Number.isSafeInteger(check.moves) || check.moves < 0) throw new Error(`Invalid score-output check: ${scenario.id}`);
       }
     }
@@ -46,14 +49,19 @@ export function checkSourceOutput(check, capture, index) {
   const definitions = index.definitions.filter(def => def.name === check.symbol && def.span.file === check.file);
   if (!definitions.length) return { status: 'unknown', pass: null, reason: 'Source symbol was not found' };
   const ownerIds = new Set(definitions.map(def => def.id));
-  const strings = index.strings.filter(string => ownerIds.has(string.owner) && string.span.file === check.file);
+  const requested = check.literalSha256AnyOf ?? (check.literalSha256 === undefined ? null : [check.literalSha256]);
+  const strings = index.strings.filter(string => ownerIds.has(string.owner) && string.span.file === check.file)
+    .map(string => ({ ...string, normalized: normalize(string.value.replaceAll('|', '\n')) }))
+    .filter(string => requested === null || requested.includes(hash(string.normalized)));
+  if (requested !== null && requested.some(digest => !strings.some(string => hash(string.normalized) === digest))) return { status: 'unknown', pass: null, reason: 'Requested source literal was not found in the selected symbol/file' };
   const selected = check.commandIndex === undefined ? capture.steps : capture.steps.filter(step => step.index === check.commandIndex);
   if (!selected.length) return { status: 'unknown', pass: null, reason: 'Requested command response was not captured' };
   const observations = normalize(selected.map(step => step.output).join('\n'));
   const minimum = check.minLength ?? 16;
   if (!Number.isSafeInteger(minimum) || minimum < 1) return { status: 'unknown', pass: null, reason: 'Invalid minimum literal length' };
+  if (requested !== null && strings.some(string => string.normalized.length < minimum)) return { status: 'unknown', pass: null, reason: 'Selected source literal is shorter than the configured minimum' };
   const hits = strings.filter(string => {
-    const text = normalize(string.value.replaceAll('|', '\n'));
+    const text = string.normalized;
     return text.length >= minimum && observations.includes(text);
   });
   return { status: hits.length ? 'observed-fragment' : 'not-observed', pass: hits.length > 0,

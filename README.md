@@ -111,4 +111,4 @@ Trinity (1986) 的著作权归属 Infocom / Activision。本项目是非商业�
 
 新增开发期原版研究入口 `npm run research -- --help`，支持固定版本源码获取与索引、原版逐命令采集、三个谜题试点和 REA 证据采集/比较。先看[开发计划](docs/ORIGINAL_RESEARCH_PLAN.md)、[使用说明](docs/ORIGINAL_RESEARCH.md)和[试点规格](docs/ORIGINAL_PILOTS.md)。原版资料与派生证据只保留本地；水库及全章覆盖仍有明确未验证项。
 
-2026-10-16 第二轮已补原版水库正常路线与[研究检查点](docs/ORIGINAL_CHECKPOINTS.md)，支持不可覆盖证据、严格来源绑定及分数/回合断言。当前12个原版场景、60项可见检查通过，剩余水库物品/动物/坍塌条件继续研究。
+2026-10-19 第三轮已扩展至29个原版场景、180项可见检查通过，覆盖水库基础、受潮/容器、三种笼中动物与风车路径。支持[正常研究检查点](docs/ORIGINAL_CHECKPOINTS.md)、不可覆盖证据、严格来源绑定、条件片段摘要及分数/回合断言。[迁移规格](docs/ORIGINAL_MIGRATION.md)列出运行时缺口与实施顺序；未验证组合及全章还原仍待推进。

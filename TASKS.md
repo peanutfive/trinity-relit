@@ -166,3 +166,11 @@
 - 范围：原版研究脚本（含新checkpoint/checks模块）、research/pilots.json、相关研究测试和docs、README/TASKS/SHIP_PLAN/progress；不涉及游戏运行时与章节。
 - 计划P6–P10：修复证据覆盖与身份校验 → 严格报告与score/moves断言 → 原版合法路线/检查点 → 水库动态验证 → 整合验收。详见开发计划第二轮。
 - 状态：👀 P6–P10本地完成：130/130测试、规范通过；12个原版场景/60项可见检查全部通过，水库基本路径从fresh独立验证；正常检查点创建恢复通过。水库受潮/动物/坍塌3组保留static-only。待审阅，未推送或部署。
+
+### T17 原版水库条件研究第三轮 — Codex（2026-10-19）
+- 人类要求继续工作，延续T15/T16的研究工具范围与子代理授权。
+- 分支：codex/original-research；持久工作树 `.claude/worktrees/original-research`，T16已提交09a1ab0。
+- 范围：scripts/original-research/、research/pilots.json、相关研究tests、docs/ORIGINAL_*.md、README/TASKS/SHIP_PLAN/progress。仅研究和证据规格，不改游戏运行时、章节、物品或地图。
+- 计划P11–P14：精确字面量检查 → 受潮/笼中动物/风车正常路径探索 → 正式采集器从全新开局独立验证 → 迁移规格、未知项与整体验收。详细标准见开发计划第三轮。
+- 分工：pilot_specs研究受潮与容器；rea_adapter研究笼中动物；zil_index研究风车并独立审查检查强度；主代理实现检查、整合场景与文档并重采集。
+- 状态：👀 P11–P14本地完成；134/134测试与规范通过，29个原版fresh场景/180项可见检查通过（新增17场景），剩余2组未覆盖组合继续静态。已写后续迁移规格，出口旧43项无新增，未修改运行时、推送或部署。
