@@ -1,4 +1,5 @@
 // 模型只选择本次候选；标准命令、状态检查与执行都留在本地。
+import { getItemActionCandidates } from './item-rules.js';
 const first = value => Array.isArray(value) ? value[0] : value;
 export const INTENT_INPUT_LIMIT = 300;
 
@@ -13,6 +14,8 @@ export function commandIsKnown(engine, command) {
   if (command.type === 'direction' || command.type === 'meta') return true;
   if (matchingEvent(engine, command)) return true;
   if ((engine.currentRoom()?.events || []).some(event => event.match && engine._matchCommand(command, event.match))) return true;
+  if (['examine', 'look_in'].includes(command.verb)
+      && ['pocket', 'your pocket', '口袋', '衣袋'].includes(command.noun?.toLowerCase())) return true;
   if (!command.noun) return true;
   if (engine._resolveItem(command.noun)) return true;
   return false;
@@ -43,17 +46,21 @@ export function buildIntentCandidates(engine) {
     add(`event:${event.id}`, command, [...(event.triggers || []),
       [command.verb, command.noun, command.noun2].filter(Boolean).join(' ')]);
   }
-  const ids = new Set([...engine.state.roomItems(), ...engine.state.inventoryList().map(x => x.id)]);
+  const ids = engine.visibleItemIds();
   for (const id of ids) {
     const item = engine.items[id];
     if (!item) continue;
     for (const [verb, cn] of [['examine', '查看'], ['take', '拿起'], ['drop', '放下']]) {
       if (verb === 'drop' && !engine.state.has(id)) continue;
       if (verb === 'take' && engine.state.has(id) && !engine.state.inPocket(id)) continue;
+      if (verb === 'take' && (item.fixed || !engine.isAccessible(id) || !engine.hasCarrySpace())) continue;
       const command = { type: 'simple', verb, noun: id };
       if (matchingEvent(engine, command)) continue;
-      add(`item:${verb}:${id}`, command, [`${cn}${item.cn || id}`, `${verb} ${item.name || id.replaceAll('_', ' ')}`]);
+      add(`item:${verb}:${id}`, command, [`${cn}${item.cn || id}`, `${verb} ${engine.itemProperty(id, 'en') || item.name || id.replaceAll('_', ' ')}`]);
     }
+  }
+  for (const candidate of getItemActionCandidates(engine)) {
+    if (!matchingEvent(engine, candidate.command)) add(candidate.id, candidate.command, candidate.examples);
   }
   const exits = engine.currentRoom()?.exits;
   const directions = typeof exits === 'function' ? exits(engine.state) : exits;

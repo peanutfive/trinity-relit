@@ -47,20 +47,22 @@ const ALL_ROOMS = PRELOADED.reduce((acc, chapter) => {
 //
 // 引擎只负责产出/吃进纯对象，落盘在这里。localStorage 天然按来源隔离，
 // 线上版（github.io）、本地 dev 版（localhost）的存档互不干扰，不需要
-// 额外做什么。key 带版本号，将来格式不兼容时旧档自然失效而不是读出错误状态。
+// 额外做什么。当前写入最新版本；仅新键缺失时查找可迁移的旧键。
 
 const SAVE_KEY = `trinity-relit:save:v${SAVE_VERSION}`;
+const LEGACY_SAVE_KEY = "trinity-relit:save:v1";
+let autosaveSuspended = false;
 
 // 隐私模式、磁盘配额、被禁用的存储都会让这些调用直接抛异常，
 // 一律降级为「没有存档」而不是让游戏打不开。
 const saveStore = {
   read() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const current = localStorage.getItem(SAVE_KEY);
+      const raw = current === null ? localStorage.getItem(LEGACY_SAVE_KEY) : current;
+      return raw === null ? null : JSON.parse(raw);
     } catch (err) {
-      console.warn("读取存档失败，按无存档处理", err);
-      return null;
+      throw new Error("本地存档无法读取或解析", { cause: err });
     }
   },
   write(save) {
@@ -73,7 +75,11 @@ const saveStore = {
     }
   },
   clear() {
-    try { localStorage.removeItem(SAVE_KEY); } catch { /* 无所谓 */ }
+    // 先删旧键；若旧键删除失败，保留新键，避免下次启动退回旧进度。
+    for (const key of new Set([LEGACY_SAVE_KEY, SAVE_KEY])) {
+      try { localStorage.removeItem(key); } catch { return false; }
+    }
+    return true;
   },
 };
 
@@ -100,9 +106,6 @@ function parseSaveFile(text) {
   }
   if (!save || typeof save !== "object" || !save.state) {
     throw new Error("文件里没有存档数据");
-  }
-  if (save.version !== SAVE_VERSION) {
-    throw new Error(`存档版本为 ${save.version}，当前游戏只能读 ${SAVE_VERSION}`);
   }
   return save;
 }
@@ -144,7 +147,7 @@ async function boot() {
     },
     preloadedChapters: PRELOADED_CHAPTERS,
     // 每回合结束由引擎回调，引擎自己不认识 localStorage。
-    onAutosave: (save) => saveStore.write(save),
+    onAutosave: (save) => !autosaveSuspended && saveStore.write(save),
   });
 
   // prologue 是预加载的，不经过 chapterLoader，它的计时器要在这里登记。
@@ -180,8 +183,7 @@ async function boot() {
       if (text == null) return;
       let save;
       try {
-        save = parseSaveFile(text);
-        await engine.validateSave(save);
+        save = await engine.prepareSave(parseSaveFile(text));
       } catch (err) {
         ui.system(`导入失败：${err.message}`);
         return;
@@ -198,7 +200,10 @@ async function boot() {
 
     onRestart: () => {
       if (!ui.confirm("重新开始会清除当前存档，且无法撤销。\n如果想留着，请先导出存档。\n\n确定吗？")) return;
-      saveStore.clear();
+      if (!saveStore.clear()) {
+        ui.system("无法清除本地存档，尚未重新开始。原进度仍保留。");
+        return;
+      }
       ui.reload();
     },
   });
@@ -208,14 +213,23 @@ async function boot() {
 
 // 有存档就问，没有就直接开局。
 async function resumeOrStart(engine) {
-  const save = saveStore.read();
+  let save;
+  try { save = saveStore.read(); }
+  catch (err) {
+    autosaveSuspended = true;
+    ui.system(`存档无法读取（${err.message}）。本页暂时从头开始，已暂停自动保存以保留原文件；请导出当前进度，或明确重新开始、导入有效存档。`);
+    engine.moveTo(engine.state.room);
+    return;
+  }
   if (!save) { engine.moveTo(engine.state.room); return; }
 
   const choice = await ui.askResume(describeSave(save));
   if (choice !== "continue") {
-    saveStore.clear();
-    engine.moveTo(engine.state.room);
-    return;
+    if (saveStore.clear()) {
+      engine.moveTo(engine.state.room);
+      return;
+    }
+    ui.system("无法清除旧存档，已保留并尝试继续原进度。");
   }
 
   try {
@@ -223,12 +237,15 @@ async function resumeOrStart(engine) {
   } catch (err) {
     // 存档读不了就说清楚原因并从头开始，不要卡在半截状态里。
     console.error("读档失败", err);
-    ui.system(`存档无法读取（${err.message}），只能从头开始。`);
-    saveStore.clear();
+    autosaveSuspended = true;
+    ui.system(`存档无法读取（${err.message}）。本页暂时从头开始，已暂停自动保存以保留原文件；请导出当前进度，或明确重新开始、导入有效存档。`);
     engine.moveTo(engine.state.room);
     return;
   }
 
+  if (save.version !== SAVE_VERSION && !saveStore.write(engine.serialize())) {
+    ui.system("旧存档已读取，但暂时无法保存升级后的进度；原存档仍保留。");
+  }
   ui.system("—— 已回到上次离开的地方 ——");
   // 用 describeRoom 而非 moveTo：读档只还原状态，不重放 onEnter 的副作用。
   engine.describeRoom();

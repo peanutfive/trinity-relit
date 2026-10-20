@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { SAVE_VERSION } from '../prototype/js/engine.js';
 const option = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const modulePath = option('--playwright', 'playwright');
 const { chromium } = await import(modulePath === 'playwright' ? modulePath : pathToFileURL(resolve(modulePath)).href);
 const output = option('--output-dir', '/tmp/trinity-runtime-review');
 mkdirSync(output, {recursive: true});
-const browser = await chromium.launch({headless: true});
+const browser = await chromium.launch({headless: true, channel: option('--channel', undefined)});
 try {
   const page = await browser.newPage({viewport: {width: 1280, height: 960}});
   const errors = [], modelRequests = [];
@@ -17,7 +18,7 @@ try {
   page.on('dialog', dialog => dialog.accept());
   await page.goto(option('--url', 'http://127.0.0.1:8081/'));
   const ready = () => page.waitForFunction(() => !document.querySelector('#input').disabled);
-  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('trinity-relit:save:v1')));
+  const saved = () => page.evaluate(version => JSON.parse(localStorage.getItem(`trinity-relit:save:v${version}`)), SAVE_VERSION);
   async function submit(text) {
     await page.locator('#input').fill(text);
     await page.locator('#input').press('Enter');

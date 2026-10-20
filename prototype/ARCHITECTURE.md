@@ -102,6 +102,16 @@ event.act() → await eng.transitionChapter()
 
 缺失的兼容字段采用默认值；已出现但错误的字段拒绝恢复。读档不会重放 onEnter；死亡不覆盖最后的活存档。坏档预检可能加载模块缓存，但不得改进度、计时器或物品。
 
+M4使用存档v2，并接受v1迁移。`prepareSave()`在独立状态上校验/迁移并生成v2包，供导入确认前使用；`validateSave()`仍返回true。新本地键缺失时才尝试v1键，坏v2不能静默回退。旧续玩成功后写v2而保留v1；明确重开先清旧键再清新键，失败不重载。加载失败会提示并暂停自动保存，直到明确重开或导入，避免下一条指令覆盖原文件。
+
+### 4.7.1 容器与共享物品规则
+
+`itemLoc`仍为唯一物品位置来源，`in:<containerId>`表示直接父容器；`contents/containerOf/putIn`查询或改变关系，拒绝自包含与循环。`has/inRoom/inventoryList`保持原有直接语义，避免容器内道具绕过旧章节前置。旧旅鼠的扁平`cage`位置留给M5迁移。
+
+引擎的`isVisible/isAccessible/visibleItemIds/containerIsOpen/itemProperty`统一执行和候选的判断；透明闭笼可见不可取，口袋中的袋子须先取出才能装物。背包列出可见的容器内容，8件上限只计算顶层手持；容器取出和口袋取出同样检查空位。完整原版25负重尚未启用。
+
+房间事件优先，其次`item-rules.js`共享规则，最后通用take/drop/examine。共享规则涵盖袋子替换、已核实容器容量/口袋/笼子优先规则、对讲机和两种一层受潮策略；`getItemActionCandidates()`复用同一判断，状态改变后旧建议仍由确认边界拒绝。普通入水EBAG不转移旧内容，坍塌先转移；SOGGY重复入水不会再次清空。可见性递归不代表受潮也递归。
+
 ### 4.8 Ranch局部时钟
 
 平台寿命与呼吸采用持久化flags/counters，由各Ranch房间带守卫的onTurn推进，不占用其他章节的单一`state.timer`。等待至首个警告/气尽就停止；取镜的免推进坍塌不会额外消耗一次气息。平台与呼吸的回调先后关系按原版正常路径核验并持久化，读档不重置寿命。

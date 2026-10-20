@@ -120,7 +120,9 @@ export async function createCheckpoint({ dat, commands: suppliedCommands, contin
   await mkdir(root, { mode: 0o700 }); // An existing directory is never reused.
   const saveFile = path.join(root, 'state.qzl'); await assertNewEvidencePath(saveFile);
   const fullHistory = [...commands, ...PROBES];
-  const capture = { ...await captureTranscript({ executable: interpreter.executable, arguments: interpreterArguments(dat), commands: fullHistory, continuations, saveFile, timeoutMs, cwd: root }), kind: 'trinity-checkpoint-creation', origin: 'fresh-start', storySHA256: story.sha256, interpreterSHA256: interpreter.sha256 };
+  // SAVE 的文件名由解释器读行，长度受限；cwd已是独占的新证据目录，
+  // 使用固定短文件名，避免长工作树绝对路径被截断后保存到意外位置。
+  const capture = { ...await captureTranscript({ executable: interpreter.executable, arguments: interpreterArguments(dat), commands: fullHistory, continuations, saveFile: path.basename(saveFile), timeoutMs, cwd: root }), kind: 'trinity-checkpoint-creation', origin: 'fresh-start', storySHA256: story.sha256, interpreterSHA256: interpreter.sha256 };
   const creation = path.join(root, 'creation.json');
   await writeEvidence(creation, capture); // Retain partial observations on failure, without a success manifest.
   verifyCapture(capture, fullHistory, 'fresh-start', continuations);

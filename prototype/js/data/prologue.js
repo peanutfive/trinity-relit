@@ -5,6 +5,8 @@
 //  original Infocom Trinity (1986).
 // ═══════════════════════════════════════════════════
 
+import { consumeCrumbs, crumbsRemaining } from "../item-rules.js";
+
 function pramRoom(s) {
   if (s.hasFlag("pram_broken")) return "long_water";
   if (s.hasFlag("pram_at_flower")) return "flower_walk";
@@ -248,6 +250,8 @@ export const ROOMS = {
         act(s) {
           s.destroy("coin");
           s.take("bag");
+          s.setCnt("crumbs_remaining", 5);
+          s.setCnt("crumbs_appetite", 0);
           s.toPocket("small_coin");
           s.setFlag("bag_bought");
           if (!s.hasFlag("scored_bag")) { s.addScore(1); s.setFlag("scored_bag"); }
@@ -264,11 +268,11 @@ export const ROOMS = {
       },
       {
         id: "feed_birds",
-        match: { verb: ["feed", "throw", "give", "drop"], noun: ["bag", "crumbs", "面包屑", "鸽子", "pigeons", "birds", "鸟"] },
+        match: { verb: ["feed"], noun: ["bag", "crumbs", "面包屑", "鸽子", "pigeons", "birds", "鸟"] },
         triggers: ["喂鸽子", "撒面包屑", "喂鸟", "feed the pigeons", "scatter crumbs", "feed birds"],
         when: (s) => s.has("bag") && !s.hasFlag("birds_fed"),
         act(s) {
-          s.destroy("bag");
+          consumeCrumbs(s);
           s.setFlag("birds_fed");
           s.setFlag("ruby_visible");
         },
@@ -278,6 +282,18 @@ export const ROOMS = {
               "你从纸袋里抓出一把面包屑。它们从你指间滑落，滚过地面。\n\n" +
               "当野鸟们狼吞虎咽地吃着面包屑时，一抹红光吸引了你的目光。你皱着眉弯下腰仔细看了看……不禁惊呼出声！\n\n" +
               "你脚边的红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。它一定是在那袋面包屑里的。",
+      },
+      {
+        id: "feed_birds_remaining_crumbs",
+        match: { verb: ["feed"], noun: ["bag", "crumbs", "面包屑", "鸽子", "pigeons", "birds", "鸟"] },
+        triggers: ["再喂鸟", "继续撒面包屑", "feed birds again"],
+        when: (s) => s.has("bag") && s.hasFlag("birds_fed"),
+        act(s, eng) {
+          const last = crumbsRemaining(s) === 1;
+          consumeCrumbs(s);
+          eng.print(`You take ${last ? "the last" : "a"} handful of crumbs out of the bag. They fall between your fingers and tumble across the ground, where the breeze blows them all away.\n\n你从袋子里抓出${last ? "最后" : ""}一把面包屑。它们从指间滑落，滚落地面，被微风全吹走了。`);
+        },
+        text: "",
       },
       {
         id: "take_ruby",

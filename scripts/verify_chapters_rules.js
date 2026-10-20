@@ -4,6 +4,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
+
+async function main() {
 
 const PROTO = path.join(__dirname, "..", "prototype");
 const DATA = path.join(PROTO, "js", "data");
@@ -29,41 +32,30 @@ function fail(check, msg, file, line) {
   issues.push({ check, msg, file, line });
 }
 
-// 加载所有章节 ROOMS（需 strip export）
-function loadChapterRooms(filename) {
+// 使用与浏览器相同的ES模块依赖，不剥离import或伪造共享规则。
+async function loadChapterRooms(filename) {
   const filepath = path.join(DATA, filename);
   if (!fs.existsSync(filepath)) return null;
-  let code = fs.readFileSync(filepath, "utf8");
-  if (filename.endsWith(".js") && !filename.startsWith("_") && filename !== "items.js") {
-    code = code.replace(/export const ROOMS\s*=\s*/g, "const ROOMS = ");
-    code = code.replace(/^const SUNDIAL_/gm, "const SUNDIAL_");
-    code = code.replace(/^export\s+/gm, "");
-    try {
-      const fn = new Function(code + " return typeof ROOMS !== 'undefined' ? ROOMS : {};");
-      return fn();
-    } catch (e) {
-      fail("语法检查", e.message, filename);
-      return {};
-    }
+  try {
+    return (await import(pathToFileURL(filepath).href)).ROOMS || {};
+  } catch (e) {
+    fail("语法检查", e.message, filename);
+    return {};
   }
-  return null;
 }
 
 // 收集所有房间 ID（含 main 预加载 + 懒加载章节）
 const chapterFiles = ["prologue.js", "wabe.js", "japan.js", "underground.js", "orbit.js", "pacific.js", "tundra.js", "islet.js", "desert.js", "ranch.js", "finale.js"];
 const allRooms = {};
 for (const f of chapterFiles) {
-  const ROOMS = loadChapterRooms(f);
+  const ROOMS = await loadChapterRooms(f);
   if (ROOMS && typeof ROOMS === "object") Object.assign(allRooms, ROOMS);
 }
 
 // 加载 items
 let ITEMS = {};
 try {
-  let itemsCode = fs.readFileSync(path.join(DATA, "items.js"), "utf8");
-  itemsCode = itemsCode.replace("export const ITEMS", "const ITEMS");
-  const fn = new Function(itemsCode + " return ITEMS;");
-  ITEMS = fn();
+  ITEMS = (await import(pathToFileURL(path.join(DATA, "items.js")).href)).ITEMS;
 } catch (e) {
   fail("items.js", e.message, "items.js");
 }
@@ -138,7 +130,7 @@ function exitTarget(exits, dir) {
 }
 
 for (const filename of chapterFiles) {
-  const ROOMS = loadChapterRooms(filename);
+  const ROOMS = await loadChapterRooms(filename);
   if (!ROOMS || Object.keys(ROOMS).length === 0) continue;
 
   const state = { room: "meadow", flipped: false, sundialSymbol: 2, has: () => false, hasFlag: () => false };
@@ -192,7 +184,7 @@ for (const filename of chapterFiles) {
 // 仅检查同章节；跨章节出口不要求严格反向；有意单向出口加入 ONE_WAY_EXITS。
 const roomToFile = {};
 for (const filename of chapterFiles) {
-  const ROOMS = loadChapterRooms(filename);
+  const ROOMS = await loadChapterRooms(filename);
   if (ROOMS) for (const id of Object.keys(ROOMS)) roomToFile[id] = filename;
 }
 for (const [roomAId, roomA] of Object.entries(allRooms)) {
@@ -348,3 +340,6 @@ if (issues.length === 0) {
 console.log(`共 ${issues.length} 项不符合:\n`);
 issues.forEach(({ check, msg, file }) => console.log(`  [${check}] ${file}: ${msg}`));
 process.exit(1);
+
+}
+main().catch(error => { console.error(error.message); process.exitCode = 1; });

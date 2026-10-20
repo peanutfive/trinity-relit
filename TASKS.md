@@ -9,9 +9,9 @@
 
 | 文件 | 当前持有者 |
 |---|---|
-| `prototype/js/engine.js` | Codex（T18，人类已授权，待审查） |
-| `prototype/js/parser.js` | Codex（T18，人类已授权，待审查） |
-| `prototype/js/data/items.js` | Codex（T18，人类已授权，待审查） |
+| `prototype/js/engine.js` | Codex（T21，m4_state_design） |
+| `prototype/js/parser.js` | Codex（T21，主代理） |
+| `prototype/js/data/items.js` | Codex（T21，m4_source_contract） |
 
 ## 进行中
 
@@ -187,3 +187,17 @@
 - 延续T15–T17原版研究授权；仅scripts/original-research、research/pilots.json、相关研究tests和docs/README/TASKS/SHIP_PLAN/progress。不扩大运行时范围。
 - pilot_specs研究BAG/EBAG/WTK的持有/平台坍塌组合；rea_adapter研究三种笼内动物持有/平台组合，探索证据只写.local-research；主代理最终独立fresh重采集后才更新清单。
 - 状态：👀 正式fresh验收完成，待审查。新增12条持有/平台物品与笼内动物取镜坍塌路径，总计41场景/350检查全部通过（304源码片段、46数值）。2组深层/混合条件仍static-only；旧29场景/180检查基线和失败采集保持可追溯。原始数据仅在被忽略的.local-research中。
+
+### T20 M4容器迁移预备与边界证据 — Codex（2026-10-20）
+- 人类要求继续工作；先在既有研究授权内完成可审查方案、原版证据与影响核对，M4不自动继承T18首批运行时授权。
+- 分支codex/ranch-mechanics，d8a2f33已上传；开工fetch/rebase完成，main仍57c5f9d。
+- 当前涉及文件：docs/ORIGINAL_CONTAINERS_PLAN.md、docs/ORIGINAL_MIGRATION.md、docs/ORIGINAL_PILOTS.md、相关研究脚本/清单/测试（仅确有证据或工具修正时）、TASKS/SHIP_PLAN/progress；原始采集仅.local-research。运行时范围获确认前不修改prototype/js。
+- 分工：m4_state_design只读核对容器/可见性/版本兼容及容量算法；m4_source_contract核对来源、口袋和重复受潮边界；主代理编写计划并独立验收。
+- 运行时拟范围与P0–P5验收见docs/ORIGINAL_CONTAINERS_PLAN.md：engine、intent、parser、main、items、prologue、ranch、必要的共享item-rules模块及相关测试/文档。保留房间ID，不合并main或部署。
+- 状态：👀 预备完成，6条恢复观察/71检查、原版容量算法及版本读取影响已核对。研究工具139字符目录创建/恢复通过；WTK空袋与Broad Walk倒空另补正常路线恢复证据。后续运行时人类已明确授权，转T21实施，41fresh场景统计不变。
+
+### T21 M4容器与受潮迁移 — Codex（2026-10-20）
+- 人类明确回复“授权M4容器迁移及所列文件”；完整计划docs/ORIGINAL_CONTAINERS_PLAN.md。分支codex/container-mechanics，基于d8a2f33；不合并main或部署。
+- 范围：prototype/js/{engine,intent,parser,main,item-rules}.js、data/{items,prologue,ranch}.js；相关容器/存档/意图/主线测试及浏览器脚本；scripts/verify_chapters_rules.js和verify_exits_vs_zmachine.js（仅适配真实ES模块依赖加载，避免新共享规则导致漏检）；ARCHITECTURE/CHAPTER_RULES/CHAPTER_PLAN/RANCH_REWRITE_PLAN/GAPS、docs/ORIGINAL_*.md、TASKS/SHIP_PLAN/progress。研究检查点长路径缺口仍在T20研究脚本/测试范围内。
+- 分工：m4_state_design独占engine/intent和tests/container-state.test.mjs；m4_source_contract独占item-rules/items/prologue及tests/item-rules.test.mjs；ranch_runtime独占ranch及tests/ranch-containers.test.mjs；主代理独占parser/main、版本启动/浏览器回归、研究工具修复与共享文档。交叉修改须先协调持有者。
+- 状态：👀 P1–P5本地交付待审查：229/229测试、规范通过，出口报告主体与main基线逐字一致（仍既有43项）；容器8组、旧风车呼吸7组真实页面通过，页面异常0。保留27个Ranch ID。不扩大到动物生死、黑暗、全局跨章时钟或完整25负重；Ranch倒空的风/鸟条件只给中文边界反馈，未实现EMPTY INTO等变体不误执行。

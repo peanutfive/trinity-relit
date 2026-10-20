@@ -3,6 +3,8 @@
 //  未映射的 Desert / Foothills 边界列在 prototype/RANCH_REWRITE_GAPS.md。
 // ═══════════════════════════════════════════════════
 
+import { wetItems } from "../item-rules.js";
+
 // 阻挡原文均来自 TRINITY.DAT 的字符串或无条件出口例程。
 // 虚拟目标只让引擎走 fail 分支；静态出口检查忽略指向自身的目标。
 const FAIL_TEXT = {
@@ -36,6 +38,8 @@ function landingBroken(s) {
 function spillMill(s, eng) {
   s.setFlag("ranch_landing_collapsed");
   s.setCnt("ranch_landing_life", 0);
+  // SPILL-MILL 转移空袋内容；普通 INTO-RESERVOIR 不做该转移。
+  wetItems(s, { mode: "mill" });
   for (const { id, loc } of s.inventoryList()) {
     if (loc === "inventory") s.placeItem(id, "underwater");
   }
@@ -857,8 +861,8 @@ export const ROOMS = {
       return {
         s: "south_reservoir",
         d: "south_reservoir",
-        n: "reservoir",
-        in: "reservoir",
+        n: { to: "reservoir", act(s) { wetItems(s, { mode: "enter" }); } },
+        in: { to: "reservoir", act(s) { wetItems(s, { mode: "enter" }); } },
         ne: blocked("edge_reservoir", "reservoir_edge"),
         e: blocked("edge_reservoir", "reservoir_edge"),
         se: blocked("edge_reservoir", "reservoir_edge"),

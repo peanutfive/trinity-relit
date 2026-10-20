@@ -132,3 +132,15 @@ Original prompt: 这里卡关了（Round Pond 场景中“捡起折纸鸟”和�
 - T19新增12条持有/平台物品动物组合，正式fresh报告为41/41场景、350/350检查（304片段+46数值）、2组static-only。普通入水与坍塌的EBAG卡片后果不同；不因此自动扩大容器/动物运行时范围。
 - 168/168全套、章节规范通过；主线202回合/77房间/21分；全项目出口与main基线逐字一致，仍旧43项。7组真实main.js/DOM输入流程通过，页面异常0；桌面和390px截图、持久状态已查看，产物/tmp/trinity-t18-browser-final。develop-web-game技能启动截图/tmp/trinity-t18-skill-final已查看，仅既有favicon404，无JS异常。
 - 完整容器动物、光照/黑暗、其他章节穿戴、全局跨章时钟和系统指令绝对moves仍未实现；出Ranch清本地气息是明确边界。计划/看板/规范同步更新，源码/转录/存档/模型/出口派生数据不纳入Git；只提交开发分支，不合并main或部署。
+
+## 2026-10-20 M4容器迁移（T20/T21）
+
+- d8a2f33已按要求上传。继续工作先完成容器对象/算法、14条既有capture指纹及main本地存储影响审查，写docs/ORIGINAL_CONTAINERS_PLAN.md；人类明确授权M4所列运行时与相关测试/文档，建立codex/container-mechanics分支，保留全部房间ID。
+- 子代理分别独占engine/intent、item-rules/items/prologue、ranch及各专项；root负责parser/main、启动/浏览器、校验器、研究工具及文档。存档v2支持v1读取迁移，prepareSave不改活状态；坏v2不回退旧v1，加载失败暂停自动写，清档先旧后新且失败不重载。
+- 原版补充6条恢复观察/71检查、WTK空纸袋单独正常路线恢复观察；前者核对口袋与重复受潮/EMPTY，后者否定“WTK不能放进任何容器”。41fresh/350基线不变，失败探索保留。完整25负重未启用，不能把缺元数据当0。
+- 修复研究检查点SAVE长绝对路径：解释器已在独占证据目录运行，改传固定state.qzl；139字符目录创建及独立恢复成功，原始数据只在.local-research。
+- 章节共享import暴露旧new Function校验器不能加载ES模块；规范/出口校验改走真实模块关系，不剥import、不伪造依赖。verify已通过，出口stdout与main基线逐字一致，仍旧43项；Node包类型提示单列stderr。
+- 7组实际页面首轮通过，无JS异常，已看桌面/390px和技能截图；独立审查继续修复重复put、EMPTY与MEEP条件、序章EMPTY软锁、关闭祖先容器与坏档保护边界。待最终全套/截图复核后记录验收数字并提交开发分支，不合并main或部署。
+
+- 最终229/229全套、verify通过；出口stdout与旧43项基线逐字一致。容器8组（新增buy→empty→Ruby无软锁）及旧Ranch7组实际页面通过，页面异常0；截图/tmp/trinity-t21-browser-accepted、/tmp/trinity-t21-ranch-final和技能final已逐个抽查。水底袋子用原版对象名称显示，避免逻辑可见但玩家屏幕无名称。
+- 处理审查：重复put提前返回；闭祖先阻挡/EMPTY INTO不误执行；旧旅鼠中文兼容及禁不支持候选；坏档启动后输入不覆盖磁盘；清旧key失败不先删新key；Broad Walk倒空发现Ruby保留主线。Ranch未知风/鸟条件只给中文，不选猜测英文；完整25负重、动物、光照、深层受潮及修理继续留计划。准备同步main后仅提交开发分支。

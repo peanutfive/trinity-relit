@@ -40,3 +40,13 @@ test('听平台与屏息的中英文命令使用同一标准动作', () => {
     assert.deepEqual(parser.parse(input), { type: 'simple', verb: 'hold', noun: 'breath' });
   }
 });
+
+test('容器的中英文操作保留取出来源、查看内部及对讲机开关语义', () => {
+  const parser = new Parser();
+  assert.deepEqual(parser.parse('从袋子里拿出信用卡'), { type: 'compound', verb: 'take', noun: '信用卡', prep: 'from', noun2: '袋子' });
+  assert.deepEqual(parser.parse('take the card from the bag'), { type: 'compound', verb: 'take', noun: 'card', prep: 'from', noun2: 'bag' });
+  for (const input of ['empty out the bag', '清空袋子', '倒空纸袋']) assert.equal(parser.parse(input).verb, 'empty');
+  for (const input of ['look in the bag', 'look inside the bag', '查看袋子里面']) assert.equal(parser.parse(input).verb, 'look_in');
+  for (const input of ['turn on the walkie-talkie', 'switch the walkie-talkie on', '打开对讲机']) assert.equal(parser.parse(input).verb, 'turn_on');
+  for (const input of ['turn off the walkie-talkie', 'switch the walkie-talkie off', '关闭对讲机']) assert.equal(parser.parse(input).verb, 'turn_off');
+});

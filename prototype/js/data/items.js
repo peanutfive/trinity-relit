@@ -6,16 +6,19 @@ export const ITEMS = {
 
   // ── 序章：肯辛顿花园 ──
   coin: {
+    en: "seven-sided coin", size: 0, mass: 0,
     cn: "七边硬币", aliases: ["coin","seven-sided coin","50p","硬币","钱币","五十便士"],
     desc: "A seven-sided coin — a British 50 pence piece.\n一枚七边形硬币——英国五十便士。",
     start: "pocket",
   },
   credit_card: {
+    en: "credit card", size: 0, mass: 0,
     cn: "信用卡", aliases: ["credit card","card","信用卡","卡"],
     desc: "Your American Express card.\n你的美国运通信用卡。",
     start: "pocket",
   },
   watch: {
+    en: "wristwatch", size: 1, mass: 1,
     cn: "手表", aliases: ["watch","wristwatch","手表","表"],
     desc(s) {
       const t = Math.floor(30 + (s.turns || 0) * 0.5);
@@ -26,38 +29,61 @@ export const ITEMS = {
     start: "worn", fixed: false,
   },
   ball: {
+    en: "soccer ball", size: 7, mass: 5,
     cn: "足球", aliases: ["ball","soccer ball","足球","球"],
     desc: "You see nothing unusual about the soccer ball.\n你没看出这个足球有什么不寻常的。",
     start: "flower_walk",
     roomDesc: "You can see a soccer ball half-hidden among the blossoms.\n你可以看到一个足球半隐在花丛中。",
   },
   umbrella: {
+    en: "umbrella", size: 10, mass: 7,
     cn: "雨伞", aliases: ["umbrella","伞","雨伞"],
     desc: 'The closed umbrella\'s handle is carved in the shape of a parrot\'s head.\n合拢的雨伞手柄雕成了鹦鹉头的形状。',
     start: "lancaster_gate_tree",
   },
   gnomon: {
+    en: "gnomon", size: 4, mass: 4,
     cn: "日晷指针", aliases: ["gnomon","指针","日晷指针"],
     desc: "It's a triangular piece of metal, about a quarter-inch thick and four inches long.\n一块三角形的金属片，大约四分之一英寸厚、四英寸长。",
     start: "the_wabe",
   },
   bag: {
-    cn: "面包屑袋", aliases: ["bag","crumbs","bag of crumbs","面包屑","面包袋","袋子"],
-    desc: "A bag of crumbs.\n一袋面包屑。",
+    en: "bag of crumbs", size: 3, mass: 2, capacity: 0, container: true, open: true,
+    cn: "面包屑袋", aliases: ["bag","crumbs","bag of crumbs","sack","bread","面包屑","面包袋","袋子","袋"],
+    desc: "It looks as if the bag of crumbs is open.\n\n面包屑袋看起来开着。",
+    roomDesc: "bag of crumbs\n\n面包屑袋",
+    start: null,
+  },
+  empty_bag: {
+    en: "paper bag", size: 3, mass: 1, capacity: 3, container: true, open: true,
+    cn: "空纸袋", aliases: ["paper bag","empty bag","bag","sack","纸袋","空袋","空纸袋","袋子","袋"],
+    desc: "It looks as if the paper bag is open.\n\n纸袋看起来开着。",
+    roomDesc: "paper bag\n\n空纸袋",
+    start: null,
+  },
+  soggy_bag: {
+    en: "soggy bag", size: 3, mass: 1, capacity: 3, container: true, open: true,
+    cn: "湿纸袋", aliases: ["soggy bag","wet bag","bag","sack","crumbs","bread","湿纸袋","湿袋","纸袋","袋子","袋"],
+    desc: "It looks as if the soggy bag is open.\n\n湿纸袋看起来开着。",
+    roomDesc: "soggy bag\n\n湿纸袋",
     start: null,
   },
   small_coin: {
+    en: "small coin", size: 0, mass: 0,
     cn: "小硬币", aliases: ["small coin","change","找零","小硬币","二十便士"],
     desc: "A small coin — twenty pence change.\n一枚小硬币——二十便士的找零。",
     start: null,
   },
   paper_bird: {
+    en(s) { return s.hasFlag("bird_unfolded") ? "piece of paper" : "paper bird"; },
+    size(s) { return s.hasFlag("bird_unfolded") ? 3 : 7; }, mass: 1,
     cn: "纸鸟", aliases: ["paper bird","paper","bird","纸鸟","折纸鸟","纸鹤","折纸","纸"],
     desc(s) { return s.hasFlag("bird_unfolded") ? 'The words "Long Water, Four O\'Clock" are scrawled on the piece of paper.\n纸上潦草地写着"Long Water, Four O\'Clock"。' : "A folded paper bird.\n一只折纸鸟。"; },
     start: "round_pond",
     roomDesc: "",
   },
   ruby: {
+    en: "ruby", size: 0, mass: 1,
     cn: "红宝石", aliases: ["ruby","红宝石","宝石","gem"],
     desc: "The ruby is bigger than a walnut, with finely cut facets that sparkle with crimson fire.\n这颗红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。",
     start: null,
@@ -87,11 +113,13 @@ export const ITEMS = {
     start: "cottage",
   },
   splinter: {
+    en: "splinter", size: 5, mass: 3,
     cn: "木片", aliases: ["splinter","木片","碎片"],
     desc: "Its edges flicker with the eerie phosphorescence of decay.\n\n它的边缘闪烁着腐朽的诡异磷光。",
     start: "south_bog",
   },
   axe: {
+    en: "axe", size: 7, mass: 7,
     cn: "斧头", aliases: ["axe","ax","斧头","斧"],
     desc: "A small but sharp-looking axe.\n\n一把小巧但锋利的斧头。",
     start: "top_of_arbor",
@@ -121,8 +149,10 @@ export const ITEMS = {
     fixedMsg: "Better not. There isn't much thyme left.\n\n还是别了。百里香/时间所剩不多了。",
   },
   cage: {
+    en: "birdcage", size: 10, mass: 6, capacity: 8, container: true, transparent: true,
+    open(s) { return s.hasFlag("cage_open"); },
     cn: "鸟笼", aliases: ["cage","birdcage","笼子","鸟笼"],
-    desc(s) { return s.hasFlag("cage_has_lemming") ? "A small wire birdcage with a lemming inside, looking around nervously.\n\n小铁丝鸟笼里关着一只旅鼠，不安地四处张望。" : "A small wire birdcage. The door can be opened and closed.\n\n一个小巧的铁丝鸟笼，门可以打开和关上。"; },
+    desc(s) { return `The ${s.hasFlag("cage_open") ? "open" : "closed"} birdcage is cunningly woven of brown and yellow wicker.\n\n${s.hasFlag("cage_open") ? "敞开" : "关闭"}的鸟笼由棕黄色柳条巧妙编成。${s.hasFlag("cage_has_lemming") ? "里面还有一只旅鼠。" : ""}`; },
     start: null,
   },
   key_barrow: {
@@ -136,21 +166,25 @@ export const ITEMS = {
     start: null,
   },
   emerald: {
+    en: "emerald", size: 1, mass: 1,
     cn: "绿宝石", aliases: ["emerald","绿宝石"],
     desc: "一颗在大锅的烈焰中诞生的绿宝石，翠绿如春叶。",
     start: null,
   },
   spade: {
+    en: "spade", size: 10, mass: 7,
     cn: "铲子", aliases: ["spade","铲子","铲","锹"],
     desc: "A small spade, suitable for digging.\n一把小铁铲，适合挖掘。",
     start: null,
   },
   shroud: {
+    en: "burial shroud", size: 10, mass: 4,
     cn: "裹尸布", aliases: ["shroud","裹尸布","布"],
     desc: "一块灰白色的亚麻布，散发着古老的霉味。穿上它你看起来就像一具行走的尸体。",
     start: null,
   },
   bandage: {
+    en: "bandage", size: 3, mass: 2,
     cn: "绷带", aliases: ["bandage","绷带"],
     desc: "一卷泛黄的绷带。",
     start: null,
@@ -169,6 +203,7 @@ export const ITEMS = {
     start: null,
   },
   silver_coin: {
+    en: "silver coin", size: 0, mass: 0,
     cn: "银币", aliases: ["silver coin","silver","银币"],
     desc: "一枚古老的银币，上面刻着你看不懂的符号。",
     start: null,
@@ -191,13 +226,18 @@ export const ITEMS = {
 
   // ── 地下 ──
   lantern: {
+    en: "lantern", size: 5, mass: 4,
     cn: "灯笼", aliases: ["lantern","灯笼","灯","提灯"],
     desc(s) { return s.hasFlag("lantern_on") ? "一盏正在发光的灯笼，照亮周围几米的范围。" : "一盏灭了的灯笼。"; },
     start: null,
   },
   walkie_talkie: {
-    cn: "对讲机", aliases: ["walkie-talkie","walkie","walkie talkie","对讲机","无线电"],
-    desc(s) { return s.hasFlag("walkie_on") ? "对讲机正在嘶嘶作响，偶尔传来断断续续的人声。" : "一部军用对讲机，开关在侧面。"; },
+    en: "walkie-talkie", size: 5, mass: 5, capacity: 0,
+    cn: "对讲机", aliases: ["walkie-talkie","walkie","walkie talkie","talkie","radio","receiver","对讲机","无线电"],
+    desc(s) {
+      const wet = s.hasFlag("walkie_wet"), raised = s.hasFlag("walkie_antenna_up");
+      return `The walkie-talkie${wet ? " is dripping wet. It" : ""} has a rocker switch, a numbered slider, a telescoping antenna (now ${raised ? "raised" : "lowered"}) and a large orange button.\n\n对讲机${wet ? "湿得直滴水。它" : ""}有一个翘板开关、一个带数字的滑块、一根伸缩天线（现在${raised ? "升起" : "收回"}了）和一个橙色大按钮。`;
+    },
     start: null,
   },
   skink: {
@@ -218,16 +258,19 @@ export const ITEMS = {
 
   // ── 新墨西哥 ──
   knife: {
+    en: "steak knife", size: 2, mass: 2,
     cn: "刀", aliases: ["knife","刀","刀子","牛排刀"],
     desc: "一把锋利的牛排刀。",
     start: null,
   },
   screwdriver: {
+    en: "screwdriver", size: 3, mass: 3,
     cn: "螺丝刀", aliases: ["screwdriver","螺丝刀","改锥","起子"],
     desc: "一把十字螺丝刀。",
     start: null,
   },
   binoculars: {
+    en: "pair of binoculars", size: 4, mass: 4,
     cn: "望远镜", aliases: ["binoculars","pair of binoculars","binocs","glasses","望远镜","双筒望远镜"],
     desc: "The binoculars are of standard Army issue, with a strap for wearing.\n\n这副双筒望远镜是军队的标准配备，带有供佩戴的背带。",
     roomDesc(s) {

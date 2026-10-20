@@ -1,4 +1,5 @@
 import { commandIsKnown, completeCommand, needsClarification, suggestIntent } from "./intent.js";
+import { handleItemAction } from "./item-rules.js";
 
 // ═══════════════════════════════════════════════════
 //  存档格式版本
@@ -9,7 +10,7 @@ import { commandIsKnown, completeCommand, needsClarification, suggestIntent } fr
 // 并在 deserialize 里补一条迁移分支。
 // 单纯新增字段不必递增：deserialize 对缺失字段一律回落到默认值。
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 // 缺失字段可向后兼容；已出现但类型错误的字段不能悄悄改成默认值。
 function validateSaveState(data) {
@@ -47,7 +48,7 @@ function validateSaveState(data) {
 export class GameState {
   constructor() {
     this.room = "palace_gate";
-    this.itemLoc = {};       // itemId → roomId | "inventory" | "pocket" | "worn" | "destroyed"
+    this.itemLoc = {};       // itemId → roomId | inventory | pocket | worn | destroyed | in:<parentId>
     this.flags = new Set();
     this.counters = {};
     this.score = 0;
@@ -69,6 +70,14 @@ export class GameState {
   wearing(id)   { return this.itemLoc[id] === "worn"; }
   inRoom(id)    { return this.itemLoc[id] === this.room; }
   itemAt(id)    { return this.itemLoc[id]; }
+  containerOf(id) {
+    const loc = this.itemLoc[id];
+    return typeof loc === "string" && loc.startsWith("in:") ? loc.slice(3) : null;
+  }
+  contents(id) {
+    const loc = id === "pocket" ? "pocket" : `in:${id}`;
+    return Object.entries(this.itemLoc).filter(([, value]) => value === loc).map(([child]) => child);
+  }
 
   // ── Item mutations ──
   take(id)      { this.itemLoc[id] = "inventory"; }
@@ -78,6 +87,17 @@ export class GameState {
   destroy(id)   { this.itemLoc[id] = "destroyed"; }
   moveItem(id, loc) { this.itemLoc[id] = loc; }
   placeItem(id, roomId) { this.itemLoc[id] = roomId; }
+  putIn(id, parentId) {
+    const valid = value => typeof value === "string" && value.length > 0 && !value.includes(":")
+      && !["__proto__", "constructor", "prototype"].includes(value);
+    if (!valid(id) || !valid(parentId)) throw new Error("物品或容器ID无效");
+    const seen = new Set([id]);
+    for (let parent = parentId; parent !== null; parent = this.containerOf(parent)) {
+      if (seen.has(parent)) throw new Error("容器不能包含自己或形成循环");
+      seen.add(parent);
+    }
+    this.itemLoc[id] = `in:${parentId}`;
+  }
 
   roomItems() {
     return Object.entries(this.itemLoc)
@@ -228,11 +248,21 @@ export class GameEngine {
     return true;
   }
 
+  // 导入预检同时生成当前格式；不替换正在游玩的状态，不落盘或重放事件。
+  async prepareSave(save) {
+    const state = await this._restoreSave(save);
+    return {
+      version: SAVE_VERSION,
+      savedAt: typeof save.savedAt === "string" ? save.savedAt : new Date().toISOString(),
+      state: state.serialize(),
+    };
+  }
+
   async _restoreSave(save) {
     if (!save || typeof save !== "object" || !save.state) {
       throw new Error("存档格式无法识别");
     }
-    if (save.version !== SAVE_VERSION) {
+    if (![1, SAVE_VERSION].includes(save.version)) {
       throw new Error(`存档版本 ${save.version} 与当前版本 ${SAVE_VERSION} 不兼容`);
     }
     const data = save.state;
@@ -241,6 +271,9 @@ export class GameEngine {
     }
 
     validateSaveState(data);
+    if (save.version === 1 && Object.values(data.itemLoc || {}).some(loc => loc.startsWith("in:"))) {
+      throw new Error("旧版存档不能包含新版容器位置");
+    }
 
     // 懒加载的章节必须先装载，否则读档后找不到房间。
     // 不只装当前章节：chapter_<id>_entered 标志记录了走过的每一章，
@@ -270,6 +303,7 @@ export class GameEngine {
       if (item.start) base[id] = item.start;
     }
     restored.itemLoc = { ...base, ...restored.itemLoc };
+    this._validateContainerLocations(restored);
 
     // 把计时器回调装回去。章节已在上面装载完毕，注册表这时才是全的。
     // 未登记的计时器不能静默恢复，否则倒数会失去剧情/死亡副作用。
@@ -281,6 +315,22 @@ export class GameEngine {
     }
 
     return restored;
+  }
+
+  _validateContainerLocations(state) {
+    for (const [id, loc] of Object.entries(state.itemLoc)) {
+      if (!loc.startsWith("in:")) continue;
+      if (!Object.hasOwn(this.items, id)) throw new Error(`存档中的物品「${id}」不存在`);
+      const seen = new Set([id]);
+      for (let parent = state.containerOf(id); parent !== null; parent = state.containerOf(parent)) {
+        if (!parent || !Object.hasOwn(this.items, parent) || !this.items[parent].container
+            || !Object.hasOwn(state.itemLoc, parent)) {
+          throw new Error(`存档中的容器「${parent}」无效`);
+        }
+        if (seen.has(parent)) throw new Error("存档中的容器形成循环");
+        seen.add(parent);
+      }
+    }
   }
 
   // 每回合结束调用。注意不走 moveTo/onEnter，读档只还原状态不重放副作用。
@@ -308,6 +358,33 @@ export class GameEngine {
   hasCarrySpace() {
     return this.state.carryCount() < MAX_CARRY;
   }
+
+  itemProperty(id, key) {
+    const value = this.items[id]?.[key];
+    return typeof value === "function" ? value(this.state) : value;
+  }
+
+  containerIsOpen(id) {
+    if (!this.items[id]?.container) return false;
+    if (id === "cage") return this.state.hasFlag("cage_open");
+    return this.itemProperty(id, "open") !== false;
+  }
+
+  _itemReachable(id, accessible, seen = new Set()) {
+    if (!Object.hasOwn(this.items, id) || seen.has(id)) return false;
+    seen.add(id);
+    const loc = this.state.itemAt(id);
+    if (loc === this.state.room || ["inventory", "pocket", "worn"].includes(loc)) return true;
+    const parent = this.state.containerOf(id);
+    if (!parent || !this.items[parent]?.container) return false;
+    if (!this._itemReachable(parent, accessible, seen)) return false;
+    if (accessible && this.state.inPocket(parent)) return false;
+    return this.containerIsOpen(parent) || (!accessible && this.itemProperty(parent, "transparent") === true);
+  }
+
+  isVisible(id) { return this._itemReachable(id, false); }
+  isAccessible(id) { return this._itemReachable(id, true); }
+  visibleItemIds() { return Object.keys(this.state.itemLoc).filter(id => this.isVisible(id)); }
 
   // ── Room display ──
   describeRoom() {
@@ -573,8 +650,11 @@ export class GameEngine {
       }
     }
 
+    // 共享物品规则在房间专属动作之后执行；不在各章节复制容器规则。
+    if (await handleItemAction(this, cmd)) return true;
+
     // Generic take/drop/examine if no specific event matched
-    if (cmd.verb === "take") return this._genericTake(cmd.noun);
+    if (cmd.verb === "take") return this._genericTake(cmd.noun, cmd);
     if (cmd.verb === "drop") return this._genericDrop(cmd.noun);
     if (cmd.verb === "examine") return this._genericExamine(cmd.noun);
     if ((cmd.verb === "push" || cmd.verb === "move") && this._looksLikePram(cmd.noun)) {
@@ -664,22 +744,41 @@ export class GameEngine {
   }
 
   // ── Generic actions ──
-  _genericTake(noun) {
+  _genericTake(noun, cmd = {}) {
     if (!noun) { this.ui.system("拿什么？"); return true; }
     const itemId = this._resolveItem(noun);
     if (!itemId) return false;
-    if (this.state.inPocket(itemId)) {
-      this.state.take(itemId);
-      const item = this.items[itemId];
-      this.ui.text(item?.takeTxt || `You take the ${item?.cn || noun} out of your pocket.\n你从口袋里取出了${item?.cn || noun}。`);
+    const fromPocket = this.state.inPocket(itemId);
+    const parent = this.state.containerOf(itemId);
+    if (cmd.prep === "from" && cmd.noun2) {
+      const source = ["pocket", "your pocket", "口袋", "衣袋", "我的口袋"].includes(cmd.noun2.toLowerCase())
+        ? "pocket" : this._resolveItem(cmd.noun2);
+      if (!source || (source === "pocket" ? !fromPocket : parent !== source)) {
+        this.ui.system("那件物品不在指定的容器里。");
+        return true;
+      }
+    }
+    if (this.state.carrying(itemId) || this.state.wearing(itemId)) {
+      this.ui.system("你已经拿着或戴着那个东西了。");
       return true;
     }
-    if (!this.state.inRoom(itemId)) { this.ui.system("这里没有那个东西。"); return true; }
+    if (!this.isVisible(itemId)) { this.ui.system("这里没有那个东西。"); return true; }
+    if (!this.isAccessible(itemId)) {
+      this.ui.system("你现在够不到那个东西，请先取出或打开它所在的容器。");
+      return true;
+    }
     const item = this.items[itemId];
     if (item && item.fixed) { this.ui.system(item.fixedMsg || "你拿不动它。"); return true; }
     if (!this.hasCarrySpace()) { this.ui.system("你拿不下更多东西了。"); return true; }
     this.state.take(itemId);
-    this.ui.text(item?.takeTxt || `你拿起了${item?.cn || noun}。`);
+    const englishName = this.itemProperty(itemId, "en");
+    const parentName = this.itemProperty(parent, "en");
+    if ((parent || fromPocket) && englishName && (fromPocket || parentName)) {
+      const from = fromPocket ? "your pocket" : `the ${parentName}`;
+      this.ui.text(`You take the ${englishName} out of ${from}.\n\n你从${fromPocket ? "口袋" : this.items[parent].cn}里取出了${item.cn}。`);
+    } else {
+      this.ui.text(item?.takeTxt || `你拿起了${item?.cn || noun}。`);
+    }
     return true;
   }
 
@@ -698,9 +797,11 @@ export class GameEngine {
     const itemId = this._resolveItem(noun);
     if (itemId) {
       const item = this.items[itemId];
-      if (this.state.has(itemId) || this.state.inRoom(itemId)) {
+      if (this.isVisible(itemId)) {
         const desc = typeof item.desc === "function" ? item.desc(this.state) : item.desc;
         this.ui.text(desc || `${item.cn}看起来没什么特别的。`);
+        const contents = this._visibleContentsLines(itemId);
+        if (contents.length) this.ui.system("其中有：\n" + contents.join("\n"));
         return true;
       }
     }
@@ -711,16 +812,27 @@ export class GameEngine {
   }
 
   _resolveItem(noun) {
+    if (typeof noun !== "string") return null;
     const low = noun.toLowerCase();
+    const matches = [];
     for (const [id, item] of Object.entries(this.items)) {
-      if (id === low) return id;
-      if (item.aliases) {
-        for (const a of item.aliases) {
-          if (a.toLowerCase() === low) return id;
-        }
-      }
+      if (id === low || item.aliases?.some(alias => alias.toLowerCase() === low)) matches.push(id);
     }
-    return null;
+    // bag等共享词优先解析当前可见形态；独有ID仍可解析，交给动作检查可访问性。
+    return matches.find(id => this.isVisible(id) && this.state.has(id))
+      || matches.find(id => this.isVisible(id)) || matches[0] || null;
+  }
+
+  _visibleContentsLines(id, depth = 1, seen = new Set()) {
+    if (seen.has(id)) return [];
+    seen.add(id);
+    const lines = [];
+    for (const child of this.state.contents(id)) {
+      if (!this.isVisible(child)) continue;
+      lines.push(`${"  ".repeat(depth)}· ${this.items[child]?.cn || child}`);
+      lines.push(...this._visibleContentsLines(child, depth + 1, seen));
+    }
+    return lines;
   }
 
   _showInventory() {
@@ -729,11 +841,11 @@ export class GameEngine {
       this.ui.system("你两手空空。");
       return;
     }
-    const lines = list.map(({ id, loc }) => {
+    const lines = list.flatMap(({ id, loc }) => {
       const item = this.items[id];
       const cn = item?.cn || id;
       const tag = loc === "pocket" ? "（口袋里）" : loc === "worn" ? "（穿戴中）" : "";
-      return `  · ${cn}${tag}`;
+      return [`  · ${cn}${tag}`, ...this._visibleContentsLines(id, 2)];
     });
     this.ui.inventory("随身物品：\n" + lines.join("\n"));
   }

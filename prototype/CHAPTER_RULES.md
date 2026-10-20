@@ -179,6 +179,8 @@ room_id: {
 | `s.roomItems()` | [id] | 当前房间所有物品 |
 | `s.inventoryList()` | [{id,loc}] | 所有随身物品 |
 | `s.carryCount()` | number | inventory 中物品数 |
+| `s.contents(id)` | [id] | 指定容器的直接内容物；口袋使用pocket |
+| `s.containerOf(id)` | string/null | in:位置的直接父物品ID |
 
 **物品变更**：
 | 方法 | 效果 |
@@ -190,6 +192,7 @@ room_id: {
 | `s.destroy(id)` | → "destroyed" |
 | `s.placeItem(id, roomId)` | → 指定房间 |
 | `s.moveItem(id, loc)` | → 任意位置 |
+| `s.putIn(id, parentId)` | → 指定父容器，拒绝自包含/循环 |
 
 **标志**：`s.setFlag(f)` / `s.hasFlag(f)` / `s.clearFlag(f)`
 
@@ -214,6 +217,11 @@ room_id: {
 | `eng.transitionChapter({to, roomCandidates, fallbackRoom})` | 章节过渡（async） |
 | `eng.describeRoom()` | 重新描述当前房间 |
 | `eng.hasCarrySpace()` | 当前inventory是否仍有携带空位；章节特殊拿取应复用，避免绕过通用上限 |
+| `eng.itemProperty(id, key)` | 读取物品静态或状态相关元数据 |
+| `eng.containerIsOpen(id)` | 容器当前是否开放 |
+| `eng.isVisible(id)` / `eng.isAccessible(id)` | 物品可见与可实际装取的独立判断 |
+| `eng.visibleItemIds()` | 当前可见的物品ID集合 |
+| `eng.prepareSave(save)` | 独立校验/迁移并返回v2包，不改变当前进度 |
 
 ---
 
@@ -444,3 +452,12 @@ async act(s, eng) {
 - [ ] **onTurn 房间守卫**：所有 onTurn 都以 `if (s.room !== "xxx") return;` 开头
 - [ ] **事件 ID 唯一**：同一房间内所有事件 ID 不重复
 - [ ] **计时器回调已导出**：若本章用了 `startTimer`，回调必须取自本章 `TIMERS` 导出，不是内联闭包（§6）
+
+## 11. M4容器与存档契约（2026-10-20）
+
+- `s.contents(id)`返回直接内容物ID，`s.containerOf(id)`返回直接父物品ID或null，`s.putIn(id,parentId)`写入`in:<parentId>`并拒绝循环/自包含。`has()`等旧API仍只表示直接随身，不能据此判断递归可访问性。
+- `eng.itemProperty(id,key)`读取静态或状态相关元数据；`eng.containerIsOpen(id)`、`eng.isVisible(id)`、`eng.isAccessible(id)`、`eng.visibleItemIds()`供共享规则和候选使用。透明闭笼的内容可见不可取。
+- 容器交互复用`item-rules.js`，房间事件仍优先。不得在各房间复制容器判定，将递归可见性误当递归受潮，或把`destroy()`改为递归销毁。
+- 普通入水EBAG内容留在不可访问的旧对象中，坍塌先转内容到SOGGY；已SOGGY重复受潮不能清空新内容。三种纸袋拒绝关闭，不创建原版没有的闭合袋子。
+- 容器容量按已核实的原版属性/算法，不按物品数量替代。8件限制只数顶层手持，口袋/袋内取出同样检查；本批不启用全游戏25负重。
+- 存档v2接受v1迁移；v1不允许新版`in:`关系，v2预检拒绝非法父容器和循环。旧扁平特殊位置保持，明确销毁不补发。`eng.prepareSave(save)`返回迁移后的v2包，不改活状态、不落盘、不重放onEnter。

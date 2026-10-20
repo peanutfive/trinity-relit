@@ -9,6 +9,9 @@
 
 const fs = require("fs");
 const path = require("path");
+const { pathToFileURL } = require("url");
+
+async function main() {
 
 const ROOT = path.join(__dirname, "..");
 const DATA = path.join(ROOT, "prototype", "js", "data");
@@ -57,16 +60,14 @@ function loadRoomMap() {
   return { map, skipped };
 }
 
-// ── 章节 ROOMS 加载（与 verify_chapters_rules.js 同法）──
-function loadChapterRooms(chapter) {
+// ── 按真实ES模块关系加载章节；依赖缺失必须报失败，不静默漏房间 ──
+async function loadChapterRooms(chapter) {
   const filepath = path.join(DATA, `${chapter}.js`);
-  if (!fs.existsSync(filepath)) return {};
-  let code = fs.readFileSync(filepath, "utf8").replace(/^export\s+/gm, "");
+  if (!fs.existsSync(filepath)) throw new Error(`Missing chapter: ${chapter}`);
   try {
-    return new Function(code + " return typeof ROOMS !== 'undefined' ? ROOMS : {};")();
+    return (await import(pathToFileURL(filepath).href)).ROOMS || {};
   } catch (error) {
-    console.error(`[语法] ${chapter}.js: ${error.message}`);
-    return {};
+    throw new Error(`[语法] ${chapter}.js: ${error.message}`);
   }
 }
 
@@ -98,7 +99,7 @@ const unmapped = [], deviations = [];
 
 for (const chapter of CHAPTERS) {
   if (filter.length && !filter.includes(chapter)) continue;
-  const rooms = loadChapterRooms(chapter);
+  const rooms = await loadChapterRooms(chapter);
 
   for (const [roomId, room] of Object.entries(rooms)) {
     const objNum = roomToObj[roomId];
@@ -186,3 +187,6 @@ for (const [kind, list] of Object.entries(byKind)) {
   console.log();
 }
 process.exit(1);
+
+}
+main().catch(error => { console.error(error.message); process.exitCode = 2; });

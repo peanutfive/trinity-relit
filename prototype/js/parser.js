@@ -67,6 +67,7 @@ const VERB_CN = {
   解锁:"unlock", 倒:"pour", 倒入:"pour",
   展示:"show", 出示:"show",
   听:"listen", 聆听:"listen", 倾听:"listen",
+  倒空:"empty", 清空:"empty", 取出:"take",
 };
 
 const VERB_EN = new Set([
@@ -75,6 +76,7 @@ const VERB_EN = new Set([
   "set","enter","climb","ride","search","feed","buy","fold","point",
   "unscrew","unlock","pour","show","hit","break","chop","kill",
   "wait","sit","enter","exit","wave","blow","smell","help","hold","listen",
+  "empty","look_in","turn_on","turn_off",
 ]);
 
 const PREPS = new Set([
@@ -127,6 +129,13 @@ export class Parser {
     if (words.length === 0) return null;
 
     let verb = words[0];
+    if (verb === "look" && ["in", "inside"].includes(words[1])) { verb = "look_in"; words.splice(1, 1); }
+    if (verb === "empty" && words[1] === "out") words.splice(1, 1);
+    if (["turn", "switch"].includes(verb) && ["on", "off"].includes(words[1])) {
+      verb = `turn_${words[1]}`; words.splice(1, 1);
+    } else if (["turn", "switch"].includes(verb) && words.length > 2 && ["on", "off"].includes(words.at(-1))) {
+      verb = `turn_${words.pop()}`;
+    }
     if (verb === "pick" && words[1] === "up") { verb = "take"; words.splice(1, 1); }
     if (verb === "look" && words[1] === "at") { verb = "examine"; words.splice(1, 1); }
     if (verb === "listen" && words[1] === "to") words.splice(1, 1);
@@ -158,6 +167,14 @@ export class Parser {
   }
 
   _parseChinese(raw) {
+    const radio = raw.match(/^(打开|开启|启动|关闭|关掉)(对讲机|无线电)$/);
+    if (radio) return { type: "simple", verb: ["关闭", "关掉"].includes(radio[1]) ? "turn_off" : "turn_on", noun: radio[2] };
+    const inside = raw.match(/^(?:查看|看看|检查|看)(.+?)(?:里面|内部)$/);
+    if (inside) return { type: "simple", verb: "look_in", noun: inside[1] };
+    const takeFrom = raw.match(/^从(.+?)(?:里面|里|中)?(?:取出|拿出|拿起|取|拿)(.+)$/);
+    if (takeFrom) return { type: "compound", verb: "take", noun: takeFrom[2], prep: "from", noun2: takeFrom[1] };
+    const put = raw.match(/^将(.+?)(?:放进|放入)(.+)$/);
+    if (put) return { type: "compound", verb: "put", noun: put[1], prep: "in", noun2: put[2] };
     // 把X扔向Y / 把X放进Y / 把X给Y
     const ba = raw.match(/^把(.+?)(?:扔向|扔到|投向|投到)(.+)$/);
     if (ba) return { type: "compound", verb: "throw", noun: ba[1], prep: "at", noun2: ba[2] };
