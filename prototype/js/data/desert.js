@@ -3,6 +3,8 @@
 //  Entry from Islet (white door → shack). Tower = Trinity Test; link to Ranch & Finale.
 // ═══════════════════════════════════════════════════
 
+import { enterRoadrunnerTower } from "../animal-rules.js";
+
 export const ROOMS = {
 
   shack: {
@@ -60,10 +62,32 @@ export const ROOMS = {
     desc(s) {
       return "You are at the base of the tower. The Gadget—the bomb—is above. A padlocked box is here. Roads lead away in several directions.\n\n你在塔底。核弹「小玩意」在上方。这里有一个挂锁的箱子。道路向多个方向延伸。";
     },
+    onEnter(s, eng) {
+      if (enterRoadrunnerTower(s, eng)) s.moveItem("ruby", "in:tower_box");
+    },
     exits() {
       return { u: "tower_landing", nw: "nw_of_tower", w: "west_of_tower", s: "south_of_tower", e: "east_of_tower", n: "north_of_tower", ne: "ne_of_tower", sw: "sw_of_tower", se: "crossroads" };
     },
     events: [
+      {
+        id: "take_tower_ruby",
+        match: { verb: ["take", "get"], noun: ["ruby", "gem", "红宝石", "宝石"] },
+        triggers: ["take ruby", "take ruby off box", "拿红宝石", "拿箱子上的红宝石"],
+        when: s => s.hasFlag("roadrunner_tower_met") && (s.containerOf("ruby") === "tower_box" || s.inRoom("ruby")),
+        act(s, eng, cmd) {
+          const onBox = s.containerOf("ruby") === "tower_box";
+          if (cmd?.noun2 && ["from", "off"].includes(cmd.prep)) {
+            const fromBox = onBox && eng.matchingItemIds(cmd.noun2).includes("tower_box")
+              && (!cmd.targetItemId || cmd.targetItemId === "tower_box") && eng.isVisible("tower_box");
+            if (!fromBox) { eng.print("红宝石不在指定的物品上或里面。"); return; }
+          }
+          if (!eng.hasCarrySpace()) { eng.print("你拿不下更多东西了。"); return; }
+          s.take("ruby");
+          if (!s.hasFlag("ruby_taken_scored")) { s.setFlag("ruby_taken_scored"); s.addScore(1); }
+          eng.print(onBox ? "You take the ruby off the box.\n\n你从箱子上拿起红宝石。" : "You take the ruby.\n\n你拿起红宝石。");
+        },
+        text: "",
+      },
       {
         id: "pull_breaker",
         match: { verb: ["pull", "flip"], noun: ["breaker", "闸", "开关"] },

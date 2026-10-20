@@ -1,5 +1,6 @@
 // 模型只选择本次候选；标准命令、状态检查与执行都留在本地。
 import { getItemActionCandidates } from './item-rules.js';
+import { ANIMAL_IDS, getAnimalActionCandidates } from './animal-rules.js';
 const first = value => Array.isArray(value) ? value[0] : value;
 export const INTENT_INPUT_LIMIT = 300;
 
@@ -17,7 +18,7 @@ export function commandIsKnown(engine, command) {
   if (['examine', 'look_in'].includes(command.verb)
       && ['pocket', 'your pocket', '口袋', '衣袋'].includes(command.noun?.toLowerCase())) return true;
   if (!command.noun) return true;
-  if (engine._resolveItem(command.noun)) return true;
+  if (engine.matchingItemIds(command.noun).length) return true;
   return false;
 }
 
@@ -47,9 +48,12 @@ export function buildIntentCandidates(engine) {
       [command.verb, command.noun, command.noun2].filter(Boolean).join(' ')]);
   }
   const ids = engine.visibleItemIds();
+  const animalCandidates = getAnimalActionCandidates(engine);
   for (const id of ids) {
     const item = engine.items[id];
     if (!item) continue;
+    // 活物是否可拿、开笼后的逃逸与尸体动作由同一套动物规则提供。
+    if (ANIMAL_IDS.has(id)) continue;
     for (const [verb, cn] of [['examine', '查看'], ['take', '拿起'], ['drop', '放下']]) {
       if (verb === 'drop' && !engine.state.has(id)) continue;
       if (verb === 'take' && engine.state.has(id) && !engine.state.inPocket(id)) continue;
@@ -58,6 +62,9 @@ export function buildIntentCandidates(engine) {
       if (matchingEvent(engine, command)) continue;
       add(`item:${verb}:${id}`, command, [`${cn}${item.cn || id}`, `${verb} ${engine.itemProperty(id, 'en') || item.name || id.replaceAll('_', ' ')}`]);
     }
+  }
+  for (const candidate of animalCandidates) {
+    if (!matchingEvent(engine, candidate.command)) add(candidate.id, candidate.command, candidate.examples);
   }
   for (const candidate of getItemActionCandidates(engine)) {
     if (!matchingEvent(engine, candidate.command)) add(candidate.id, candidate.command, candidate.examples);

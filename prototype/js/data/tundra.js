@@ -5,6 +5,8 @@
 //  All English text from original Infocom Trinity (1986).
 // ═══════════════════════════════════════════════════
 
+import { discoverLemming } from "../animal-rules.js";
+
 const TUNDRA_DESC = "The frozen earth stretches flat in all directions. Snow and wind dominate the landscape. Guards patrol somewhere in the distance.\n\n冰冻的大地向四面八方平坦延伸。冰雪与寒风主宰着这片土地。远处有卫兵巡逻。";
 
 export const ROOMS = {
@@ -17,13 +19,6 @@ export const ROOMS = {
     desc(s) {
       return "You are on the Russian tundra. The wind cuts like a knife. When the sundial pointed to Libra, the white door brought you here.\n\n" +
         "你在苏联冻原上。寒风如刀。当日晷指向天秤座时，白门将你带到了这里。";
-    },
-
-    onEnter(s, eng) {
-      if (!s.hasFlag("tundra_lemming_placed")) {
-        s.placeItem("lemming", "cliff_edge");
-        s.setFlag("tundra_lemming_placed");
-      }
     },
 
     exits(s) {
@@ -46,23 +41,7 @@ export const ROOMS = {
       return ex;
     },
 
-    events: [
-      {
-        id: "put_lemming_in_cage_t1",
-        match: { verb: ["put"], noun: ["lemming", "旅鼠"], noun2: ["cage", "鸟笼", "笼子"] },
-        triggers: ["put lemming in cage", "把旅鼠放进笼子"],
-        when: (s) => s.has("lemming") && s.has("cage") && !s.hasFlag("cage_has_lemming"),
-        act(s) {
-          s.placeItem("lemming", "cage");
-          s.setFlag("cage_has_lemming");
-          if (!s.hasFlag("scored_lemming_tundra")) {
-            s.addScore(1);
-            s.setFlag("scored_lemming_tundra");
-          }
-        },
-        text: "You put the lemming in the cage. It settles in.\n\n你把旅鼠放进笼子。它安顿下来。",
-      },
-    ],
+    events: [],
   },
 
   // ─── 2. tundra_2 (obj#119) ───
@@ -237,12 +216,8 @@ export const ROOMS = {
     name: "Cliff Edge",
     cn: "悬崖边",
 
-    desc(s) {
-      let d = "You are at the cliff edge, overlooking an Arctic sea. A fissure is here.\n\n你在悬崖边缘，俯瞰着北冰洋。这里有一道裂缝。";
-      if (s.inRoom("lemming")) {
-        d += "\n\nA lemming is in the fissure.\n\n裂缝里有一只旅鼠。";
-      }
-      return d;
+    desc() {
+      return "The river bed ends here, on a cliff overlooking an Arctic sea. But where ancient waters once fell, there now pours a living stream of lemmings. Driven by mindless instinct, too stupid or frightened to turn away, they plunge by the hundreds into the crashing waves below.\n\nThe ground underfoot is split by a narrow fissure, almost hidden by the scrambling lemmings.\n\n河床在此终止于俯瞰北冰洋的悬崖。然而古时水流曾坠落的地方，如今倾泻着由活旅鼠组成的洪流。它们受盲目本能驱使，愚蠢或惊恐得无法回头，成百上千地跃入下方轰鸣的海浪。\n\n脚下的地面裂开了一道狭窄的缝隙，几乎被奔窜的旅鼠遮住。";
     },
 
     exits() {
@@ -254,35 +229,10 @@ export const ROOMS = {
     events: [
       {
         id: "look_in_fissure",
-        match: { verb: ["look", "examine"], noun: ["fissure", "裂缝"] },
-        triggers: ["look in fissure", "看裂缝"],
-        when: (s) => s.room === "cliff_edge",
-        text: "You look into the fissure. A small lemming is hiding there.\n\n你朝裂缝里看去。一只小旅鼠躲在里面。",
-      },
-      {
-        id: "take_lemming_tundra",
-        match: { verb: ["take", "get"], noun: ["lemming", "旅鼠"] },
-        triggers: ["take lemming", "捉旅鼠"],
-        when: (s) => s.room === "cliff_edge" && s.inRoom("lemming"),
-        act(s) {
-          s.take("lemming");
-        },
-        text: "You take the lemming.\n\n你捉住了旅鼠。",
-      },
-      {
-        id: "put_lemming_in_cage",
-        match: { verb: ["put"], noun: ["lemming", "旅鼠"], noun2: ["cage", "鸟笼", "笼子"] },
-        triggers: ["put lemming in cage", "把旅鼠放进笼子"],
-        when: (s) => s.has("lemming") && s.has("cage") && !s.hasFlag("cage_has_lemming"),
-        act(s) {
-          s.placeItem("lemming", "cage");
-          s.setFlag("cage_has_lemming");
-          if (!s.hasFlag("scored_lemming_tundra")) {
-            s.addScore(1);
-            s.setFlag("scored_lemming_tundra");
-          }
-        },
-        text: "You put the lemming in the cage. It settles in.\n\n你把旅鼠放进笼子。它安顿下来。",
+        match: { verb: ["look", "examine", "look_in", "search"], noun: ["fissure", "crevice", "cleft", "hole", "裂缝", "缝隙"] },
+        triggers: ["look in fissure", "examine fissure", "search fissure", "看裂缝", "查看裂缝里面", "搜索裂缝"],
+        act(s, eng) { discoverLemming(s, eng); },
+        text: "",
       },
     ],
   },

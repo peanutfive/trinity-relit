@@ -50,7 +50,7 @@ const ALL_ROOMS = PRELOADED.reduce((acc, chapter) => {
 // 额外做什么。当前写入最新版本；仅新键缺失时查找可迁移的旧键。
 
 const SAVE_KEY = `trinity-relit:save:v${SAVE_VERSION}`;
-const LEGACY_SAVE_KEY = "trinity-relit:save:v1";
+const LEGACY_SAVE_KEYS = Array.from({ length: SAVE_VERSION - 1 }, (_, i) => `trinity-relit:save:v${SAVE_VERSION - 1 - i}`);
 let autosaveSuspended = false;
 
 // 隐私模式、磁盘配额、被禁用的存储都会让这些调用直接抛异常，
@@ -58,9 +58,11 @@ let autosaveSuspended = false;
 const saveStore = {
   read() {
     try {
-      const current = localStorage.getItem(SAVE_KEY);
-      const raw = current === null ? localStorage.getItem(LEGACY_SAVE_KEY) : current;
-      return raw === null ? null : JSON.parse(raw);
+      for (const key of [SAVE_KEY, ...LEGACY_SAVE_KEYS]) {
+        const raw = localStorage.getItem(key);
+        if (raw !== null) return JSON.parse(raw);
+      }
+      return null;
     } catch (err) {
       throw new Error("本地存档无法读取或解析", { cause: err });
     }
@@ -76,7 +78,7 @@ const saveStore = {
   },
   clear() {
     // 先删旧键；若旧键删除失败，保留新键，避免下次启动退回旧进度。
-    for (const key of new Set([LEGACY_SAVE_KEY, SAVE_KEY])) {
+    for (const key of [...LEGACY_SAVE_KEYS].reverse().concat(SAVE_KEY)) {
       try { localStorage.removeItem(key); } catch { return false; }
     }
     return true;

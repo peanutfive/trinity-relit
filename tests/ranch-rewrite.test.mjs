@@ -16,6 +16,9 @@ function createRanchGame() {
   const game = createGame();
   game.state.setFlag('prologue_done');
   game.state.clearTimer();
+  // 此夹具只检查地图和门；蛇的真实威胁与解法由ranch-animals专项覆盖。
+  game.state.setFlag('snake_gone');
+  game.state.take('splinter');
   return game;
 }
 
@@ -42,6 +45,7 @@ test('九条原版入口都能实际抵达 Front Deck', async () => {
     ['ne_yard', 's'], ['ne_yard', 'u'], ['se_yard', 'n'], ['se_yard', 'u'],
   ]) {
     await go(game, from);
+    if (from === 'assembly_room') await command(game, 'open front door');
     await command(game, dir);
     assert.equal(game.state.room, 'front_deck', `${from}.${dir}`);
   }
@@ -118,7 +122,11 @@ test('从两间室内房操作前门会同步平台左右门状态', async () =>
   await command(game, 'nw');
   assert.equal(game.state.room, 'assembly_room');
   await command(game, 'close front door');
+  assert.match(await command(game, 'e'), /The front door is closed/);
+  assert.equal(game.state.room, 'assembly_room');
+  await command(game, 'open front door');
   await command(game, 'e');
+  await command(game, 'close right door');
   assert.match(await command(game, 'look'), /an open one at the deck's left corner and a closed one at the right/);
 });
 
@@ -131,7 +139,10 @@ test('原版阻挡消息和壁橱门状态反映在玩家输出中', async () =>
   assert.match(await command(game, 'look'), /single open door/);
   await command(game, 'close door');
   assert.match(await command(game, 'look'), /single closed door/);
-  await go(game, 'assembly_room');
+  assert.match(await command(game, 's'), /The closet door is closed/);
+  await command(game, 'open door');
+  await command(game, 's');
+  await command(game, 'close closet door');
   assert.match(await command(game, 'look'), /there's a closed door in the north wall/);
   await go(game, 'se_yard');
   assert.match(await command(game, 'look'), /an open iron gate/);

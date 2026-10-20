@@ -221,11 +221,15 @@ test("未实现的EMPTY INTO不改写成默认拿取，不移动内容物或推�
   assert.equal(game.state.turns, before);
 });
 
-test("旧旅鼠flag的笼子仍呈现旅鼠，不会被EMPTY当成空笼", async () => {
-  const game = lab(); game.state.take("cage"); game.state.setFlag("cage_open");
+test("v2旧旅鼠位置迁移为笼内容，闭笼可见而拿取被拒绝", async () => {
+  const game = lab(); game.state.take("cage");
   game.state.setFlag("cage_has_lemming"); game.state.moveItem("lemming", "cage");
-  assert.match(await command(game, "look in cage"), /旅鼠/);
-  assert.match(await command(game, "empty cage"), /旅鼠/);
-  assert.equal(game.state.itemAt("lemming"), "cage");
-  assert.ok(!getItemActionCandidates(game.eng).some(c => c.id === "item:cage:empty"));
+  const old = { ...game.eng.serialize(), version: 2 };
+  delete old.state.animals;
+  await game.eng.deserialize(old);
+  assert.match(await command(game, "look in cage"), /lemming/);
+  assert.equal(game.state.itemAt("lemming"), "in:cage");
+  assert.equal(game.state.hasFlag("cage_has_lemming"), false);
+  assert.match(await command(game, "take lemming"), /closed/);
+  assert.equal(game.state.itemAt("lemming"), "in:cage");
 });

@@ -68,6 +68,7 @@ const VERB_CN = {
   展示:"show", 出示:"show",
   听:"listen", 聆听:"listen", 倾听:"listen",
   倒空:"empty", 清空:"empty", 取出:"take",
+  释放:"release", 放生:"release", 放走:"release",
 };
 
 const VERB_EN = new Set([
@@ -76,11 +77,11 @@ const VERB_EN = new Set([
   "set","enter","climb","ride","search","feed","buy","fold","point",
   "unscrew","unlock","pour","show","hit","break","chop","kill",
   "wait","sit","enter","exit","wave","blow","smell","help","hold","listen",
-  "empty","look_in","turn_on","turn_off",
+  "empty","look_in","turn_on","turn_off","release",
 ]);
 
 const PREPS = new Set([
-  "at","to","in","into","on","onto","with","from","about","under","through",
+  "at","to","in","into","on","onto","with","from","off","about","under","through",
   "向","给","到","进","在","用","往",
 ]);
 

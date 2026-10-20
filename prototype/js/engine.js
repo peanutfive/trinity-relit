@@ -1,5 +1,6 @@
 import { commandIsKnown, completeCommand, needsClarification, suggestIntent } from "./intent.js";
 import { handleItemAction } from "./item-rules.js";
+import { ANIMAL_IDS, handleAnimalAction, initializeAnimals, tickAnimals } from "./animal-rules.js";
 
 // ═══════════════════════════════════════════════════
 //  存档格式版本
@@ -10,7 +11,44 @@ import { handleItemAction } from "./item-rules.js";
 // 并在 deserialize 里补一条迁移分支。
 // 单纯新增字段不必递增：deserialize 对缺失字段一律回落到默认值。
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+
+function initialAnimalState(legacy = false) {
+  const animals = initializeAnimals({});
+  if (legacy) animals.magpie.active = false;
+  return animals;
+}
+
+function copyAnimalState(animals) {
+  return Object.fromEntries(Object.entries(animals).map(([id, phase]) => [id, { ...phase }]));
+}
+
+function validateAnimals(animals) {
+  const record = value => value !== null && typeof value === "object" && !Array.isArray(value)
+    && [Object.prototype, null].includes(Object.getPrototypeOf(value));
+  const boolean = value => typeof value === "boolean";
+  const grace = value => value === 0 || value === 1;
+  const death = value => value === null || value === "drowned";
+  const fields = {
+    lemming: { active: boolean, grace },
+    roadrunner: { active: boolean, grace, prepared: boolean, takeable: boolean },
+    magpie: { active: boolean },
+    deaths: { dead_lemming: death, dead_magpie: death, dead_roadrunner: death },
+  };
+  if (!record(animals) || Object.keys(animals).length !== Object.keys(fields).length) {
+    throw new Error("存档中的动物阶段格式错误");
+  }
+  for (const [id, checks] of Object.entries(fields)) {
+    const phase = animals[id];
+    if (!record(phase) || Object.keys(phase).length !== Object.keys(checks).length
+        || !Object.entries(checks).every(([key, valid]) => Object.hasOwn(phase, key) && valid(phase[key]))) {
+      throw new Error(`存档中的动物阶段「${id}」无效`);
+    }
+    if (Object.hasOwn(checks, "grace") && !phase.active && phase.grace !== 0) {
+      throw new Error(`存档中的动物阶段「${id}」有未激活的逃逸窗口`);
+    }
+  }
+}
 
 // 缺失字段可向后兼容；已出现但类型错误的字段不能悄悄改成默认值。
 function validateSaveState(data) {
@@ -38,6 +76,7 @@ function validateSaveState(data) {
       throw new Error(`存档字段「${field}」格式错误`);
     }
   }
+  if (Object.hasOwn(data, "animals")) validateAnimals(data.animals);
 }
 
 
@@ -61,6 +100,7 @@ export class GameState {
     this.sundialSymbol = 2;  // current symbol the ring points to (1-7)
     this.leverPulled = false;
     this.dead = false;
+    this.animals = initialAnimalState();
   }
 
   // ── Item queries ──
@@ -159,6 +199,7 @@ export class GameState {
       sundialSymbol: this.sundialSymbol,
       leverPulled: this.leverPulled,
       dead: this.dead,
+      animals: copyAnimalState(this.animals),
     };
   }
 
@@ -180,6 +221,7 @@ export class GameState {
     if (typeof data.sundialSymbol === "number") s.sundialSymbol = data.sundialSymbol;
     if (typeof data.leverPulled === "boolean") s.leverPulled = data.leverPulled;
     if (typeof data.dead === "boolean") s.dead = data.dead;
+    s.animals = Object.hasOwn(data, "animals") ? copyAnimalState(data.animals) : initialAnimalState(true);
 
     // perTurn 置空，_postTurn 里对它有判空保护。
     s.timer = data.timer && typeof data.timer.remaining === "number"
@@ -262,7 +304,7 @@ export class GameEngine {
     if (!save || typeof save !== "object" || !save.state) {
       throw new Error("存档格式无法识别");
     }
-    if (![1, SAVE_VERSION].includes(save.version)) {
+    if (![1, 2, SAVE_VERSION].includes(save.version)) {
       throw new Error(`存档版本 ${save.version} 与当前版本 ${SAVE_VERSION} 不兼容`);
     }
     const data = save.state;
@@ -300,10 +342,16 @@ export class GameEngine {
     // 存档里已有的位置优先，避免把玩家已拿到的东西塞回原处。
     const base = {};
     for (const [id, item] of Object.entries(this.items)) {
-      if (item.start) base[id] = item.start;
+      // 新游戏 start 不等于旧档历史。旧档缺失的新动物保持未出现，不能复活。
+      if (item.start && !ANIMAL_IDS.has(id)) base[id] = item.start;
     }
     restored.itemLoc = { ...base, ...restored.itemLoc };
+    if (save.version < 3) this._migrateLegacyAnimals(restored, {
+      hadCage: Object.hasOwn(data.itemLoc || {}, "cage"),
+      hadRuby: Object.hasOwn(data.itemLoc || {}, "ruby"),
+    });
     this._validateContainerLocations(restored);
+    this._validateAnimalLocations(restored);
 
     // 把计时器回调装回去。章节已在上面装载完毕，注册表这时才是全的。
     // 未登记的计时器不能静默恢复，否则倒数会失去剧情/死亡副作用。
@@ -317,13 +365,64 @@ export class GameEngine {
     return restored;
   }
 
+  _migrateLegacyAnimals(state, { hadCage, hadRuby }) {
+    state.animals = initialAnimalState(true);
+    const loc = state.itemAt("lemming");
+    if (state.hasFlag("snake_killed_lemming")) {
+      // 旧伪剧情留下的房间位置并非可捡尸体；原版蛇将猎物带走。
+      state.destroy("lemming");
+      state.setFlag("snake_gone");
+      state.setFlag("snake_lemming_scored");
+    } else if (state.hasFlag("lemming_dead")) {
+      // 无可靠死因/落点，不创造尸体，也不重新激活动物。
+      state.destroy("lemming");
+    } else if (loc === "cage") {
+      if (!Object.hasOwn(state.itemLoc, "cage")) throw new Error("旧存档中的旅鼠缺少鸟笼");
+      state.putIn("lemming", "cage");
+    } else if (loc === undefined && state.hasFlag("cage_has_lemming")) {
+      if (!Object.hasOwn(state.itemLoc, "cage")) throw new Error("旧存档中的旅鼠缺少鸟笼");
+      state.putIn("lemming", "cage");
+    }
+    const present = id => Object.hasOwn(state.itemLoc, id) && state.itemAt(id) !== "destroyed";
+    state.animals.lemming.active = present("lemming");
+    state.animals.magpie.active = present("magpie");
+    state.animals.roadrunner.active = present("roadrunner");
+    if (present("roadrunner")) state.animals.roadrunner.takeable = true;
+    if (Object.hasOwn(state.itemLoc, "lemming") || state.hasFlag("tundra_lemming_placed") || state.hasFlag("lemming_dead")
+        || state.hasFlag("snake_killed_lemming")) state.setFlag("animal_lemming_discovered");
+    // 搬运旧笼或装笼已有历史时，只保护奖励，不追补分数。
+    if (hadCage || state.hasFlag("scored_cage")) {
+      state.setFlag("cage_taken_scored");
+    }
+    if (state.hasFlag("scored_lemming_tundra")) state.setFlag("cage_lemming_scored");
+    if (hadRuby) state.setFlag("ruby_taken_scored");
+    // v1/v2 小屋两门始终开放；保留旧路线，不把新游戏的关门初态倒灌旧档。
+    state.setFlag("cottage_front_open");
+    state.setFlag("cottage_back_open");
+    for (const flag of ["cage_has_lemming", "lemming_dead", "lemming_loose_in_closet"]) state.clearFlag(flag);
+  }
+
+  _validateAnimalLocations(state) {
+    validateAnimals(state.animals);
+    if (state.itemAt("lemming") === "cage") throw new Error("新版存档仍包含旧旅鼠位置");
+    if (state.hasFlag("cage_has_lemming") || state.hasFlag("lemming_dead")) {
+      throw new Error("新版存档仍包含旧动物状态");
+    }
+    for (const [live, dead] of [["lemming", "dead_lemming"], ["magpie", "dead_magpie"], ["roadrunner", "dead_roadrunner"]]) {
+      const liveLoc = state.itemAt(live), deadLoc = state.itemAt(dead);
+      if (liveLoc && liveLoc !== "destroyed" && deadLoc && deadLoc !== "destroyed") {
+        throw new Error("存档中的同一动物同时存在活体与尸体");
+      }
+    }
+  }
+
   _validateContainerLocations(state) {
     for (const [id, loc] of Object.entries(state.itemLoc)) {
       if (!loc.startsWith("in:")) continue;
       if (!Object.hasOwn(this.items, id)) throw new Error(`存档中的物品「${id}」不存在`);
       const seen = new Set([id]);
       for (let parent = state.containerOf(id); parent !== null; parent = state.containerOf(parent)) {
-        if (!parent || !Object.hasOwn(this.items, parent) || !this.items[parent].container
+        if (!parent || !Object.hasOwn(this.items, parent) || !(this.items[parent].container || this.items[parent].surface)
             || !Object.hasOwn(state.itemLoc, parent)) {
           throw new Error(`存档中的容器「${parent}」无效`);
         }
@@ -376,10 +475,11 @@ export class GameEngine {
     const loc = this.state.itemAt(id);
     if (loc === this.state.room || ["inventory", "pocket", "worn"].includes(loc)) return true;
     const parent = this.state.containerOf(id);
-    if (!parent || !this.items[parent]?.container) return false;
+    if (!parent || !(this.items[parent]?.container || this.items[parent]?.surface)) return false;
     if (!this._itemReachable(parent, accessible, seen)) return false;
     if (accessible && this.state.inPocket(parent)) return false;
-    return this.containerIsOpen(parent) || (!accessible && this.itemProperty(parent, "transparent") === true);
+    return this.itemProperty(parent, "surface") === true || this.containerIsOpen(parent)
+      || (!accessible && this.itemProperty(parent, "transparent") === true);
   }
 
   isVisible(id) { return this._itemReachable(id, false); }
@@ -395,7 +495,7 @@ export class GameEngine {
     const cn = room.cn;
     this.ui.location(name, cn);
 
-    const desc = typeof room.desc === "function" ? room.desc(this.state) : room.desc;
+    const desc = typeof room.desc === "function" ? room.desc(this.state, this) : room.desc;
     this.ui.text(desc);
 
     const loose = this.state.roomItems();
@@ -645,12 +745,24 @@ export class GameEngine {
       if (ev.when && !ev.when(this.state)) continue;
       if (!ev.match) continue;
       if (this._matchCommand(cmd, ev.match)) {
-        await this._executeEvent(ev);
+        await this._executeEvent(ev, cmd);
         return { handled: true, advancesTurn: ev.advancesTurn !== false };
       }
     }
 
-    // 共享物品规则在房间专属动作之后执行；不在各章节复制容器规则。
+    // 房间专属动作先执行；共享别名不能默默在活体、尸体或纸鸟间任选一个。
+    for (const [noun, explicit] of [[cmd.noun, cmd.itemId], [cmd.noun2, cmd.targetItemId]]) {
+      const visible = this.matchingItemIds(noun).filter(id => this.isVisible(id));
+      if (visible.length > 1 && visible.some(id => ANIMAL_IDS.has(id)) && !visible.includes(explicit)) {
+        this.ui.system(`你指的是哪一个：${visible.map(id => this.items[id].cn || id).join("、")}？请明确目标。没有消耗回合。`);
+        return { handled: true, advancesTurn: false };
+      }
+    }
+
+    const animalResult = await handleAnimalAction(this, cmd);
+    if (animalResult === true || animalResult?.handled === true) return animalResult;
+
+    // 共享物品规则在房间/动物专属动作之后执行；不在各章节复制容器规则。
     if (await handleItemAction(this, cmd)) return true;
 
     // Generic take/drop/examine if no specific event matched
@@ -711,8 +823,8 @@ export class GameEngine {
     return PRAM_NOUNS.has(noun.toLowerCase());
   }
 
-  async _executeEvent(ev) {
-    if (ev.act) await ev.act(this.state, this);
+  async _executeEvent(ev, cmd) {
+    if (ev.act) await ev.act(this.state, this, cmd);
     if (ev.text) {
       const t = typeof ev.text === "function" ? ev.text(this.state) : ev.text;
       if (t) this.ui.text(t);
@@ -722,6 +834,9 @@ export class GameEngine {
   _postTurn() {
     const room = this.currentRoom();
     if (room.onTurn) room.onTurn(this.state, this);
+
+    // 动物阶段不占用章节唯一 timer；免回合动作不会进入此路径。
+    if (!this.state.dead) tickAnimals(this);
 
     if (this.state.timer) {
       const t = this.state.tickTimer();
@@ -746,11 +861,17 @@ export class GameEngine {
   // ── Generic actions ──
   _genericTake(noun, cmd = {}) {
     if (!noun) { this.ui.system("拿什么？"); return true; }
-    const itemId = this._resolveItem(noun);
+    const itemId = cmd.itemId
+      ? this.matchingItemIds(noun).includes(cmd.itemId) && this.isVisible(cmd.itemId) ? cmd.itemId : null
+      : this._resolveItem(noun);
+    if (cmd.itemId && !itemId) {
+      this.ui.system("这个目标已经不在这里，请重新选择。");
+      return { handled: true, advancesTurn: false };
+    }
     if (!itemId) return false;
     const fromPocket = this.state.inPocket(itemId);
     const parent = this.state.containerOf(itemId);
-    if (cmd.prep === "from" && cmd.noun2) {
+    if (["from", "off"].includes(cmd.prep) && cmd.noun2) {
       const source = ["pocket", "your pocket", "口袋", "衣袋", "我的口袋"].includes(cmd.noun2.toLowerCase())
         ? "pocket" : this._resolveItem(cmd.noun2);
       if (!source || (source === "pocket" ? !fromPocket : parent !== source)) {
@@ -773,7 +894,9 @@ export class GameEngine {
     this.state.take(itemId);
     const englishName = this.itemProperty(itemId, "en");
     const parentName = this.itemProperty(parent, "en");
-    if ((parent || fromPocket) && englishName && (fromPocket || parentName)) {
+    if (parent && this.itemProperty(parent, "surface") === true) {
+      this.ui.text(`你从${this.items[parent].cn || parent}上拿起了${item.cn || noun}。`);
+    } else if ((parent || fromPocket) && englishName && (fromPocket || parentName)) {
       const from = fromPocket ? "your pocket" : `the ${parentName}`;
       this.ui.text(`You take the ${englishName} out of ${from}.\n\n你从${fromPocket ? "口袋" : this.items[parent].cn}里取出了${item.cn}。`);
     } else {
@@ -812,15 +935,19 @@ export class GameEngine {
   }
 
   _resolveItem(noun) {
-    if (typeof noun !== "string") return null;
-    const low = noun.toLowerCase();
-    const matches = [];
-    for (const [id, item] of Object.entries(this.items)) {
-      if (id === low || item.aliases?.some(alias => alias.toLowerCase() === low)) matches.push(id);
-    }
+    const matches = this.matchingItemIds(noun);
+    const visible = matches.filter(id => this.isVisible(id));
+    if (visible.length > 1 && visible.some(id => ANIMAL_IDS.has(id))) return null;
     // bag等共享词优先解析当前可见形态；独有ID仍可解析，交给动作检查可访问性。
     return matches.find(id => this.isVisible(id) && this.state.has(id))
       || matches.find(id => this.isVisible(id)) || matches[0] || null;
+  }
+
+  matchingItemIds(noun) {
+    if (typeof noun !== "string") return [];
+    const low = noun.toLowerCase();
+    return Object.entries(this.items).filter(([id, item]) => id === low
+      || item.aliases?.some(alias => alias.toLowerCase() === low)).map(([id]) => id);
   }
 
   _visibleContentsLines(id, depth = 1, seen = new Set()) {

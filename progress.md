@@ -144,3 +144,15 @@ Original prompt: 这里卡关了（Round Pond 场景中“捡起折纸鸟”和�
 
 - 最终229/229全套、verify通过；出口stdout与旧43项基线逐字一致。容器8组（新增buy→empty→Ruby无软锁）及旧Ranch7组实际页面通过，页面异常0；截图/tmp/trinity-t21-browser-accepted、/tmp/trinity-t21-ranch-final和技能final已逐个抽查。水底袋子用原版对象名称显示，避免逻辑可见但玩家屏幕无名称。
 - 处理审查：重复put提前返回；闭祖先阻挡/EMPTY INTO不误执行；旧旅鼠中文兼容及禁不支持候选；坏档启动后输入不覆盖磁盘；清旧key失败不先删新key；Broad Walk倒空发现Ruby保留主线。Ranch未知风/鸟条件只给中文，不选猜测英文；完整25负重、动物、光照、深层受潮及修理继续留计划。准备同步main后仅提交开发分支。
+
+
+## 2026-10-20 T22/T23 M5动物与壁橱链
+
+- Original prompt continuation: 继续工作；人类已明确“授权按计划实施完整M5”，以docs/ORIGINAL_ANIMALS_PLAN.md逐步执行。开发分支codex/animal-mechanics基于14ccebc，保留所有房间ID，不合并main或部署。
+- 交付动物唯一位置/纯阶段，三活体与三溺尸，正常取得/捕获、短窗口、独立死亡替换；真实鸟笼与初始喜鹊、小屋门、Tundra首次裂缝、Islet成功转章/塔底走鹃与Ruby箱面首次+1。prologue原剧情不需修改。
+- Ranch普通入水/下潜与两类笼坍塌谓词分别实现；平台旅鼠独立坠水。蛇警告/退避/关门/放鼠/开门+3与移除、被咬下一有效动作死亡；关闭条件出口失败免回合。动物推动门后两侧描述同步。
+- v3接受v1/v2，旧cage位置/flag一次迁移，明确销毁优先、既有得分不追补，活体/尸体冲突拒绝；新旧存储键链、坏档/导入/重开保护通过。第三参cmd用于事件来源校验，surface父项不表示开锁。
+- 修复审查发现的尸体口袋拿取、错误from/off容器、明确候选ID、旧destroyed旅鼠再次发现复活、错误笼位置谓词及水下floor措辞；保留M4无关容器回归。
+- 自动311/311；规范通过，出口与/tmp/pr6-base-exits.log逐字一致，仍43旧项。新游戏通关217回合/74房间/27分，实际浏览器从头217输入也到结局，无进度注入。动物15/容器8/风车7组及runtime导入导出、坏档和窄屏通过，页面异常0；最终审查还修Tower Landing ID、ON-CIST水库边缘映射/地面走鹃离开、袋内木片光照双重真相、PRE-TAKE原文及off来源绕过。标准客户端仅既有favicon404。实际截图/文本已检查：/tmp/trinity-t23-animals-final-reviewed/、/tmp/trinity-t23-normal-browser/、/tmp/trinity-t23-skill-reviewed/等。
+- 证据：T22初84+窗口58+Ruby12经独立重算154过，7fresh SAVE/20恢复/1239跨度；裂缝另1恢复7命令；snake另1fresh SAVE/8恢复/3显式终端死亡观察/54检查。失败死亡菜单采集保留未算成功，41正式fresh/350基线不变，原始全部忽略目录。
+- TODO：完整走鹃食物/跟随/狗/随机鸣叫、光膜/轨道、Garden独立NOALL、多动物深层组合、全局光照/分钟及死亡River过场继续单列；其余Ranch门通行并未因动物flag全部实现。下一批按原版证据先计划后实施。

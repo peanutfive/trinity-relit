@@ -28,7 +28,12 @@ function seed(prologue = false) {
 }
 async function open({ narrow = false, legacy = false, bad = false, prologue = false } = {}) {
   const context = await browser.newContext({ viewport: narrow ? { width: 390, height: 844 } : { width: 1280, height: 1000 } });
-  const save = seed(prologue); if (legacy) save.version = 1;
+  const save = seed(prologue);
+  if (legacy) {
+    save.version = 1;
+    delete save.state.animals;
+    for (const id of ['magpie', 'roadrunner', 'dead_magpie', 'dead_roadrunner', 'dead_lemming', 'tower_box']) delete save.state.itemLoc[id];
+  }
   await context.addInitScript(({ save, key, oldKey, legacy, bad, origin }) => {
     if (location.origin !== origin) return;
     if (!sessionStorage.getItem('container-test-seeded')) {
@@ -81,11 +86,11 @@ try {
   {
     const { page, context } = await open({ legacy: true });
     assert.equal((await state(page)).turns, 0);
-    assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).version, key), 2);
+    assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).version, key), SAVE_VERSION);
     assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).version, oldKey), 1);
     await page.reload(); await resume(page);
     assert.equal((await state(page)).turns, 0);
-    await snapshot(page, 'legacy-resumed-v2');
+    await snapshot(page, 'legacy-resumed-current');
     receipts.push('legacy-auto-upgrade-and-reload'); await context.close();
   }
   {

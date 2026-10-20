@@ -9,9 +9,9 @@
 
 | 文件 | 当前持有者 |
 |---|---|
-| `prototype/js/engine.js` | Codex（T21，m4_state_design） |
-| `prototype/js/parser.js` | Codex（T21，主代理） |
-| `prototype/js/data/items.js` | Codex（T21，m4_source_contract） |
+| `prototype/js/engine.js` | Codex（T23，m5_state_impact） |
+| `prototype/js/parser.js` | Codex（T23，主代理） |
+| `prototype/js/data/items.js` | Codex（T23，animal_runtime） |
 
 ## 进行中
 
@@ -201,3 +201,16 @@
 - 范围：prototype/js/{engine,intent,parser,main,item-rules}.js、data/{items,prologue,ranch}.js；相关容器/存档/意图/主线测试及浏览器脚本；scripts/verify_chapters_rules.js和verify_exits_vs_zmachine.js（仅适配真实ES模块依赖加载，避免新共享规则导致漏检）；ARCHITECTURE/CHAPTER_RULES/CHAPTER_PLAN/RANCH_REWRITE_PLAN/GAPS、docs/ORIGINAL_*.md、TASKS/SHIP_PLAN/progress。研究检查点长路径缺口仍在T20研究脚本/测试范围内。
 - 分工：m4_state_design独占engine/intent和tests/container-state.test.mjs；m4_source_contract独占item-rules/items/prologue及tests/item-rules.test.mjs；ranch_runtime独占ranch及tests/ranch-containers.test.mjs；主代理独占parser/main、版本启动/浏览器回归、研究工具修复与共享文档。交叉修改须先协调持有者。
 - 状态：👀 P1–P5本地交付待审查：229/229测试、规范通过，出口报告主体与main基线逐字一致（仍既有43项）；容器8组、旧风车呼吸7组真实页面通过，页面异常0。保留27个Ranch ID。不扩大到动物生死、黑暗、全局跨章时钟或完整25负重；Ranch倒空的风/鸟条件只给中文边界反馈，未实现EMPTY INTO等变体不误执行。
+
+### T22 M5动物迁移预备与证据 — Codex（2026-10-20）
+- 人类要求继续工作。当前在已授权研究范围内做原版探测、影响核对和完整实施计划，M5运行时不继承T21限定的M4授权。
+- 分支codex/container-mechanics，基于14ccebc。开工fetch连接超时，GitHub API确认main仍57c5f9d，已有origin/main基线rebase完成；提交前重试同步。
+- 当前范围：docs/ORIGINAL_ANIMALS_PLAN.md、docs/ORIGINAL_MIGRATION.md、docs/ORIGINAL_PILOTS.md、研究脚本/清单/相关研究测试（仅有新证据或工具缺陷时）、TASKS/SHIP_PLAN/progress。原版及派生证据仅.local-research；运行时范围未确认前不改prototype/js。
+- 分工：m5_source_contract只读核对对象、动作、计时及原文；m5_state_impact只读核对旧flag/位置、跨章引用及文件范围；m5_dynamic_probes补正常获取、开笼、取回及死亡对象的原版观察；主代理编写方案、核验和整合。
+- 状态：👀 预备完成，正常来源/对象/窗口/小屋/Ruby/蛇证据已审计。首批84检查、窗口58、Ruby12独立重算154全过；蛇另54通过。原始均仅.local-research，41正式fresh基线不变。完整运行时已获人类授权，转T23实施。
+
+### T23 M5动物与壁橱谜题迁移 — Codex（2026-10-20）
+- 人类明确回复“授权按计划实施完整M5”，完整计划见docs/ORIGINAL_ANIMALS_PLAN.md；分支codex/animal-mechanics，基于14ccebc，开工fetch/rebase完成；提交前fetch两次超时，GitHub API核对main仍57c5f9d、与origin/main完全一致，再次rebase完成。不合并main、不部署。
+- 范围：prototype/js/{engine,main,intent,parser,item-rules,animal-rules}.js、data/{items,wabe,tundra,prologue,islet,desert,ranch}.js；相关tests、浏览器验证脚本、ARCHITECTURE/CHAPTER_RULES/CHAPTER_PLAN/RANCH_REWRITE_PLAN/GAPS、docs/ORIGINAL_*.md、TASKS/SHIP_PLAN/progress。保留全部房间ID和现有地图。
+- 分工：m5_state_impact独占engine/intent和动物状态迁移测试；animal_runtime独占animal-rules/item-rules/items及其专项测试；animal_chapters独占wabe/tundra/prologue/islet/desert与正常捕获测试；主代理独占main/parser/ranch、蛇证据与完整谜题、版本启动/浏览器及共享文档。交叉修改先协调。
+- 状态：👀 P1–P5本地验收完成，开发分支交付待审查。311/311测试与规范通过，出口43旧项报告与main逐字一致；动物15/容器8/风车7真实页面及正常新游戏217输入通过，无页面异常。v3兼容v1/v2，27房间ID保留；完整全局走鹃/光照/时钟等边界见计划，不合并main或部署。

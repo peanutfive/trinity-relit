@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════
 
 import { wetItems } from "../item-rules.js";
+import { drownCage, drownRoadrunner, initializeAnimals } from "../animal-rules.js";
 
 // 阻挡原文均来自 TRINITY.DAT 的字符串或无条件出口例程。
 // 虚拟目标只让引擎走 fail 分支；静态出口检查忽略指向自身的目标。
@@ -40,6 +41,9 @@ function spillMill(s, eng) {
   s.setCnt("ranch_landing_life", 0);
   // SPILL-MILL 转移空袋内容；普通 INTO-RESERVOIR 不做该转移。
   wetItems(s, { mode: "mill" });
+  if (["inventory", "windmill"].includes(s.itemAt("cage"))) drownCage(s);
+  drownRoadrunner(s, "inventory");
+  drownRoadrunner(s, "windmill");
   for (const { id, loc } of s.inventoryList()) {
     if (loc === "inventory") s.placeItem(id, "underwater");
   }
@@ -98,7 +102,13 @@ function breathWait(s) {
   };
 }
 
+function enterReservoir(s) {
+  wetItems(s, { mode: "enter" });
+  if (s.carrying("cage")) drownCage(s);
+}
+
 function dive(s, eng) {
+  if (s.carrying("cage")) drownCage(s);
   if (s.cnt("ranch_breath_remaining") <= 0) {
     s.setCnt("ranch_breath_remaining", 4);
     eng.print("[holding your breath first]\n\n[先屏住呼吸]");
@@ -118,6 +128,116 @@ function deckDoor(target, flag, side) {
     when: (s) => s.hasFlag(flag),
     fail: `The ${side} door is closed.\n\n${side === "left" ? "左" : "右"}边的门关着。`,
   };
+}
+
+// R12 NEROOM-F / I-SNAKE: leaving Assembly resets its warning window.
+function snakeVisible(s) {
+  return !s.hasFlag("snake_gone") && (s.room === "assembly_room" ||
+    (s.room === "closet" && !s.hasFlag("closet_door_closed")));
+}
+function startSnake(s, eng) {
+  if (s.hasFlag("snake_gone") || s.hasFlag("snake_started")) return;
+  s.setFlag("snake_started");
+  s.setCnt("snake_delay", 1);
+  eng.print("You turn to face an urgent noise behind you. Your heart skips a beat. Two tiny eyes, bright with hunger, black with menace, are glaring at you from only a few feet away.\n\nYou hear the noise again. It's like a pebble in an empty can.\n\n你转身面对身后急促的声响，心头一紧。几英尺外，两只小眼睛正瞪着你，闪着饥饿的光，透着阴森的威胁。\n\n你又听到了那声音，像一颗小石子在空罐里晃动。");
+}
+function retreatSnake(s, eng) {
+  if (!s.hasFlag("snake_started") || s.hasFlag("snake_gone")) return;
+  s.setCnt("snake_delay", 1);
+  eng.print("You beat a hasty retreat from the rattlesnake.\n\n你急忙从响尾蛇身边退开。");
+}
+function consumeLemming(s) {
+  s.destroy("lemming");
+  const a = initializeAnimals(s).lemming;
+  a.active = false; a.grace = 0;
+  s.setFlag("snake_gone");
+  s.clearFlag("lemming_loose_in_closet");
+  if (!s.hasFlag("snake_lemming_scored")) {
+    s.setFlag("snake_lemming_scored"); s.addScore(3);
+  }
+}
+const SNAKE_LUNCH_TAIL = "scrambles through the open closet door, straight into the fangs of the rattlesnake.\n\nThe lemming twitches for a while as the venom takes effect. Then the snake drags its prize across the floor, shakes its tail once for effect and slithers out of sight.";
+const SNAKE_LUNCH_CN = "窜过敞开的壁橱门，直奔响尾蛇的毒牙。\n\n毒液开始发作，旅鼠抽搐了一阵。随后蛇将猎物拖过地板，炫耀似地摇了一下尾巴，滑出了视野。";
+function releasedInCloset(s, eng, id) {
+  if (id !== "lemming" || !snakeVisible(s)) return null;
+  consumeLemming(s);
+  return { en: ". Then it " + SNAKE_LUNCH_TAIL, cn: "随后，它" + SNAKE_LUNCH_CN };
+}
+function snakeTick(s, eng) {
+  if (s.hasFlag("snake_gone")) return;
+  if (s.room === "assembly_room") startSnake(s, eng);
+  if (!s.hasFlag("snake_started")) return;
+  if (!snakeVisible(s)) { s.setCnt("snake_delay", 1); return; }
+  if (s.cnt("snake_delay") > 0) {
+    s.setCnt("snake_delay", 0);
+    const where = s.room === "closet" ? " lurks just outside the open door" : " rears its wedge-shaped head";
+    eng.print("The rattlesnake" + where + ". It looks as if it's about to strike!\n\n响尾蛇" +
+      (s.room === "closet" ? "潜伏在敞开的门外" : "昂起楔形的头") + "，看起来就要扑过来了！");
+  } else {
+    s.setFlag("snake_gone");
+    s.setFlag("snake_bitten");
+    s.setCnt("snake_bite_turn", s.turns);
+    eng.print("The rattlesnake strikes your ankle like lightning, recoils in an instant and slithers out of sight.\n\nSobbing with pain and shock, you peer at the tender wound. It's already beginning to swell.\n\n响尾蛇闪电般咬住你的脚踝，瞬间缩回身子，滑出了视野。\n\n你痛苦而惊恐地啜泣，低头查看柔嫩的伤口。它已经开始肿起来了。");
+    return;
+  }
+  if (s.itemAt("lemming") === "closet" && s.room === "closet") {
+    consumeLemming(s);
+    eng.print("The lemming " + SNAKE_LUNCH_TAIL + "\n\n旅鼠" + SNAKE_LUNCH_CN);
+  }
+}
+function closetLight(s, eng) {
+  return !s.hasFlag("closet_door_closed") || (eng ? eng.isVisible("splinter") :
+    s.carrying("splinter") || s.inRoom("splinter"));
+}
+function closetDoor(target, retreat = false, closed = false) {
+  return { to: target, when: s => !s.hasFlag("closet_door_closed"), advancesTurn: !closed,
+    fail: "The closet door is closed.\n\n壁橱门关着。",
+    ...(retreat ? { act: retreatSnake } : {}),
+  };
+}
+function closetDoorEvents(room) {
+  return [
+    { id: room + "_close_closet_door", match: { verb: ["close"], noun: ["door", "closet door", "门", "壁橱门"] },
+      triggers: ["close closet door", "关上壁橱门"], when: s => s.room === room,
+      act(s, eng) {
+        if (s.hasFlag("closet_door_closed")) eng.print("It's already closed.\n\n它已经关上了。");
+        else { s.setFlag("closet_door_closed"); eng.print("You close the closet door.\n\n你关上了壁橱的门。");
+          if (room === "closet" && !closetLight(s, eng)) eng.print("It's completely dark.\n\n这里一片漆黑。"); }
+      }, text: "" },
+    { id: room + "_open_closet_door", match: { verb: ["open"], noun: ["door", "closet door", "门", "壁橱门"] },
+      triggers: ["open closet door", "打开壁橱门"], when: s => s.room === room,
+      act(s, eng) {
+        if (!s.hasFlag("closet_door_closed")) eng.print("It's already open.\n\n它已经打开了。");
+        else { s.clearFlag("closet_door_closed"); eng.print("You open the closet door.\n\n你打开了壁橱的门。"); }
+      }, text: "" },
+  ];
+}
+function snakeEvents(room) {
+  const nouns = ["snake", "rattlesnake", "rattler", "蛇", "响尾蛇"];
+  return [
+    { id: room + "_snake_gone", match: { verb: ["examine", "listen", "take", "hit", "kill"], noun: nouns },
+      when: s => s.room === room && s.hasFlag("snake_gone"), advancesTurn: false,
+      text: "The rattlesnake isn't here anymore.\n\n响尾蛇已经不在这里了。" },
+    { id: room + "_snake_behind_door", match: { verb: ["examine", "listen", "take", "hit", "kill"], noun: nouns },
+      when: s => s.room === room && room === "closet" && s.hasFlag("closet_door_closed"), advancesTurn: false,
+      text: "Luckily, the rattlesnake is on the other side of the closet door.\n\n幸好，响尾蛇在壁橱门的另一边。" },
+    { id: room + "_examine_snake", match: { verb: ["examine"], noun: nouns }, when: s => s.room === room,
+      text: "All you can see are those tiny black eyes, glaring.\n\n你只能看见那双瞪着你的小黑眼睛。" },
+    { id: room + "_listen_snake", match: { verb: ["listen"], noun: nouns }, when: s => s.room === room,
+      text: "You hear the noise again. It's like a pebble in an empty can.\n\n你又听到了那声音，像一颗小石子在空罐里晃动。" },
+    { id: room + "_take_snake", match: { verb: ["take"], noun: nouns }, when: s => s.room === room,
+      text: "You reach out to grasp the angry reptile.\n\n你伸出手去抓这条愤怒的爬行动物。" },
+    { id: room + "_hit_snake", match: { verb: ["hit", "kill"], noun: nouns }, when: s => s.room === room,
+      act(s, eng, cmd) {
+        if (cmd?.noun2) {
+          const tool = eng.matchingItemIds(cmd.noun2).find(id => s.has(id));
+          if (!tool || !s.has(tool)) { eng.ui.system("你没有拿着指定的工具。"); return; }
+          const name = eng.itemProperty(tool, "en");
+          if (!name) { eng.ui.system("你举起工具，准备出击。"); return; }
+          eng.print(`You draw closer to the rattlesnake, ${name} poised to strike.\n\n你举起${eng.items[tool].cn}，向响尾蛇靠近，准备出击。`);
+        } else eng.print("You draw closer to the rattlesnake, your hand poised to strike.\n\n你向响尾蛇靠近，举手准备出击。");
+      }, text: "" },
+  ];
 }
 
 export const ROOMS = {
@@ -277,7 +397,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This short hallway opens outdoors to the north and south. A closed outer door leads east into a kitchen. Turning west, you see a stairway descending into darkness.\n\n这条短走廊向南北两侧通往户外。一扇关闭的外门向东通往厨房。转向西面，可以看到一道通入黑暗的楼梯。";
+      return "This short hallway opens outdoors to the north and south. A" + (s.hasFlag("ranch_outer_door_open") ? "n open" : " closed") + " outer door leads east into a kitchen. Turning west, you see a stairway descending into darkness.\n\n这条短走廊向南北两侧通往户外。一扇" + (s.hasFlag("ranch_outer_door_open") ? "敞开" : "关闭") + "的外门向东通往厨房。转向西面，可以看到一道通入黑暗的楼梯。";
     },
     exits() {
       return {
@@ -296,8 +416,10 @@ export const ROOMS = {
   assembly_room: {
     name: "Assembly Room",
     cn: "组装室",
+    onEnter: startSnake,
     onTurn(s, eng) {
       if (s.room !== "assembly_room") return;
+      snakeTick(s, eng);
       breathTick(s, eng);
     },
     onWait: breathWait,
@@ -312,12 +434,12 @@ export const ROOMS = {
         (closed ? "关闭的门" : "敞开的壁橱门") + "。其他出口通往南面和西面。";
       return en + "\n\n" + cn;
     },
-    exits() {
+    exits(s) {
       return {
-        n: "closet",
-        e: "front_deck",
-        s: "se_room",
-        w: "nw_room",
+        n: closetDoor("closet", true, s.hasFlag("closet_door_closed")),
+        e: { to: "front_deck", advancesTurn: s.hasFlag("front_deck_right_door_open"), when: s => s.hasFlag("front_deck_right_door_open"), fail: "The front door is closed.\n\n前门关着。", act: retreatSnake },
+        s: { to: "se_room", act: retreatSnake },
+        w: { to: "nw_room", act: retreatSnake },
         in: blocked("assembly_room", "in_ambiguous"),
         out: blocked("assembly_room", "out_ambiguous"),
       };
@@ -337,69 +459,35 @@ export const ROOMS = {
         act(s) { s.clearFlag("front_deck_right_door_open"); },
         text: "You close the front door.\n\n你关上前门。",
       },
+      ...closetDoorEvents("assembly_room"),
+      ...snakeEvents("assembly_room"),
     ],
   },
 
   closet: {
     name: "Closet",
     cn: "壁橱",
+    animalLight: closetLight,
+    onAnimalReleased: releasedInCloset,
     onTurn(s, eng) {
       if (s.room !== "closet") return;
+      snakeTick(s, eng);
       breathTick(s, eng);
     },
     onWait: breathWait,
-    desc(s) {
+    desc(s, eng) {
+      if (!closetLight(s, eng)) return "It's completely dark.\n\n这里一片漆黑。";
       const closed = s.hasFlag("closet_door_closed");
       return `There's barely enough room to turn around in this puny closet. Its single ${closed ? "closed" : "open"} door is in the south wall.\n\n这个小壁橱仅容你勉强转身。唯一一扇${closed ? "关闭" : "敞开"}的门位于南墙。`;
     },
-    exits() {
+    exits(s) {
       return {
-        s: "assembly_room",
-        out: "assembly_room",
+        s: closetDoor("assembly_room", false, s.hasFlag("closet_door_closed")),
+        out: closetDoor("assembly_room", false, s.hasFlag("closet_door_closed")),
         in: blocked("closet", "closet_end"),
       };
     },
-    events: [
-      {
-        id: "closet_close_door",
-        match: { verb: ["close", "shut"], noun: ["door", "门"] },
-        triggers: ["close door", "关门"],
-        when: (s) => s.room === "closet" && !s.hasFlag("closet_door_closed"),
-        act(s) { s.setFlag("closet_door_closed"); },
-        text: "You close the closet door.\n\n你关上了壁橱的门。",
-      },
-      {
-        id: "closet_open_cage",
-        match: { verb: ["open"], noun: ["cage", "鸟笼", "笼子"] },
-        triggers: ["open cage", "打开笼子"],
-        when: (s) => s.room === "closet" && s.has("cage") && s.hasFlag("cage_has_lemming") && s.hasFlag("closet_door_closed"),
-        act(s) {
-          s.placeItem("lemming", "closet");
-          s.clearFlag("cage_has_lemming");
-          s.setFlag("lemming_loose_in_closet");
-        },
-        text: "You open the cage. The lemming darts out into the closet.\n\n你打开笼子。旅鼠窜了出来，在壁橱里乱跑。",
-      },
-      {
-        id: "closet_open_door",
-        match: { verb: ["open"], noun: ["door", "门"] },
-        triggers: ["open door", "开门"],
-        when: (s) => s.room === "closet" && s.hasFlag("closet_door_closed"),
-        act(s, eng) {
-          s.clearFlag("closet_door_closed");
-          if (s.itemAt("lemming") === "closet") {
-            s.placeItem("lemming", "assembly_room");
-            s.setFlag("snake_killed_lemming");
-            s.setFlag("lemming_dead");
-            s.clearFlag("lemming_loose_in_closet");
-            eng.print("You open the door. The lemming runs into the assembly room—the rattlesnake strikes. The lemming is dead.\n\n你打开门。旅鼠冲进组装室——响尾蛇咬住了它。旅鼠死了。");
-          } else {
-            eng.print("You open the closet door.\n\n你打开了壁橱的门。");
-          }
-        },
-        text: "",
-      },
-    ],
+    events: [...closetDoorEvents("closet"), ...snakeEvents("closet")],
   },
 
   kitchen: {
@@ -416,10 +504,11 @@ export const ROOMS = {
       const hasKnife = s.itemAt("knife") === "cupboard";
       const en = "Disconnected stove pipes and an open cupboard" +
         (hasKnife ? " with a steak knife in it" : "") +
-        " are the only evidence of this room's identity. A closed outer door in the west wall leads out to a hallway. Other exits lead north and east.";
+        " are the only evidence of this room's identity. A" +
+        (s.hasFlag("ranch_outer_door_open") ? "n open" : " closed") + " outer door in the west wall leads out to a hallway. Other exits lead north and east.";
       const cn = "拆开的炉管和一个敞开的橱柜" +
         (hasKnife ? "，里面有一把牛排刀，" : "") +
-        "是这间房用途仅存的线索。西墙上一扇关闭的外门通往走廊。其他出口通往北面和东面。";
+        "是这间房用途仅存的线索。西墙上一扇" + (s.hasFlag("ranch_outer_door_open") ? "敞开" : "关闭") + "的外门通往走廊。其他出口通往北面和东面。";
       return en + "\n\n" + cn;
     },
     exits() {
@@ -443,7 +532,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "Aside from a closed screen door to the west, this squarish room offers no amenities. Other exits lead north and east.\n\n除了西面一扇关闭的纱门，这间方形房间没有任何设施。其他出口通往北面和东面。";
+      return "Aside from a" + (s.hasFlag("ranch_screen_door_open") ? "n open" : " closed") + " screen door to the west, this squarish room offers no amenities. Other exits lead north and east.\n\n除了西面一扇" + (s.hasFlag("ranch_screen_door_open") ? "敞开" : "关闭") + "的纱门，这间方形房间没有任何设施。其他出口通往北面和东面。";
     },
     exits() {
       return {
@@ -559,7 +648,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "There aren't any openings in this corner of the stone wall. A raised deck stands immediately to the south, and a closed outside door leads west, into the ranch.\n\n石墙这一角没有开口。南边紧挨着一处高起的平台，一扇关闭的外门向西通往牧场屋内。";
+      return "There aren't any openings in this corner of the stone wall. A raised deck stands immediately to the south, and a" + (s.hasFlag("ranch_outside_door_open") ? "n open" : " closed") + " outside door leads west, into the ranch.\n\n石墙这一角没有开口。南边紧挨着一处高起的平台，一扇" + (s.hasFlag("ranch_outside_door_open") ? "敞开" : "关闭") + "的外门向西通往牧场屋内。";
     },
     exits() {
       return {
@@ -587,7 +676,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This patch of dust lies within the elbow of the ranch house, and is enclosed by a stone wall to the north and west.\n\nAn open hallway leads south, into the house. There's also a closed screen door to the east, and a closed iron gate in the northwest corner of the stone wall.\n\n这片尘土位于牧场屋的转角内，北面和西面被石墙围住。\n\n敞开的走廊向南通往屋内。东面还有一扇关闭的纱门，石墙西北角有一扇关闭的铁门。";
+      return "This patch of dust lies within the elbow of the ranch house, and is enclosed by a stone wall to the north and west.\n\nAn open hallway leads south, into the house. There's also a" + (s.hasFlag("ranch_screen_door_open") ? "n open" : " closed") + " screen door to the east, and a closed iron gate in the northwest corner of the stone wall.\n\n这片尘土位于牧场屋的转角内，北面和西面被石墙围住。\n\n敞开的走廊向南通往屋内。东面还有一扇" + (s.hasFlag("ranch_screen_door_open") ? "敞开" : "关闭") + "的纱门，石墙西北角有一扇关闭的铁门。";
     },
     exits() {
       return {
@@ -636,7 +725,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This room is stripped bare of all furnishings. Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\nA closed outside door in the east wall leads outside. Another exit opens west, into the ranch house.\n\n这间屋子里的家具已被搬空。只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。\n\n东墙上一扇关闭的外门通往屋外。另一出口向西通往牧场屋内。";
+      return "This room is stripped bare of all furnishings. Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\nA" + (s.hasFlag("ranch_outside_door_open") ? "n open" : " closed") + " outside door in the east wall leads outside. Another exit opens west, into the ranch house.\n\n这间屋子里的家具已被搬空。只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。\n\n东墙上一扇" + (s.hasFlag("ranch_outside_door_open") ? "敞开" : "关闭") + "的外门通往屋外。另一出口向西通往牧场屋内。";
     },
     exits() {
       return {
@@ -861,8 +950,8 @@ export const ROOMS = {
       return {
         s: "south_reservoir",
         d: "south_reservoir",
-        n: { to: "reservoir", act(s) { wetItems(s, { mode: "enter" }); } },
-        in: { to: "reservoir", act(s) { wetItems(s, { mode: "enter" }); } },
+        n: { to: "reservoir", act: enterReservoir },
+        in: { to: "reservoir", act: enterReservoir },
         ne: blocked("edge_reservoir", "reservoir_edge"),
         e: blocked("edge_reservoir", "reservoir_edge"),
         se: blocked("edge_reservoir", "reservoir_edge"),

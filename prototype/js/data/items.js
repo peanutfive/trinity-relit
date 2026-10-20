@@ -85,7 +85,7 @@ export const ITEMS = {
   ruby: {
     en: "ruby", size: 0, mass: 1,
     cn: "红宝石", aliases: ["ruby","红宝石","宝石","gem"],
-    desc: "The ruby is bigger than a walnut, with finely cut facets that sparkle with crimson fire.\n这颗红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。",
+    desc(s) { return s.hasFlag("roadrunner_tower_met") ? "Its finely cut edges sparkle with crimson fire.\n\n它精细切割的棱面闪烁着绯红的火光。" : "The ruby is bigger than a walnut, with finely cut facets that sparkle with crimson fire.\n这颗红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。"; },
     start: null,
   },
 
@@ -152,8 +152,16 @@ export const ITEMS = {
     en: "birdcage", size: 10, mass: 6, capacity: 8, container: true, transparent: true,
     open(s) { return s.hasFlag("cage_open"); },
     cn: "鸟笼", aliases: ["cage","birdcage","笼子","鸟笼"],
-    desc(s) { return `The ${s.hasFlag("cage_open") ? "open" : "closed"} birdcage is cunningly woven of brown and yellow wicker.\n\n${s.hasFlag("cage_open") ? "敞开" : "关闭"}的鸟笼由棕黄色柳条巧妙编成。${s.hasFlag("cage_has_lemming") ? "里面还有一只旅鼠。" : ""}`; },
-    start: null,
+    desc(s) { return `The ${s.hasFlag("cage_open") ? "open" : "closed"} birdcage is cunningly woven of brown and yellow wicker.\n\n${s.hasFlag("cage_open") ? "敞开" : "关闭"}的鸟笼由棕黄色柳条巧妙编成。`; },
+    start: "cottage",
+  },
+  magpie: {
+    en: "magpie", size: 0, mass: 0, animal: true, living: true,
+    cn: "活喜鹊", aliases: ["live magpie", "magpie", "bird", "喜鹊", "活喜鹊", "鸟"],
+    desc: "Its sharp little eyes stare back at you suspiciously.\n\n它锐利的小眼睛疑惑地回望着你。",
+    start: "in:cage",
+    fixed: true,
+    fixedMsg: "The magpie won't let you near.\n\n喜鹊不让你靠近。",
   },
   key_barrow: {
     cn: "骸骨钥匙", aliases: ["skeleton key","key","钥匙","骸骨钥匙","骷髅钥匙"],
@@ -251,9 +259,40 @@ export const ITEMS = {
 
   // ── 俄罗斯 ──
   lemming: {
-    cn: "旅鼠", aliases: ["lemming","旅鼠"],
-    desc: "一只毛茸茸的小旅鼠。它用黑豆般的眼睛紧张地看着你。",
+    en: "lemming", size: 4, mass: 3, animal: true, living: true,
+    cn: "活旅鼠", aliases: ["live lemming", "lemming", "rodent", "animal", "旅鼠", "活旅鼠", "鼠"],
+    desc: "The lemming looks something like a hamster, with long brown fur and beady eyes that glare at you defiantly.\n\n旅鼠看起来有点像仓鼠，披着棕色长毛，圆亮的小眼睛不服气地瞪着你。",
     start: null,
+  },
+  roadrunner: {
+    en: "roadrunner", size: 5, mass: 5, animal: true, living: true,
+    cn: "活走鹃", aliases: ["live roadrunner", "roadrunner", "bird", "走鹃", "活走鹃", "鸟"],
+    desc: "The roadrunner resembles a gray pheasant, lean and streamlined, with bright eyes and a long tail splashed with color.\n\n走鹃像一只灰色雉鸡，身体瘦削而流畅，眼睛明亮，长尾上带着鲜艳的色彩。",
+    start: null,
+  },
+  dead_lemming: {
+    en: "dead lemming", size: 3, mass: 3, animal: true,
+    cn: "死旅鼠", aliases: ["dead lemming", "drowned lemming", "lemming", "rodent", "animal", "死旅鼠", "溺死的旅鼠", "旅鼠", "鼠"],
+    desc(s) { return s.animals?.deaths?.dead_lemming === "drowned" ? "It's dead. Drowned, as a matter of fact.\n\n它死了。确切地说，是淹死的。" : "It's dead.\n\n它死了。"; },
+    start: null,
+  },
+  dead_magpie: {
+    en: "dead magpie", size: 3, mass: 3, animal: true,
+    cn: "死喜鹊", aliases: ["dead magpie", "drowned magpie", "magpie", "bird", "死喜鹊", "溺死的喜鹊", "喜鹊", "鸟"],
+    desc(s) { return s.animals?.deaths?.dead_magpie === "drowned" ? "It's dead. Drowned, as a matter of fact.\n\n它死了。确切地说，是淹死的。" : "It's dead.\n\n它死了。"; },
+    start: null,
+  },
+  dead_roadrunner: {
+    en: "dead roadrunner", size: 5, mass: 5, animal: true,
+    cn: "死走鹃", aliases: ["dead roadrunner", "drowned roadrunner", "roadrunner", "bird", "死走鹃", "溺死的走鹃", "走鹃", "鸟"],
+    desc(s) { return s.animals?.deaths?.dead_roadrunner === "drowned" ? "It's dead. Drowned, as a matter of fact.\n\n它死了。确切地说，是淹死的。" : "It's dead.\n\n它死了。"; },
+    start: null,
+  },
+  tower_box: {
+    en: "box", cn: "木箱", aliases: ["wooden box", "box", "lid", "木箱", "箱子", "箱盖"],
+    surface: true, fixed: true,
+    desc: "The closed box is several feet in length, and secured with a steel padlock.\n\n关着的木箱有好几英尺长，用一把钢挂锁锁着。",
+    start: "base_of_tower",
   },
 
   // ── 新墨西哥 ──

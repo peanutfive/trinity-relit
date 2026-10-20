@@ -221,7 +221,8 @@ room_id: {
 | `eng.containerIsOpen(id)` | 容器当前是否开放 |
 | `eng.isVisible(id)` / `eng.isAccessible(id)` | 物品可见与可实际装取的独立判断 |
 | `eng.visibleItemIds()` | 当前可见的物品ID集合 |
-| `eng.prepareSave(save)` | 独立校验/迁移并返回v2包，不改变当前进度 |
+| `eng.matchingItemIds(noun)` | 按ID/别名找出全部匹配项；章节需再检查持有/可见，不可随意取第一个 |
+| `eng.prepareSave(save)` | 独立校验/迁移并返回当前v3包，不改变当前进度 |
 
 ---
 
@@ -230,17 +231,17 @@ room_id: {
 ### 执行顺序
 
 ```
-用户输入 → parser 结构化解析 → match 匹配 → _executeEvent
-                              ↓ 无匹配
-                          generic take/drop/examine
-                              ↓ 无匹配
-                          embedding 语义匹配 → triggers 匹配 → _executeEvent
+用户输入 → parser / 房间事件匹配
+                      ↓ 无匹配
+           animal-rules → item-rules → 通用动作
+                      ↓ 仍不明确
+          intent候选 → 玩家确认 → 状态重验 → 原动作入口
 ```
 
 ### _executeEvent 的执行顺序
 
 ```
-1. 调用 ev.act(s, eng)     ← 先执行逻辑
+1. 调用 ev.act(s, eng, cmd)     ← 先执行逻辑
 2. 输出 ev.text(s) 或 ev.text  ← 后输出文本
 ```
 
@@ -457,7 +458,22 @@ async act(s, eng) {
 
 - `s.contents(id)`返回直接内容物ID，`s.containerOf(id)`返回直接父物品ID或null，`s.putIn(id,parentId)`写入`in:<parentId>`并拒绝循环/自包含。`has()`等旧API仍只表示直接随身，不能据此判断递归可访问性。
 - `eng.itemProperty(id,key)`读取静态或状态相关元数据；`eng.containerIsOpen(id)`、`eng.isVisible(id)`、`eng.isAccessible(id)`、`eng.visibleItemIds()`供共享规则和候选使用。透明闭笼的内容可见不可取。
+| `eng.matchingItemIds(noun)` | 按ID/别名找出全部匹配项；章节需再检查持有/可见，不可随意取第一个 |
 - 容器交互复用`item-rules.js`，房间事件仍优先。不得在各房间复制容器判定，将递归可见性误当递归受潮，或把`destroy()`改为递归销毁。
 - 普通入水EBAG内容留在不可访问的旧对象中，坍塌先转内容到SOGGY；已SOGGY重复受潮不能清空新内容。三种纸袋拒绝关闭，不创建原版没有的闭合袋子。
 - 容器容量按已核实的原版属性/算法，不按物品数量替代。8件限制只数顶层手持，口袋/袋内取出同样检查；本批不启用全游戏25负重。
 - 存档v2接受v1迁移；v1不允许新版`in:`关系，v2预检拒绝非法父容器和循环。旧扁平特殊位置保持，明确销毁不补发。`eng.prepareSave(save)`返回迁移后的v2包，不改活状态、不落盘、不重放onEnter。
+
+
+## 12. M5动物、表面与动作来源（2026-10-20）
+
+- 房间事件优先，随后animal-rules、item-rules，最后通用动作。新事件可接第三参cmd检查from/off/目标；不能靠act返回值改变回合。错误来源不得移动物件或奖励。
+- 活体与尸体是不同物品ID，动物位置只存itemLoc。state.animals为共享规则持久阶段，由initializeAnimals及动物专用函数维护；章节不复制cage_has_lemming真相或重新发放死亡动物。
+- in:<parentId>也可表示surface父项；parent须明确声明container或surface，仍拒绝非法父项、自包含和循环。塔底ruby位于in:tower_box，箱面不表示箱已解锁或打开。
+- s.has包含inventory/pocket/worn；原版直接IN? CAGE PLAYER等谓词应按实际携带映射检查，已核笼路径用s.carrying，不能把pocket也算作直接手持。
+- 开笼可立即调用动物动作；普通回合再tick。未知/免推进动作不运行普通tick。持有窗口、关闭笼、退出、尸体原因与蛇咬伤均须在刷新/导入后保留，不占用章节唯一timer。
+- 动物推动外门时共享flag与两侧描述同步；未建模的门通行条件仍在GAPS中列明。局部壁橱光照不代表已完成全局黑暗系统。
+- 当前存档v3兼容v1/v2；旧cage扁平位置转in:cage，明确销毁优先，旧蛇吃旅鼠不产生尸体或重发分。坏新键不能回退旧档；升级保留旧键，重开按v1/v2/v3顺序清理。
+- 详细实现门槛、原版证据、当前完成项及未覆盖组合见docs/ORIGINAL_ANIMALS_PLAN.md。M4第11节中的v2说明是历史版本契约，当前prepareSave始终返回v3。
+
+M5房间desc(s, eng)可选接收第二参引擎，局部光照需复用同一isVisible判断；描述保持只读，不把查询与动作写成两套光照状态。

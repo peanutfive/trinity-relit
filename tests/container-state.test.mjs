@@ -149,12 +149,12 @@ test('按状态变化的原版对象名用于拿出响应和语义例句，不�
   assert.equal(g.output.some(line => line.text.includes('=>')), false);
 });
 
-test('v2往返容器链，允许内容留在已销毁的旧袋里且仍不可访问', async () => {
+test('v3往返容器链，允许内容留在已销毁的旧袋里且仍不可访问', async () => {
   const g = fixture();
   g.state.putIn('card', 'empty_bag');
   g.state.destroy('empty_bag');
   const save = g.eng.serialize();
-  assert.equal(SAVE_VERSION, 2);
+  assert.equal(SAVE_VERSION, 3);
   const restored = fixture();
   await restored.eng.deserialize(JSON.parse(JSON.stringify(save)));
   assert.deepEqual(restored.eng.serialize().state, save.state);
@@ -162,14 +162,14 @@ test('v2往返容器链，允许内容留在已销毁的旧袋里且仍不可访
   assert.equal(restored.eng.isAccessible('card'), false);
 });
 
-test('v1准备为规范v2，不替换活状态或保存，不复活明确destroyed物品', async () => {
+test('v1准备为规范v3，不替换活状态或保存，不复活明确destroyed物品', async () => {
   const g = fixture();
   const before = g.eng.serialize().state;
   const legacy = { version: 1, savedAt: '2000-01-01T00:00:00.000Z', state: {
     room: 'palace_gate', chapter: 'prologue', itemLoc: { box: 'destroyed', card: 'pocket', bag: 'destroyed' },
   } };
   const prepared = await g.eng.prepareSave(legacy);
-  assert.equal(prepared.version, 2);
+  assert.equal(prepared.version, 3);
   assert.equal(prepared.savedAt, legacy.savedAt);
   assert.equal(prepared.state.itemLoc.box, 'destroyed');
   assert.equal(prepared.state.itemLoc.bag, 'destroyed');
@@ -186,7 +186,7 @@ test('v1不能伪装容器格式，未来版本和v2非法父项/循环拒绝且
   const before = g.eng.serialize();
   const base = { box: 'inventory', card: 'in:box', empty_bag: 'inventory' };
   const invalid = [
-    { version: 1, itemLoc: base }, { version: 3, itemLoc: base },
+    { version: 1, itemLoc: base }, { version: 4, itemLoc: base },
     { itemLoc: { ...base, card: 'in:unknown' } },
     { itemLoc: { ...base, unknown: 'in:box' } },
     { itemLoc: { ...base, card: 'in:stone' } },

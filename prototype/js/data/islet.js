@@ -4,6 +4,8 @@
 //  All English text from original Infocom Trinity (1986).
 // ═══════════════════════════════════════════════════
 
+import { prepareRoadrunnerForDesert } from "../animal-rules.js";
+
 export const ROOMS = {
   islet: {
     name: "Islet",
@@ -29,9 +31,12 @@ export const ROOMS = {
         triggers: ["enter door", "go through door", "进入白门"],
         when: (s) => s.room === "islet",
         async act(s, eng) {
+          const alreadyDone = s.hasFlag("islet_done");
           s.setFlag("islet_done");
           eng.print("You step through the white door...\n\n你穿过白门...");
-          await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] });
+          const moved = await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] });
+          if (moved) prepareRoadrunnerForDesert(s);
+          else if (!alreadyDone) s.clearFlag("islet_done");
         },
         text: "",
       },
@@ -81,9 +86,12 @@ export const ROOMS = {
         triggers: ["enter door", "go through door", "进入白门"],
         when: (s) => s.room === "sand_bar",
         async act(s, eng) {
+          const alreadyDone = s.hasFlag("islet_done");
           s.setFlag("islet_done");
           eng.print("You step through the white door...\n\n你穿过白门...");
-          await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] });
+          const moved = await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] });
+          if (moved) prepareRoadrunnerForDesert(s);
+          else if (!alreadyDone) s.clearFlag("islet_done");
         },
         text: "",
       },

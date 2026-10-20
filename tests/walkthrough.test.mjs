@@ -76,6 +76,19 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     assert.equal(state.score, 15);
   });
 
+  await stage("Wabe：打开小屋前后门，正常取得带喜鹊的笼子并释放喜鹊", async () => {
+    await walk("bluff");
+    await act("open front door");
+    await act("e"); at("wabe", "cottage");
+    await act("take cage"); has("cage");
+    assert.equal(state.itemAt("magpie"), "in:cage");
+    assert.match(await act("open cage"), /soars through the open door/);
+    assert.equal(state.itemAt("magpie"), "destroyed");
+    await act("close cage");
+    await act("open back door");
+    assert.equal(state.score, 16);
+  });
+
   await stage("Wabe → Japan：日晷开门，雨伞与纸鹤谜题", async () => {
     await walk("moor");
     assert.equal(findRoute(eng, "playground"), null);
@@ -92,7 +105,7 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     assert.equal(state.hasFlag("bird_unfolded"), false);
     await walk("playground");
     await act("ride bird"); at("wabe", "moor");
-    assert.equal(state.score, 19);
+    assert.equal(state.score, 20);
   });
 
   await stage("Underground：带光源往返三个洞穴，取得灯笼和对讲机", async () => {
@@ -115,7 +128,7 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     await act("take lantern"); has("lantern");
     await walk("underground_1");
     await walk("ossuary"); at("wabe", "ossuary");
-    assert.equal(state.score, 21);
+    assert.equal(state.score, 22);
   });
 
   await stage("Orbit：肥皂泡门槛、斧头、上下移动与破泡返回", async () => {
@@ -158,12 +171,18 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     await walk("chasms_brink"); at("wabe", "chasms_brink");
   });
 
-  await stage("Tundra：取到旅鼠，返回药草园", async () => {
+  await stage("Tundra：首次发现裂缝中的旅鼠，拿取装笼并安全带回药草园", async () => {
     await dial(5);
     await walk("herb_garden");
     await door("tundra", "tundra_1");
     await walk("cliff_edge");
+    await act("look in fissure");
+    await act("open cage");
     await act("take lemming"); has("lemming");
+    await act("put lemming in cage");
+    await act("close cage");
+    assert.equal(state.itemAt("lemming"), "in:cage");
+    assert.equal(state.score, 23);
     await walk("tundra_1");
     await walk("herb_garden"); at("wabe", "herb_garden");
   });
@@ -173,16 +192,23 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     await walk("the_river");
     await door("islet", "islet");
     await walk("sand_bar");
-    // 当前银币、笼子没有取得路径；不注入物品/flags，记录在 SHIP_PLAN。
+    // 银币仍无正常取得路径；进入白门与动物衔接不注入物品/flags。
     await act("enter door"); at("desert", "shallow_crater");
     flag("islet_done");
     await walk("behind_shed");
     await walk("nw_ranch"); at("ranch", "nw_ranch");
-    await walk("assembly_room");
-    await walk("closet");
+    await walk("nw_room");
+    await act("e"); at("ranch", "assembly_room");
+    await act("n"); at("ranch", "closet");
     await act("close door"); flag("closet_door_closed");
+    await act("open cage");
+    assert.equal(state.itemAt("lemming"), "closet");
     await act("open door");
     assert.equal(state.hasFlag("closet_door_closed"), false);
+    flag("snake_gone");
+    assert.equal(state.itemAt("lemming"), "destroyed");
+    assert.equal(state.itemAt("dead_lemming"), undefined);
+    assert.equal(state.score, 26);
     await walk("nw_ranch");
     await walk("behind_shed"); at("desert", "behind_shed");
   });
@@ -197,14 +223,16 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     await walk("tower_platform");
     await act("d"); at("desert", "tower_landing");
     await act("d"); at("desert", "base_of_tower");
+    assert.equal(state.itemAt("ruby"), "in:tower_box");
+    await act("take ruby"); has("ruby");
     await act("pull breaker"); flag("breaker_pulled");
     const ending = await act("cut wire with red");
     assert.match(ending, /You cut the wire/);
     assert.match(ending, /时间循环闭合/);
-    assert.match(ending, /Final score: 21 \/ 100/);
+    assert.match(ending, /Final score: 27 \/ 100/);
     at("prologue", "palace_gate");
     assert.equal(state.dead, false);
-    assert.equal(state.score, 21); // 15 序章 + 4 Japan + 2 Underground。
+    assert.equal(state.score, 27); // 15序章 + 1鸟笼 + 4Japan + 2Underground + 1装旅鼠 + 3蛇谜题 + 1红宝石。
     assert.deepEqual([...eng.loadedChapters], [
       "prologue", "wabe", "japan", "underground", "orbit", "pacific", "tundra", "islet", "desert", "ranch",
     ]);

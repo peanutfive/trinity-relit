@@ -18,6 +18,40 @@ const SUNDIAL_ALPHA = 6;
 const SUNDIAL_NAMES = ["", "Mars", "Pluto", "Mercury", "Neptune", "Libra", "Alpha", "?"];
 const SUNDIAL_CN = ["", "火星", "冥王星", "水星", "海王星", "天秤座", "阿尔法", "?"];
 
+// The original front and back doors start closed. These flags only track door
+// state; their room targets remain the existing map targets.
+function cottageDoorExit(to, side) {
+  return {
+    to,
+    when: s => s.hasFlag(`cottage_${side}_open`),
+    fail: side === "front" ? "The front door is closed.\n\n前门关着。" : "The back door is closed.\n\n后门关着。",
+  };
+}
+
+function cottageDoorEvents(side, bareDoor = false) {
+  const front = side === "front";
+  const nouns = front ? ["front door", "front", "前门"] : ["back door", "rear door", "back", "后门"];
+  if (bareDoor) nouns.push("door", "门");
+  const flag = `cottage_${side}_open`;
+  return ["open", "close"].map(verb => ({
+    id: `${verb}_cottage_${side}_door`,
+    match: { verb: [verb], noun: nouns },
+    triggers: [`${verb} ${side} door`, `${verb === "open" ? "打开" : "关上"}${front ? "前门" : "后门"}`],
+    act(s, eng) {
+      const opening = verb === "open";
+      if (s.hasFlag(flag) === opening) {
+        eng.print(opening ? "It's already open.\n\n它已经开着了。" : "It's already closed.\n\n它已经关着了。");
+        return;
+      }
+      if (opening) s.setFlag(flag); else s.clearFlag(flag);
+      const en = opening ? (front ? "You open the front door." : "You open the back door.")
+        : (front ? "You close the front door." : "You close the back door.");
+      eng.print(`${en}\n\n你${opening ? "打开" : "关上"}了${front ? "前门" : "后门"}。`);
+    },
+    text: "",
+  }));
+}
+
 export const ROOMS = {
 
   // ─── 1. Meadow (入口) ───
@@ -572,10 +606,10 @@ export const ROOMS = {
     },
 
     exits() {
-      return { se: "craters_edge", sw: "chasms_brink", e: "cottage", in: "cottage" };
+      return { se: "craters_edge", sw: "chasms_brink", e: cottageDoorExit("cottage", "front"), in: cottageDoorExit("cottage", "front") };
     },
 
-    events: [],
+    events: cottageDoorEvents("front", true),
   },
 
   // ─── 19. Cemetery ───
@@ -729,10 +763,12 @@ export const ROOMS = {
     cn: "小屋",
 
     desc(s) {
-      let d = "Coils of steam writhe from its depths, filling the air with a greasy stench that makes your nose wrinkle.\n\n" +
-        "蒸汽的缕缕盘旋从锅底升起，弥漫在空气中的油腻恶臭令你皱起鼻子。";
-      d += "\n\nLuckily, the front and back doors are both wide open.\n\n" +
-        "幸好，前门和后门都敞开着。";
+      let d = "An iron cauldron, brown with the crust of years, squats in the middle of this tiny chamber. Coils of steam writhe from its depths, filling the air with a greasy stench that makes your nose wrinkle.\n\n一口历经多年、结满棕褐色硬壳的铁锅蹲在这间小屋中央。蒸汽从锅中翻卷而出，空气里油腻的恶臭令你皱起鼻子。";
+      const front = s.hasFlag("cottage_front_open"), back = s.hasFlag("cottage_back_open");
+      if (front && back) d += "\n\nLuckily, the front and back doors are both wide open.\n\n幸好，前门和后门都敞开着。";
+      else if (front) d += "\n\nLuckily, the front door is wide open. Another door leading east is closed.\n\n幸好，前门敞开着。另一扇通往东边的门关着。";
+      else if (back) d += "\n\nLuckily, the back door is wide open. Another door leading west is closed.\n\n幸好，后门敞开着。另一扇通往西边的门关着。";
+      else d += "\n\nUnfortunately, the front and back doors are both closed.\n\n不幸的是，前门和后门都关着。";
       return d;
     },
 
@@ -740,7 +776,7 @@ export const ROOMS = {
     // routine 里，没有它 Barrow 与 Ossuary 蘑菇门（Underground 章节入口）
     // 将完全不可达。定位到真实入口前保留此路，见 EXIT_DEVIATIONS。
     exits() {
-      return { e: "herb_garden", w: "bluff", out: "bluff", s: "cemetery" };
+      return { e: cottageDoorExit("herb_garden", "back"), w: cottageDoorExit("bluff", "front"), out: cottageDoorExit("bluff", "front"), s: "cemetery" };
     },
 
     events: [
@@ -758,13 +794,8 @@ export const ROOMS = {
         text: "Coils of steam writhe from its depths, filling the air with a greasy stench that makes your nose wrinkle.\n\n" +
           "蒸汽的缕缕盘旋从锅底升起，弥漫在空气中的油腻恶臭令你皱起鼻子。",
       },
-      {
-        id: "examine_birdcage",
-        match: { verb: ["examine"], noun: ["birdcage", "cage", "鸟笼", "笼子", "magpie", "bird", "喜鹊"] },
-        triggers: ["看鸟笼", "examine the birdcage", "look at cage"],
-        // TODO: verify with dfrotz
-        text: "You see a birdcage mounted on the wall.\n\n你看到墙上安装着一个鸟笼。",
-      },
+      ...cottageDoorEvents("front"),
+      ...cottageDoorEvents("back"),
       {
         id: "examine_soap_bubble",
         match: { verb: ["examine"], noun: ["soap bubble", "bubble", "肥皂泡"] },
@@ -796,7 +827,7 @@ export const ROOMS = {
     },
 
     exits(s) {
-      const ex = { w: "cottage" };
+      const ex = { w: cottageDoorExit("cottage", "back") };
       if (s.sundialSymbol === SUNDIAL_LIBRA) {
         ex.in = {
           to: "tundra_1",
@@ -822,6 +853,7 @@ export const ROOMS = {
     },
 
     events: [
+      ...cottageDoorEvents("back", true),
       {
         id: "examine_herbs",
         match: { verb: ["examine"], noun: ["herbs", "herb", "药草", "草药"] },

@@ -132,8 +132,6 @@ function lookInside(eng, id) {
     return true;
   }
   const ids = contents(s, id).filter(child => eng.isVisible(child));
-  const legacyAnimal = id === "cage" && s.hasFlag("cage_has_lemming") && !ids.includes("lemming");
-  if (legacyAnimal && !ids.length) { eng.print("鸟笼里有一只旅鼠。"); return true; }
   const list = englishList(eng, ids);
   if (ids.length && !list) { eng.ui.system(`里面有：${ids.map(child => cn(eng, child)).join("、")}。`); return true; }
   if (id === "pocket") {
@@ -143,7 +141,6 @@ function lookInside(eng, id) {
     print(eng, ids.length ? `You see ${list} in ${full(eng, id)}.` : `You see nothing unusual in ${full(eng, id)}.`,
       ids.length ? `${cn(eng, id)}里有${ids.map(child => cn(eng, child)).join("、")}。` : `${cn(eng, id)}里没有什么特别的。`);
   }
-  if (legacyAnimal) eng.print("鸟笼里还有一只旅鼠。");
   return true;
 }
 
@@ -192,19 +189,7 @@ export function handleItemAction(eng, cmd) {
     else print(eng, "It's already open.", "它已经打开了。");
     return true;
   }
-  if (id === "cage" && ["open", "close"].includes(cmd.verb)) {
-    const opening = cmd.verb === "open", wasOpen = s.hasFlag("cage_open");
-    if (opening === wasOpen) print(eng, `It's already ${opening ? "open" : "closed"}.`, opening ? "它已经打开了。" : "它已经关上了。");
-    else {
-      if (opening) s.setFlag("cage_open"); else s.clearFlag("cage_open");
-      print(eng, `You ${opening ? "open" : "close"} the birdcage.`, `你${opening ? "打开" : "关上"}了鸟笼。`);
-    }
-    return true;
-  }
   if (cmd.verb === "empty" && (id === "pocket" || prop(eng, id, "container"))) {
-    if (id === "cage" && s.hasFlag("cage_has_lemming")) {
-      eng.print("鸟笼里有一只旅鼠，暂时不能这样清空鸟笼。"); return true;
-    }
     if (id !== "pocket" && (s.inPocket(id) || !eng.isAccessible(id))) {
       if (s.inPocket(id)) print(eng, "You'll have to take it out of your pocket first.", "你得先把它从口袋里拿出来。");
       else eng.ui.system("你现在够不到那个容器，先打开外层容器再试。");
@@ -219,7 +204,7 @@ export function handleItemAction(eng, cmd) {
     if (!children.length) print(eng, `There's nothing in ${full(eng, id)}.`, `${cn(eng, id)}里没有东西。`);
     for (const child of children) {
       if (!eng.hasCarrySpace()) { eng.ui.system("你拿不下更多东西了。"); break; }
-      if (!eng.isAccessible(child) || eng.items[child]?.fixed) { eng.ui.system(`你现在拿不出${cn(eng, child)}。`); continue; }
+      if (!eng.isAccessible(child) || eng.items[child]?.fixed || eng.items[child]?.living) { eng.ui.system(`你现在拿不出${cn(eng, child)}。`); continue; }
       s.take(child);
       if (name(eng, child)) print(eng, `The ${name(eng, child)}: Taken.`, `${cn(eng, child)}：拿到了。`);
       else eng.print(`你取出了${cn(eng, child)}。`);
@@ -252,12 +237,12 @@ export function getItemActionCandidates(eng) {
     if (prop(eng, id, "container")) add(`item:${id}:look_in`, "look_in", label, [`查看${cn(eng, id)}里面`, `look in ${label}`]);
     if (eng.isAccessible(id) && (BAGS.has(id) || id === "cage")) {
       if (id === "cage") add(`item:${id}:${open(eng, id) ? "close" : "open"}`, open(eng, id) ? "close" : "open", label, [`${open(eng, id) ? "关上" : "打开"}${cn(eng, id)}`]);
-      if (open(eng, id) && !(id === "cage" && eng.state.hasFlag("cage_has_lemming")) && !eng.state.inPocket(id)) add(`item:${id}:empty`, "empty", label, [`倒空${cn(eng, id)}`, `empty ${label}`]);
+      if (open(eng, id) && !(id === "cage" && eng.state.contents(id).some(child => prop(eng, child, "living"))) && !eng.state.inPocket(id)) add(`item:${id}:empty`, "empty", label, [`倒空${cn(eng, id)}`, `empty ${label}`]);
     }
     if (id === "walkie_talkie" && eng.isAccessible(id)) {
       for (const verb of ["listen", eng.state.hasFlag("walkie_on") ? "turn_off" : "turn_on"]) add(`item:${id}:${verb}`, verb, label, [verb === "listen" ? "听对讲机" : eng.state.hasFlag("walkie_on") ? "关闭对讲机" : "打开对讲机"]);
     }
-    if (!eng.state.carrying(id)) continue;
+    if (!eng.state.carrying(id) || prop(eng, id, "living")) continue;
     for (const target of [...ids.filter(other => prop(eng, other, "container")), "pocket"]) {
       if (putCheck(eng, id, target)?.allowed) add(`item:${id}:put:${target}`, "put", label, [`把${cn(eng, id)}放进${cn(eng, target)}`], { prep: "in", noun2: target === "pocket" ? "pocket" : eng.items[target].aliases[0] });
     }
