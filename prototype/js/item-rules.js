@@ -3,7 +3,12 @@
 const BAGS = new Set(["bag", "empty_bag", "soggy_bag"]);
 const POCKET = new Set(["pocket", "your pocket", "口袋", "衣袋"]);
 const TOP_HELD = new Set(["inventory", "worn"]);
-const text = (en, cn) => `${en}\n\n${cn}`;
+const text = (en, cn) => {
+  const originals = en.split(/\n{2,}/), translations = cn.split(/\n{2,}/);
+  // 只有段落能一一对应时才交错排列；不等长时保留两种语言的全部文本。
+  if (originals.length !== translations.length) return `${en}\n\n${cn}`;
+  return originals.flatMap((paragraph, index) => [paragraph, translations[index]]).join("\n\n");
+};
 const prop = (eng, id, key) => typeof eng.itemProperty === "function"
   ? eng.itemProperty(id, key)
   : typeof eng.items[id]?.[key] === "function" ? eng.items[id][key](eng.state) : eng.items[id]?.[key];
@@ -89,7 +94,7 @@ function putCheck(eng, id, target) {
   if (!s.carrying(id)) {
     const parent = s.containerOf(id) || (s.inPocket(id) ? "pocket" : null);
     return parent && name(eng, parent) ? {
-      en: `Maybe you should take ${full(eng, id)} out of ${full(eng, parent)} first.`, zh: `也许你该先取出${cn(eng, id)}。`
+      en: `Maybe you should take ${full(eng, id)} out of ${full(eng, parent)} first.`, zh: `也许你该先把${cn(eng, id)}从${cn(eng, parent)}里取出来。`
     } : { system: `你得先拿起${cn(eng, id)}。` };
   }
   return { allowed: true };

@@ -3,7 +3,13 @@
 export const ANIMAL_IDS = new Set(["lemming", "magpie", "roadrunner", "dead_lemming", "dead_magpie", "dead_roadrunner"]);
 const LIVE = new Set(["lemming", "magpie", "roadrunner"]);
 const DEAD = { lemming: "dead_lemming", magpie: "dead_magpie", roadrunner: "dead_roadrunner" };
-const say = (eng, en, cn) => eng.print(`${en}\n\n${cn}`);
+function bilingual(en, cn) {
+  const english = en.split(/\n{2,}/), chinese = cn.split(/\n{2,}/);
+  return english.length === chinese.length
+    ? english.flatMap((paragraph, i) => [paragraph, chinese[i]]).join("\n\n")
+    : `${en}\n\n${cn}`;
+}
+const say = (eng, en, cn) => eng.print(bilingual(en, cn));
 
 export function initializeAnimals(s) {
   s.animals ??= {};
@@ -115,7 +121,8 @@ function freeLemming(eng, prefix = "The lemming ", cnPrefix = "旅鼠") {
       tail = "scurries through the open white door."; zh = "穿过敞开的白门跑走了。";
     } else {
       tail = s.hasFlag("cottage_back_open") ? "scurries out the open back door." : "nudges open the back door. Then it scurries out of sight.";
-      s.setFlag("cottage_back_open"); zh = "从后门跑走了。";
+      zh = s.hasFlag("cottage_back_open") ? "从敞开的后门跑走了。" : "顶开后门，随后跑出了视野。";
+      s.setFlag("cottage_back_open");
       if (!s.hasFlag("cottage_front_open")) {
         s.setFlag("cottage_front_open");
         tail += "\n\nYou hear a faint creak in the cottage.";
@@ -124,18 +131,20 @@ function freeLemming(eng, prefix = "The lemming ", cnPrefix = "旅鼠") {
     }
   } else if (["cottage", "se_room", "kitchen", "spare_room", "bedroom"].includes(s.room)) {
     exitAnimal(s, "lemming");
-    const [flag, door] = s.room === "cottage" ? ["cottage_front_open", "front door"]
-      : s.room === "se_room" ? ["front_deck_left_door_open", "front door"]
-      : s.room === "kitchen" ? ["ranch_outer_door_open", "outer door"]
-      : s.room === "spare_room" ? ["ranch_screen_door_open", "screen door"] : ["ranch_outside_door_open", "outside door"];
+    const [flag, door, doorCN] = s.room === "cottage" ? ["cottage_front_open", "front door", "前门"]
+      : s.room === "se_room" ? ["front_deck_left_door_open", "front door", "前门"]
+      : s.room === "kitchen" ? ["ranch_outer_door_open", "outer door", "外门"]
+      : s.room === "spare_room" ? ["ranch_screen_door_open", "screen door", "纱门"] : ["ranch_outside_door_open", "outside door", "外门"];
     const escape = s.hasFlag(flag) ? `scurries out the open ${door}.` : `nudges open the ${door}. Then it scurries out of sight.`;
+    zh = s.hasFlag(flag) ? `从敞开的${doorCN}跑了出去。` : `顶开${doorCN}，随后跑出了视野。`;
     s.setFlag(flag);
     tail = s.room === "se_room" ? "races to the north exit. It skids to a stop at the threshold, flips over and " + escape : escape;
-    zh = "从前门跑了出去。";
+    if (s.room === "se_room") zh = "奔向北面的出口，在门槛前猛地停住，翻转过来，" + zh;
   } else if (["nw_room", "bathroom"].includes(s.room)) {
     exitAnimal(s, "lemming");
     tail = `scurries off to the ${s.room === "nw_room" ? "north" : "south"}${s.hasFlag("ranch_screen_door_open") ? "" : ", where you hear a faint creak"}.`;
-    s.setFlag("ranch_screen_door_open"); zh = "向一侧跑走了。";
+    zh = `向${s.room === "nw_room" ? "北" : "南"}跑走了${s.hasFlag("ranch_screen_door_open") ? "。" : "，你听到那边传来轻微的吱呀声。"}`;
+    s.setFlag("ranch_screen_door_open");
   } else {
     exitAnimal(s, "lemming");
     tail = "scurries out of sight."; zh = "跑出了视野。";
@@ -149,11 +158,11 @@ function tickLemming(eng) {
   const loc = s.itemAt("lemming");
   if (loc === "inventory") {
     if (a.grace) { a.grace = 0; say(eng, "The lemming squirms violently in your hand.", "旅鼠在你手中拼命挣扎。"); }
-    else freeLemming(eng, `With a desperate lurch, the lemming wiggles from your grasp and ${lit(eng) ? "" : "falls with a "}`, "旅鼠拼命一扭，挣脱你的手，");
+    else freeLemming(eng, `With a desperate lurch, the lemming wiggles from your grasp and ${lit(eng) ? "" : "falls with a "}`, lit(eng) ? "旅鼠拼命一扭，挣脱你的手，" : "旅鼠拼命一扭，挣脱你的手，扑通一声");
   } else if (loc === "in:cage" && s.hasFlag("cage_open")) {
     if (seesSnake(s)) { a.grace = 0; say(eng, "The lemming cowers in the cage, trembling violently.", "旅鼠蜷缩在笼中，剧烈发抖。"); }
-    else if (a.grace) { a.grace = 0; say(eng, lit(eng) ? "The lemming scampers uneasily around the cage." : "You hear the lemming scampering uneasily around the cage.", "旅鼠在笼中不安地跑来跑去。"); }
-    else freeLemming(eng, lit(eng) ? "The lemming scrambles out of the cage and " : "You hear the lemming scramble out of the cage and ", "旅鼠爬出笼子，");
+    else if (a.grace) { a.grace = 0; say(eng, lit(eng) ? "The lemming scampers uneasily around the cage." : "You hear the lemming scampering uneasily around the cage.", lit(eng) ? "旅鼠在笼中不安地跑来跑去。" : "你听到旅鼠在笼中不安地跑来跑去。"); }
+    else freeLemming(eng, lit(eng) ? "The lemming scrambles out of the cage and " : "You hear the lemming scramble out of the cage and ", lit(eng) ? "旅鼠爬出笼子，" : "你听到旅鼠爬出笼子，");
   } else if (loc !== "in:cage" && loc !== "cliff_edge" && loc !== "closet") freeLemming(eng);
 }
 
@@ -169,21 +178,24 @@ function freeRoadrunner(eng, prefix, zh) {
     s.placeItem("roadrunner", "se_room"); tail = "narrowly escapes the fangs of the rattlesnake. It races away with a fearful squawk."; cn = "险些落入响尾蛇的毒牙，惊恐地叫着跑开了。";
   } else if (["hallway", "icehouse"].includes(s.room)) {
     s.placeItem("roadrunner", "back_yard");
-    tail = s.room === "hallway" ? "scoots off down the hall." : "scoots up the stairs."; cn = "沿通道跑走了。";
+    tail = s.room === "hallway" ? "scoots off down the hall." : "scoots up the stairs.";
+    cn = s.room === "hallway" ? "沿走廊跑走了。" : "沿楼梯跑上去了。";
   } else if (["tower_platform", "tower_landing", "shack"].includes(s.room)) {
     s.placeItem("roadrunner", "base_of_tower");
-    tail = `disappears ${s.room === "shack" ? "to the west" : "over the side of the platform"}.\n\nYou hear a flurry of wings that quickly fades.`; cn = "消失了。\n\n你听到一阵迅速远去的振翅声。";
+    tail = `disappears ${s.room === "shack" ? "to the west" : "over the side of the platform"}.\n\nYou hear a flurry of wings that quickly fades.`;
+    cn = `${s.room === "shack" ? "向西消失了" : "越过平台边缘，消失了"}。\n\n你听到一阵迅速远去的振翅声。`;
   } else if (["assembly_room", "se_room", "kitchen", "bedroom", "spare_room", "nw_room", "bathroom"].includes(s.room) || (s.room === "closet" && !s.hasFlag("closet_door_closed"))) {
-    const doors = { assembly_room: ["front_deck_right_door_open", "front door"], se_room: ["front_deck_left_door_open", "front door"], kitchen: ["ranch_outer_door_open", "outer door"], spare_room: ["ranch_screen_door_open", "screen door"] };
+    const doors = { assembly_room: ["front_deck_right_door_open", "front door", "前门"], se_room: ["front_deck_left_door_open", "front door", "前门"], kitchen: ["ranch_outer_door_open", "outer door", "外门"], spare_room: ["ranch_screen_door_open", "screen door", "纱门"] };
     const door = doors[s.room];
-    tail = "";
+    tail = ""; cn = "";
     if (door && !s.hasFlag(door[0])) {
       s.setFlag(door[0]);
       tail = `nudges open the ${door[1]}. It gives you a sly glance before it `;
+      cn = `顶开${door[2]}，狡黠地瞥了你一眼，随后`;
     }
     const ranchOpen = ["front_deck_right_door_open", "front_deck_left_door_open", "ranch_outer_door_open", "ranch_screen_door_open", "ranch_outside_door_open"].some(flag => s.hasFlag(flag));
     s.placeItem("roadrunner", ranchOpen ? "front_yard" : s.room === "bathroom" ? "bedroom" : "bathroom");
-    tail += "trots out of sight."; cn = "跑出了视野。";
+    tail += "trots out of sight."; cn += "跑出了视野。";
   } else {
     s.placeItem("roadrunner", s.room);
     tail = lit(eng) ? "looks up at you inquisitively." : "scratches around in the darkness.";
@@ -207,7 +219,7 @@ function tickRoadrunner(eng) {
   } else if (s.containerOf("roadrunner") && eng.containerIsOpen(s.containerOf("roadrunner"))) {
     if (seesSnake(s)) { say(eng, "The roadrunner cowers in a corner of the cage, trembling violently.", "走鹃蜷在笼子一角，剧烈颤抖。"); }
     else if (loc === "in:cage" && a.grace) { a.grace = 0; say(eng, "The roadrunner flutters anxiously around the cage.", "走鹃在笼中焦躁地扑腾。"); }
-    else freeRoadrunner(eng, `The roadrunner hops out of the ${eng.itemProperty(s.containerOf("roadrunner"), "en")} and `, "走鹃跳出容器，");
+    else freeRoadrunner(eng, `The roadrunner hops out of the ${eng.itemProperty(s.containerOf("roadrunner"), "en")} and `, `走鹃跳出${eng.items[s.containerOf("roadrunner")]?.cn || "容器"}，`);
   }
 }
 
@@ -234,7 +246,13 @@ export function tickSnakeBite(eng) {
     : s.room === "underwater" ? "water around you is filled with light of startling intensity"
     : indoors.has(s.room) ? "windows are filled with light of startling intensity"
     : "desert around you disappears in a flash of startling brilliance";
-  eng.die(`The throbbing fire in your ankle overcomes you. Moaning with despair, you sink helplessly to the ${indoors.has(s.room) ? "floor" : "ground"}.\n\nMinutes later, the ${glare}! You jam your hands over your eyes in the awful glare; never see the fireball closing in at many times the speed of sound; and never feel the stellar heat that annihilates much of the state of New Mexico.\n\n脚踝里灼烧般的剧痛吞没了你。你绝望地呻吟着，无助地倒下。\n\n几分钟后，刺目的光芒充满周围！你用双手遮住眼睛，没有看见以数倍音速逼近的火球，也没有感到那毁灭新墨西哥州大片土地的恒星般的高温。`);
+  const glareCN = ["closet", "icehouse"].includes(s.room) ? "北墙的裂缝透出强得惊人的光芒"
+    : s.room === "hallway" ? "走廊充满强得惊人的光芒"
+    : s.room === "underwater" ? "周围的水充满强得惊人的光芒"
+    : indoors.has(s.room) ? "窗户里充满强得惊人的光芒"
+    : "周围的沙漠在一道强得惊人的闪光中消失";
+  eng.die(bilingual(`The throbbing fire in your ankle overcomes you. Moaning with despair, you sink helplessly to the ${indoors.has(s.room) ? "floor" : "ground"}.\n\nMinutes later, the ${glare}! You jam your hands over your eyes in the awful glare; never see the fireball closing in at many times the speed of sound; and never feel the stellar heat that annihilates much of the state of New Mexico.`,
+    `脚踝里灼烧般的剧痛吞没了你。你绝望地呻吟着，无助地倒在${indoors.has(s.room) ? "地板" : "地面"}上。\n\n几分钟后，${glareCN}！你用双手遮住眼睛，没有看见以数倍音速逼近的火球，也没有感到那毁灭新墨西哥州大片土地的恒星般的高温。`));
   return true;
 }
 
@@ -251,7 +269,7 @@ function openCage(eng) {
       say(eng, `The magpie flutters out of the cage and circles around the inside of the ${trapped ? "cottage" : "closet"}. After considerable effort, you manage to stuff it back in the cage and slam the door shut.`,
         `喜鹊扑腾着飞出鸟笼，在${trapped ? "小屋" : "壁橱"}里绕圈。费了好大劲，你终于将它塞回笼子，砰地关上笼门。`);
     } else {
-      say(eng, s.room === "cottage" ? "The magpie flutters out of the cage and soars through the open door." : "The magpie flutters out of the cage and soars out of sight.", "喜鹊扑腾着飞出鸟笼，展翅飞走了。");
+      say(eng, s.room === "cottage" ? "The magpie flutters out of the cage and soars through the open door." : "The magpie flutters out of the cage and soars out of sight.", s.room === "cottage" ? "喜鹊扑腾着飞出鸟笼，穿过敞开的门飞走了。" : "喜鹊扑腾着飞出鸟笼，飞出了视野。");
       exitAnimal(s, "magpie");
     }
   } else if (s.containerOf("lemming") === "cage") {

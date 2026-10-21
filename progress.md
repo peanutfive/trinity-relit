@@ -156,3 +156,13 @@ Original prompt: 这里卡关了（Round Pond 场景中“捡起折纸鸟”和�
 - 自动311/311；规范通过，出口与/tmp/pr6-base-exits.log逐字一致，仍43旧项。新游戏通关217回合/74房间/27分，实际浏览器从头217输入也到结局，无进度注入。动物15/容器8/风车7组及runtime导入导出、坏档和窄屏通过，页面异常0；最终审查还修Tower Landing ID、ON-CIST水库边缘映射/地面走鹃离开、袋内木片光照双重真相、PRE-TAKE原文及off来源绕过。标准客户端仅既有favicon404。实际截图/文本已检查：/tmp/trinity-t23-animals-final-reviewed/、/tmp/trinity-t23-normal-browser/、/tmp/trinity-t23-skill-reviewed/等。
 - 证据：T22初84+窗口58+Ruby12经独立重算154过，7fresh SAVE/20恢复/1239跨度；裂缝另1恢复7命令；snake另1fresh SAVE/8恢复/3显式终端死亡观察/54检查。失败死亡菜单采集保留未算成功，41正式fresh/350基线不变，原始全部忽略目录。
 - TODO：完整走鹃食物/跟随/狗/随机鸣叫、光膜/轨道、Garden独立NOALL、多动物深层组合、全局光照/分钟及死亡River过场继续单列；其余Ranch门通行并未因动物flag全部实现。下一批按原版证据先计划后实施。
+
+
+## 2026-10-20–21 T24试玩中英对照修复
+
+- 用户报告Broad Walk循环叫卖没有中文。确认ui没有丢译文，birdCry只生成英文；全章/共享规则审计又找到三处引语、纸鸟跨房间描述、泡泡及动物门型/方向/听觉/光源省译。先写docs/BILINGUAL_OUTPUT_PLAN.md并登记范围，再并行实施文本修复。
+- 六叫卖及动词同步中英，梭罗/卡罗尔/蒲柏引语和署名补齐；老妇人等长文、wabe/tundra/ranch描述及共享容器/动物输出逐段配对，物品17处单换行改空行。保留所有英文、房间ID、机制、存档版本；engine/parser/main/ui未修改。
+- 新增10组回归逐条检查实际叙事，避免wait的中文掩盖另一条缺译；修复前10/10失败，修复后通过，全套321/321。章节规范通过，出口stdout与/tmp/pr6-base-exits.log逐字一致，仍历史43项。
+- 九组真实页面通过，桌面/390px叫卖、三引语、喂鸟停止、老妇人、动物开门及跨房间纸鸟已检查截图/DOM；测试隔离玩家上下文。初版截图未等滚动结束，已让测试等待到底部；手机使用全新上下文消除缩放残影。独立审查进一步补UI捕获异常提示与console.error检查；标准客户端/tmp/trinity-t24-skill仅既有favicon404，最终浏览器产物/tmp/trinity-t24-browser-final-reviewed。
+- 独立基线差分767/767，英文内容/顺序（忽略空白和中文行）及state.serialize相同，运行异常0；不是原版逐句认证，未穷举全部事件act或全部译文语义。计划列出界限，不宣称全项目翻译全部完成。原始证据/存档/页面产物不入Git。
+- 2026-10-20提交前同步曾因自动审批额度检查失败而未执行；10-21继续后fetch/rebase成功，main仍57c5f9d。本地8083服务已重启。wabe保留既有CRLF，diff检查启用cr-at-eol识别。只在codex/animal-mechanics提交，不合并main或部署。叫卖旧turn counter与未调用nannyBlock不随翻译修复修改，后续机制需另列计划。

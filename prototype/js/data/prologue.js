@@ -42,41 +42,41 @@ function finishUmbrellaWomanScene(s, eng, approach) {
   if (!s.hasFlag("seen_woman_face")) {
     s.setFlag("seen_woman_face");
     const [en, cn] = WOMAN_APPROACH[approach];
-    scarText = en + "\n\nHer face is wrong.\n\n" +
+    scarText = en + "\n\n" + cn + "\n\nHer face is wrong.\n\n她的脸不对。\n\n" +
       "You look a little closer and shudder to yourself. The entire left side of her head is scarred with deep red lesions, twisting her oriental features into a hideous mask. She must have been in an accident or something.\n\n" +
-      cn + "\n\n她的脸不对。\n\n你凑近一看，不禁打了个寒颤。她整个头部的左半边布满了深红色的伤疤，把她东方人的面容扭曲成一副可怖的面具。她一定是出过什么事故。\n\n";
+      "你凑近一看，不禁打了个寒颤。她整个头部的左半边布满了深红色的伤疤，把她东方人的面容扭曲成一副可怖的面具。她一定是出过什么事故。\n\n";
   }
 
   eng.print(
     "\n" + scarText +
     "A strong gust of wind snatches the umbrella out of the old woman's hands and sweeps it into the branches of the tree.\n\n" +
-    "The woman circles the tree a few times, gazing helplessly upward. That umbrella obviously means a lot to her, for a wistful tear is running down her cheek. But nobody except you seems to notice her loss.\n\n" +
-    "After a few moments, the old woman dries her eyes, gives the tree a vicious little kick and shuffles away down the Lancaster Walk.\n\n" +
     "一阵强风从老妇人手中夺走了雨伞，将它吹进了树的枝杈间。\n\n" +
+    "The woman circles the tree a few times, gazing helplessly upward. That umbrella obviously means a lot to her, for a wistful tear is running down her cheek. But nobody except you seems to notice her loss.\n\n" +
     "老妇人绕着树转了几圈，无助地仰望着。那把伞对她显然意义重大，一颗怅然的泪珠正沿她的脸颊滑落。但除了你，似乎没有人注意到她的损失。\n\n" +
+    "After a few moments, the old woman dries her eyes, gives the tree a vicious little kick and shuffles away down the Lancaster Walk.\n\n" +
     "片刻之后，老妇人擦干了眼泪，狠狠地踢了树一脚，然后蹒跚着沿兰开斯特小路走了。"
   );
 }
 
 const BIRD_CRIES = [
-  '"Feed the birds! Thirty p!"',
-  '"Thirty p! Thirty p a bag!"',
-  '"Feed the hungry birds!"',
-  '"Thirty p for the starving birds!"',
-  '"Thirty p!"',
-  '"Feed the birds!"',
+  ['"Feed the birds! Thirty p!"', '"喂鸟吧！三十便士！"'],
+  ['"Thirty p! Thirty p a bag!"', '"三十便士！一袋三十便士！"'],
+  ['"Feed the hungry birds!"', '"喂喂饥饿的鸟儿吧！"'],
+  ['"Thirty p for the starving birds!"', '"三十便士，喂喂快饿死的鸟儿！"'],
+  ['"Thirty p!"', '"三十便士！"'],
+  ['"Feed the birds!"', '"喂鸟吧！"'],
 ];
 
 const BIRD_VERBS = [
-  "cries", "hollers", "calls", "yells", "",
+  ["cries", "喊道"], ["hollers", "高声叫喊"], ["calls", "叫道"], ["yells", "大喊"], ["", ""],
 ];
 
 function birdCry(s) {
   if (s.hasFlag("birds_fed")) return "";
   const i = s.cnt("turn") % BIRD_CRIES.length;
-  const v = BIRD_VERBS[i % BIRD_VERBS.length];
-  const cry = BIRD_CRIES[i];
-  return v ? `${cry} ${v} the bird woman.` : cry;
+  const [v, cnVerb] = BIRD_VERBS[i % BIRD_VERBS.length];
+  const [cry, cnCry] = BIRD_CRIES[i];
+  return v ? `${cry} ${v} the bird woman.\n\n${cnCry}卖鸟食的老太太${cnVerb}。` : `${cry}\n\n${cnCry}`;
 }
 
 const NANNY_ADJ = [
@@ -103,7 +103,7 @@ function doomTick(s, eng) {
   s.inc("doom_phase");
   const phase = s.cnt("doom_phase");
   if (phase === 1) {
-    eng.print("\nThey are of sick and diseased imaginations who would toll the world's knell so soon.\n— Henry David Thoreau");
+    eng.print("\nThey are of sick and diseased imaginations who would toll the world's knell so soon.\n— Henry David Thoreau\n\n只有想象力病态而失常的人，才会如此急于为世界敲响丧钟。\n——亨利·戴维·梭罗");
   } else if (phase >= 2 && phase <= 9) {
     eng.print("\n" + DOOMSDAY_MSGS[phase - 2]);
   } else if (phase >= 10) {
@@ -142,8 +142,9 @@ export const ROOMS = {
       let d = "";
       if (!s.hasFlag("palace_gate_visited")) {
         d += "Sharp words between the superpowers. Tanks in East Berlin. And now, reports the BBC, rumors of a satellite blackout. It's enough to spoil your continental breakfast.\n\n" +
-             "But the world will have to wait. This is the last day of your $599 London Getaway Package, and you're determined to soak up as much of that authentic English ambience as you can. So you've left the tour bus behind, ditched the camera and escaped to Hyde Park for a contemplative stroll through the Kensington Gardens.\n\n" +
-             "超级大国之间言辞激烈。坦克开进了东柏林。而现在，BBC报道说，有卫星通讯中断的传闻。这足以毁掉你的欧式早餐。\n\n但世界且等一等。今天是你599美元伦敦旅行套餐的最后一天，你决心尽可能多地浸泡在地道的英伦氛围里。于是你甩掉了旅行巴士，丢下了相机，逃进海德公园，在肯辛顿花园里悠然漫步。\n\n";
+          "超级大国之间言辞激烈。坦克开进了东柏林。而现在，BBC报道说，有卫星通讯中断的传闻。这足以毁掉你的欧式早餐。\n\n" +
+          "But the world will have to wait. This is the last day of your $599 London Getaway Package, and you're determined to soak up as much of that authentic English ambience as you can. So you've left the tour bus behind, ditched the camera and escaped to Hyde Park for a contemplative stroll through the Kensington Gardens.\n\n" +
+          "但世界且等一等。今天是你599美元伦敦旅行套餐的最后一天，你决心尽可能多地浸泡在地道的英伦氛围里。于是你甩掉了旅行巴士，丢下了相机，逃进海德公园，在肯辛顿花园里悠然漫步。\n\n";
       }
       d += "A tide of perambulators surges north along the crowded Broad Walk. Shaded glades stretch away to the northeast, and a hint of color marks the western edge of the Flower Walk.\n\n" +
            "婴儿车的潮流沿着拥挤的大道(n)向北涌去。阴翳的林间空地向东北(ne)延展，一抹色彩标记着花径(e)的西缘。";
@@ -277,11 +278,11 @@ export const ROOMS = {
           s.setFlag("ruby_visible");
         },
         text: "You take a handful of crumbs out of the bag. They fall between your fingers and tumble across the ground.\n\n" +
-              "As the wild birds gobble down the crumbs, a glint of red catches your eye. Frowning, you stoop down for a closer look... and gasp with astonishment!\n\n" +
-              "The ruby at your feet is bigger than a walnut, with finely cut facets that sparkle with crimson fire. It must have been in the bag of crumbs.\n\n" +
-              "你从纸袋里抓出一把面包屑。它们从你指间滑落，滚过地面。\n\n" +
-              "当野鸟们狼吞虎咽地吃着面包屑时，一抹红光吸引了你的目光。你皱着眉弯下腰仔细看了看……不禁惊呼出声！\n\n" +
-              "你脚边的红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。它一定是在那袋面包屑里的。",
+          "你从纸袋里抓出一把面包屑。它们从你指间滑落，滚过地面。\n\n" +
+          "As the wild birds gobble down the crumbs, a glint of red catches your eye. Frowning, you stoop down for a closer look... and gasp with astonishment!\n\n" +
+          "当野鸟们狼吞虎咽地吃着面包屑时，一抹红光吸引了你的目光。你皱着眉弯下腰仔细看了看……不禁惊呼出声！\n\n" +
+          "The ruby at your feet is bigger than a walnut, with finely cut facets that sparkle with crimson fire. It must have been in the bag of crumbs.\n\n" +
+          "你脚边的红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。它一定是在那袋面包屑里的。",
       },
       {
         id: "feed_birds_remaining_crumbs",
@@ -304,14 +305,14 @@ export const ROOMS = {
           s.setFlag("ruby_snatched");
           s.setFlag("wind_changed");
         },
-        text: 'As you reach down to touch the ruby, a very large bird races out from behind a tree. It snatches away the ruby with its beak, zigzags through a group of tourists and disappears to the east. If you didn\'t know better, you\'d swear that bird was a roadrunner.\n\n' +
-              '"It\'s time!" shrieks the bird woman.\n\n' +
-              "The east wind softens to a whisper and dies away.\n\n" +
-              "Blowing leaves settle to the ground, and the trees are still. Then a fresh gust blows in from the west.\n\n" +
-              "当你弯腰去碰那颗红宝石时，一只非常大的鸟从树后冲了出来。它用喙叼走了宝石，在一群游客间左冲右突，消失在东方。如果你不知道那是不可能的，你会发誓那是一只走鹃。\n\n" +
-              '"时候到了！"卖鸟食的老太太尖声叫道。\n\n' +
-              "东风轻柔地化为一丝低语，然后消散了。\n\n" +
-              "飘飞的落叶沉落地面，树木静止了。然后一阵清新的风从西方吹来。",
+        text: "As you reach down to touch the ruby, a very large bird races out from behind a tree. It snatches away the ruby with its beak, zigzags through a group of tourists and disappears to the east. If you didn't know better, you'd swear that bird was a roadrunner.\n\n" +
+          "当你弯腰去碰那颗红宝石时，一只非常大的鸟从树后冲了出来。它用喙叼走了宝石，在一群游客间左冲右突，消失在东方。如果你不知道那是不可能的，你会发誓那是一只走鹃。\n\n" +
+          '"It\'s time!" shrieks the bird woman.\n\n' +
+          '"时候到了！"卖鸟食的老太太尖声叫道。\n\n' +
+          "The east wind softens to a whisper and dies away.\n\n" +
+          "东风轻柔地化为一丝低语，然后消散了。\n\n" +
+          "Blowing leaves settle to the ground, and the trees are still. Then a fresh gust blows in from the west.\n\n" +
+          "飘飞的落叶沉落地面，树木静止了。然后一阵清新的风从西方吹来。",
       },
     ],
   },
@@ -395,8 +396,9 @@ export const ROOMS = {
         match: { verb: ["examine"], noun: ["sundial", "日晷", "表盘", "dial"] },
         triggers: ["检查日晷", "examine the sundial", "look at the dial"],
         text: 'The perimeter of the sundial is inscribed with seven curious symbols and a compass rose, with the legend "TEMPUS EDAX RERUM" emblazoned across the bottom. A triangular gnomon casts a fingerlike shadow that is creeping slowly towards the first symbol.\n\n' +
+              '日晷的周边刻着七个奇特的符号和一个罗盘玫瑰，底部镌刻着"TEMPUS EDAX RERUM"（时间吞噬万物）的铭文。三角形的指针投下一道手指般的影子，正缓慢地爬向第一个符号。\n\n' +
               '"And \'the wabe\' is the grass-plot round a sun-dial, I suppose?" said Alice, surprised at her own ingenuity.\n"Of course it is. It\'s called \'wabe,\' you know, because it goes a long way before it, and a long way behind it —"\n— Lewis Carroll\n\n' +
-              '日晷的周边刻着七个奇特的符号和一个罗盘玫瑰，底部镌刻着"TEMPUS EDAX RERUM"（时间吞噬万物）的铭文。三角形的指针投下一道手指般的影子，正缓慢地爬向第一个符号。',
+              '"这么说，\'wabe\'就是日晷周围的草地吧？"爱丽丝说，对自己的聪明才智颇感意外。\n"当然啦。你知道，叫它\'wabe\'，是因为它向前延伸很远，向后也延伸很远——"\n——刘易斯·卡罗尔',
       },
       {
         id: "examine_gnomon",
@@ -591,6 +593,7 @@ export const ROOMS = {
       } else {
         eng.print(
           "\nAtoms or systems into ruin hurled,\nAnd now a bubble burst, and now a world.\n— Alexander Pope\n\n" +
+          "原子或星系被抛入毁灭，\n一个泡泡才破，转眼又是一个世界。\n——亚历山大·蒲柏\n\n" +
           "The boy snaps his fingers to the headphone music as the soap bubble bursts with a flabby pop.\n\n" +
           "男孩随着耳机里的音乐打着响指，肥皂泡啪的一声瘪了。"
         );
@@ -631,8 +634,12 @@ export const ROOMS = {
         act(s) {
           s.setFlag("boy_scared");
         },
-        text: '"Aow!"\n\nThe startled boy leaps backward at your approach, splashing water all over the place. "Stupid git!" he cries (in an intriguing Cockney accent). Then he retrieves the empty dish, pockets the wand and disappears between the prams, glaring at you over his shoulder.\n\nHis last bubble floats away over the treetops.\n\n' +
-              '"啊哦！"\n\n受惊的男孩在你靠近时向后跳去，溅得到处都是水。"蠢货！"他喊道（带着一口迷人的伦敦腔）。然后他捡起空碟子，把泡泡棒塞进口袋，消失在婴儿车丛中，回头瞪了你一眼。\n\n他最后一个泡泡飘过树梢远去了。',
+        text: '"Aow!"\n\n' +
+          '"啊哦！"\n\n' +
+          'The startled boy leaps backward at your approach, splashing water all over the place. "Stupid git!" he cries (in an intriguing Cockney accent). Then he retrieves the empty dish, pockets the wand and disappears between the prams, glaring at you over his shoulder.\n\n' +
+          '受惊的男孩在你靠近时向后跳去，溅得到处都是水。"蠢货！"他喊道（带着一口迷人的伦敦腔）。然后他捡起空碟子，把泡泡棒塞进口袋，消失在婴儿车丛中，回头瞪了你一眼。\n\n' +
+          "His last bubble floats away over the treetops.\n\n" +
+          "他最后一个泡泡飘过树梢远去了。",
       },
       {
         id: "push_pram_it",
@@ -754,8 +761,9 @@ export const ROOMS = {
           s.placeItem("umbrella", "lancaster_gate");
         },
         text: "The soccer ball lodges itself in the tree beside the umbrella.\n\n" +
-              "The umbrella teeters uncertainly for a moment, then tumbles out of the tree and lands at your feet.\n\n" +
-              "足球卡进了雨伞旁的树枝里。\n\n雨伞摇摆了一瞬，然后从树上跌落，掉在你脚边。",
+          "足球卡进了雨伞旁的树枝里。\n\n" +
+          "The umbrella teeters uncertainly for a moment, then tumbles out of the tree and lands at your feet.\n\n" +
+          "雨伞摇摆了一瞬，然后从树上跌落，掉在你脚边。",
       },
       {
         id: "take_umbrella_ground",
@@ -788,10 +796,16 @@ export const ROOMS = {
         when: (s) => s.has("umbrella") && s.room === "lancaster_gate",
         act(s, eng) {
           if (s.hasFlag("wind_changed")) {
-            eng.print("The west wind fills the umbrella the moment you open it. You're blown helplessly eastward past Inverness Terrace to the Black Lion Gate, where you collide with a crowd of starched nannies.\n\nPainfully, you regain your footing and snap the umbrella shut.\n\n西风在你撑开伞的瞬间灌满了伞面。你被无助地向东吹过因弗内斯台到黑狮门，撞上了一群衣着整洁的保姆。\n\n你痛苦地站稳，啪地合上了伞。");
+            eng.print("The west wind fills the umbrella the moment you open it. You're blown helplessly eastward past Inverness Terrace to the Black Lion Gate, where you collide with a crowd of starched nannies.\n\n" +
+              "西风在你撑开伞的瞬间灌满了伞面。你被无助地向东吹过因弗内斯台到黑狮门，撞上了一群衣着整洁的保姆。\n\n" +
+              "Painfully, you regain your footing and snap the umbrella shut.\n\n" +
+              "你痛苦地站稳，啪地合上了伞。");
             eng.moveTo("black_lion_gate");
           } else {
-            eng.print("The east wind fills the umbrella the moment you open it. You're blown helplessly westward.\n\nPainfully, you regain your footing and snap the umbrella shut.\n\n东风在你撑开伞的瞬间灌满了伞面。你被无助地向西吹去。\n\n你痛苦地站稳，啪地合上了伞。");
+            eng.print("The east wind fills the umbrella the moment you open it. You're blown helplessly westward.\n\n" +
+              "东风在你撑开伞的瞬间灌满了伞面。你被无助地向西吹去。\n\n" +
+              "Painfully, you regain your footing and snap the umbrella shut.\n\n" +
+              "你痛苦地站稳，啪地合上了伞。");
             eng.moveTo("inverness_terrace");
           }
         },
@@ -849,8 +863,11 @@ export const ROOMS = {
             }
           },
           text: "The west wind fills the umbrella the moment you open it. You and your perambulator are blown helplessly eastward onto the grass.\n\n" +
-                "You zoom down a long slope, barely missing several trees and boulders. Peering over the top of the perambulator, you see the Long Water coming closer and closer. Unable to stop, and too stupid to let go of the umbrella, you bravely close your eyes and pinch your nose shut.\n\nCRASH!\n\n" +
-                "西风在你撑开伞的瞬间灌满了伞面。你和你的婴儿车被无助地向东吹上了草坪。\n\n你沿着一个长长的斜坡飞驰而下，险险地擦过几棵树和巨石。你从婴儿车顶探头看去，长水湖越来越近。停不下来，又蠢得不肯松开雨伞，你勇敢地闭上眼睛，捏住了鼻子。\n\n轰！",
+            "西风在你撑开伞的瞬间灌满了伞面。你和你的婴儿车被无助地向东吹上了草坪。\n\n" +
+            "You zoom down a long slope, barely missing several trees and boulders. Peering over the top of the perambulator, you see the Long Water coming closer and closer. Unable to stop, and too stupid to let go of the umbrella, you bravely close your eyes and pinch your nose shut.\n\n" +
+            "你沿着一个长长的斜坡飞驰而下，险险地擦过几棵树和巨石。你从婴儿车顶探头看去，长水湖越来越近。停不下来，又蠢得不肯松开雨伞，你勇敢地闭上眼睛，捏住了鼻子。\n\n" +
+            "CRASH!\n\n" +
+            "轰！",
         },
       };
     },
@@ -911,21 +928,33 @@ export const ROOMS = {
               }
               eng.print(
                 "The west wind fills the umbrella the moment you open it. You and your perambulator are blown helplessly eastward onto the grass.\n\n" +
-                "You zoom down a long slope, barely missing several trees and boulders. Peering over the top of the perambulator, you see the Long Water coming closer and closer. Unable to stop, and too stupid to let go of the umbrella, you bravely close your eyes and pinch your nose shut.\n\nCRASH!\n\n" +
-                "西风在你撑开伞的瞬间灌满了伞面。你和你的婴儿车被无助地向东吹上了草坪。\n\n你沿着一个长长的斜坡飞驰而下，险险地擦过几棵树和巨石。你从婴儿车顶探头看去，长水湖越来越近。停不下来，又蠢得不肯松开雨伞，你勇敢地闭上眼睛，捏住了鼻子。\n\n轰！"
+                  "西风在你撑开伞的瞬间灌满了伞面。你和你的婴儿车被无助地向东吹上了草坪。\n\n" +
+                  "You zoom down a long slope, barely missing several trees and boulders. Peering over the top of the perambulator, you see the Long Water coming closer and closer. Unable to stop, and too stupid to let go of the umbrella, you bravely close your eyes and pinch your nose shut.\n\n" +
+                  "你沿着一个长长的斜坡飞驰而下，险险地擦过几棵树和巨石。你从婴儿车顶探头看去，长水湖越来越近。停不下来，又蠢得不肯松开雨伞，你勇敢地闭上眼睛，捏住了鼻子。\n\n" +
+                  "CRASH!\n\n" +
+                  "轰！"
               );
               eng.moveTo("long_water");
             } else {
               s.clearFlag("in_pram");
-              eng.print("The east wind fills the umbrella the moment you open it. The perambulator is blown helplessly westward, dumping you onto the grass.\n\nPainfully, you regain your footing and snap the umbrella shut.\n\n东风在你撑开伞的瞬间灌满了伞面。婴儿车被无助地向西吹去，把你甩到了草地上。\n\n你痛苦地站稳，啪地合上了伞。");
+              eng.print("The east wind fills the umbrella the moment you open it. The perambulator is blown helplessly westward, dumping you onto the grass.\n\n" +
+                "东风在你撑开伞的瞬间灌满了伞面。婴儿车被无助地向西吹去，把你甩到了草地上。\n\n" +
+                "Painfully, you regain your footing and snap the umbrella shut.\n\n" +
+                "你痛苦地站稳，啪地合上了伞。");
             }
             return;
           }
           if (s.hasFlag("wind_changed")) {
-            eng.print("The west wind fills the umbrella the moment you open it. You're blown helplessly eastward past the Round Pond.\n\nPainfully, you regain your footing and snap the umbrella shut.\n\n西风在你撑开伞的瞬间灌满了伞面。你被无助地向东吹过圆池塘。\n\n你痛苦地站稳，啪地合上了伞。");
+            eng.print("The west wind fills the umbrella the moment you open it. You're blown helplessly eastward past the Round Pond.\n\n" +
+              "西风在你撑开伞的瞬间灌满了伞面。你被无助地向东吹过圆池塘。\n\n" +
+              "Painfully, you regain your footing and snap the umbrella shut.\n\n" +
+              "你痛苦地站稳，啪地合上了伞。");
             eng.moveTo("round_pond");
           } else {
-            eng.print("The east wind fills the umbrella the moment you open it. You're blown helplessly westward to the Palace Gate.\n\nPainfully, you regain your footing and snap the umbrella shut.\n\n东风在你撑开伞的瞬间灌满了伞面。你被无助地向西吹到了宫殿门。\n\n你痛苦地站稳，啪地合上了伞。");
+            eng.print("The east wind fills the umbrella the moment you open it. You're blown helplessly westward to the Palace Gate.\n\n" +
+              "东风在你撑开伞的瞬间灌满了伞面。你被无助地向西吹到了宫殿门。\n\n" +
+              "Painfully, you regain your footing and snap the umbrella shut.\n\n" +
+              "你痛苦地站稳，啪地合上了伞。");
             eng.moveTo("palace_gate");
           }
         },
@@ -959,7 +988,10 @@ export const ROOMS = {
         match: { verb: ["walk", "go", "step"], noun: ["grass", "lawn", "east", "草坪", "草地"] },
         triggers: ["走上草坪", "walk on the grass", "step on the grass"],
         act(s, eng) {
-          eng.print("As your feet touch the grass you sense a strange motion around you. Looking down, you watch with horror as the grass begins to ripple and writhe with vegetable indignance!\n\nAngry green stalks whip around your legs, pull you to the ground and drag you, kicking and screaming, back to the paved surface of the Lancaster Walk.\n\n当你的脚触碰到草坪时，你感到周围有一种奇怪的动静。低头看去，你惊恐地看着草地开始荡漾和扭动，带着植物的愤怒！\n\n愤怒的绿色茎秆抽打着你的腿，把你拖倒在地，踢打着、尖叫着，把你拖回了兰开斯特小路的铺砌路面上。");
+          eng.print("As your feet touch the grass you sense a strange motion around you. Looking down, you watch with horror as the grass begins to ripple and writhe with vegetable indignance!\n\n" +
+            "当你的脚触碰到草坪时，你感到周围有一种奇怪的动静。低头看去，你惊恐地看着草地开始荡漾和扭动，带着植物的愤怒！\n\n" +
+            "Angry green stalks whip around your legs, pull you to the ground and drag you, kicking and screaming, back to the paved surface of the Lancaster Walk.\n\n" +
+            "愤怒的绿色茎秆抽打着你的腿，把你拖倒在地，踢打着、尖叫着，把你拖回了兰开斯特小路的铺砌路面上。");
         },
         text: "",
       },
@@ -998,11 +1030,11 @@ export const ROOMS = {
         s.setFlag("missile_visible");
         eng.print(
           "\nYou begin to move away, but stop dead in your tracks.\n\n" +
-          "A gleam overhead catches your eye.\n\n" +
-          "Oh, dear. A missile is hanging motionless in the sky.\n\n" +
-          "你刚要离开，却猛地停住了脚步。\n\n" +
-          "头顶一道闪光吸引了你的目光。\n\n" +
-          "天哪。一枚导弹悬停在空中。"
+            "你刚要离开，却猛地停住了脚步。\n\n" +
+            "A gleam overhead catches your eye.\n\n" +
+            "头顶一道闪光吸引了你的目光。\n\n" +
+            "Oh, dear. A missile is hanging motionless in the sky.\n\n" +
+            "天哪。一枚导弹悬停在空中。"
         );
       }
       if (t === 2 && !s.hasFlag("white_door_visible")) {
@@ -1015,7 +1047,12 @@ export const ROOMS = {
         s: {
           to: "wading",
           when: (s2) => s2.hasFlag("white_door_visible"),
-          fail: "You begin to move away, but stop dead in your tracks.\n\nA gleam overhead catches your eye.\n\nOh, dear. A missile is hanging motionless in the sky.\n\n你刚要离开，却猛地停住了脚步。\n\n头顶一道闪光吸引了你的目光。\n\n天哪。一枚导弹悬停在空中。",
+          fail: "You begin to move away, but stop dead in your tracks.\n\n" +
+            "你刚要离开，却猛地停住了脚步。\n\n" +
+            "A gleam overhead catches your eye.\n\n" +
+            "头顶一道闪光吸引了你的目光。\n\n" +
+            "Oh, dear. A missile is hanging motionless in the sky.\n\n" +
+            "天哪。一枚导弹悬停在空中。",
           text: "You wade into the cool, dark water.\n\n你涉入清凉幽暗的湖水中。",
         },
       };
@@ -1091,18 +1128,20 @@ export const ROOMS = {
           s.setFlag("prologue_done");
           eng.print(
             "As you wade to the threshold a familiar roadrunner flutters past. The ruby in its beak gleams enticingly as it slips through the white door.\n\n" +
-            "当你涉水走到门槛处，一只熟悉的走鹃扑棱着飞过。它喙中的红宝石闪烁着诱人的光芒，滑入了白门。\n\n" +
-            'All color abruptly drains from the landscape. Trees, sky and sun flatten into a spherical shell, with you at the very center. A hissing in your ears becomes a rumble, then a roar as the walls of the shell collapse inward, faster and faster.\n\n' +
-            "所有色彩突然从景物中褪去。树木、天空和太阳被压平成一个球形壳，而你正处于正中心。耳中的嘶嘶声变成隆隆声，然后化为轰鸣，壳壁越来越快地向内坍缩。\n\n" +
-            '"This way, please."\n\nYou turn, but see no one.\n\n' +
-            '"请这边走。"\n\n你转过身，但看不到任何人。\n\n' +
-            '"This way," the voice urges. "Be quick."\n\n' +
-            '"这边，"那个声音催促道。"快一点。"\n\n' +
-            'The space around you articulates. "No!" your mind shudders. "That\'s not a direction!"\n\n' +
-            '你周围的空间发出了关节般的声响。"不！"你的心智颤抖着。"那不是一个方向！"\n\n' +
-            '"It\'s a perfectly legitimate direction," retorts the voice with cold amusement. "Now come along."\n\n' +
-            '"那是一个完全合理的方向，"那个声音带着冷冷的笑意反驳道。"现在跟我来吧。"\n\n' +
-            "—— 序章完 / End of Prologue ——"
+              "当你涉水走到门槛处，一只熟悉的走鹃扑棱着飞过。它喙中的红宝石闪烁着诱人的光芒，滑入了白门。\n\n" +
+              "All color abruptly drains from the landscape. Trees, sky and sun flatten into a spherical shell, with you at the very center. A hissing in your ears becomes a rumble, then a roar as the walls of the shell collapse inward, faster and faster.\n\n" +
+              "所有色彩突然从景物中褪去。树木、天空和太阳被压平成一个球形壳，而你正处于正中心。耳中的嘶嘶声变成隆隆声，然后化为轰鸣，壳壁越来越快地向内坍缩。\n\n" +
+              '"This way, please."\n\n' +
+              '"请这边走。"\n\n' +
+              "You turn, but see no one.\n\n" +
+              "你转过身，但看不到任何人。\n\n" +
+              '"This way," the voice urges. "Be quick."\n\n' +
+              '"这边，"那个声音催促道。"快一点。"\n\n' +
+              'The space around you articulates. "No!" your mind shudders. "That\'s not a direction!"\n\n' +
+              '你周围的空间发出了关节般的声响。"不！"你的心智颤抖着。"那不是一个方向！"\n\n' +
+              '"It\'s a perfectly legitimate direction," retorts the voice with cold amusement. "Now come along."\n\n' +
+              '"那是一个完全合理的方向，"那个声音带着冷冷的笑意反驳道。"现在跟我来吧。"\n\n' +
+              "—— 序章完 / End of Prologue ——"
           );
           await eng.transitionChapter({
             to: "wabe",

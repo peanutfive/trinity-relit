@@ -217,7 +217,7 @@ export const ROOMS = {
     cn: "悬崖边",
 
     desc() {
-      return "The river bed ends here, on a cliff overlooking an Arctic sea. But where ancient waters once fell, there now pours a living stream of lemmings. Driven by mindless instinct, too stupid or frightened to turn away, they plunge by the hundreds into the crashing waves below.\n\nThe ground underfoot is split by a narrow fissure, almost hidden by the scrambling lemmings.\n\n河床在此终止于俯瞰北冰洋的悬崖。然而古时水流曾坠落的地方，如今倾泻着由活旅鼠组成的洪流。它们受盲目本能驱使，愚蠢或惊恐得无法回头，成百上千地跃入下方轰鸣的海浪。\n\n脚下的地面裂开了一道狭窄的缝隙，几乎被奔窜的旅鼠遮住。";
+      return "The river bed ends here, on a cliff overlooking an Arctic sea. But where ancient waters once fell, there now pours a living stream of lemmings. Driven by mindless instinct, too stupid or frightened to turn away, they plunge by the hundreds into the crashing waves below.\n\n河床在此终止于俯瞰北冰洋的悬崖。然而古时水流曾坠落的地方，如今倾泻着由活旅鼠组成的洪流。它们受盲目本能驱使，愚蠢或惊恐得无法回头，成百上千地跃入下方轰鸣的海浪。\n\nThe ground underfoot is split by a narrow fissure, almost hidden by the scrambling lemmings.\n\n脚下的地面裂开了一道狭窄的缝隙，几乎被奔窜的旅鼠遮住。";
     },
 
     exits() {

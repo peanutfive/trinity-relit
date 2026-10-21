@@ -214,3 +214,10 @@
 - 范围：prototype/js/{engine,main,intent,parser,item-rules,animal-rules}.js、data/{items,wabe,tundra,prologue,islet,desert,ranch}.js；相关tests、浏览器验证脚本、ARCHITECTURE/CHAPTER_RULES/CHAPTER_PLAN/RANCH_REWRITE_PLAN/GAPS、docs/ORIGINAL_*.md、TASKS/SHIP_PLAN/progress。保留全部房间ID和现有地图。
 - 分工：m5_state_impact独占engine/intent和动物状态迁移测试；animal_runtime独占animal-rules/item-rules/items及其专项测试；animal_chapters独占wabe/tundra/prologue/islet/desert与正常捕获测试；主代理独占main/parser/ranch、蛇证据与完整谜题、版本启动/浏览器及共享文档。交叉修改先协调。
 - 状态：👀 P1–P5本地验收完成，开发分支交付待审查。311/311测试与规范通过，出口43旧项报告与main逐字一致；动物15/容器8/风车7真实页面及正常新游戏217输入通过，无页面异常。v3兼容v1/v2，27房间ID保留；完整全局走鹃/光照/时钟等边界见计划，不合并main或部署。
+
+### T24 试玩中英缺译与逐段对照 — Codex（2026-10-20）
+- 人类试玩指出循环叫卖漏中文及经常中英对照不上；本轮仅补译、纠正省译与整理段落，不修改原有英文、状态、地图或回合行为。分支沿用codex/animal-mechanics；fetch超时，GitHub API核对main仍57c5f9d，rebase完成。
+- 涉及文件：prototype/js/data/{prologue,items,wabe,tundra,ranch}.js、prototype/js/{animal-rules,item-rules}.js（均仅文本）；tests/bilingual-output.test.mjs、scripts/verify_bilingual_browser.mjs、docs/BILINGUAL_OUTPUT_PLAN.md、TASKS/SHIP_PLAN/progress。engine/parser/main/ui不修改。
+- 按docs/BILINGUAL_OUTPUT_PLAN.md执行：动态输出与来源审计 → 缺译/省译补齐 → 明确对应的长文逐段配对及单换行分隔修复 → 每条输出、条件变体和真实页面验证 → 全套/出口/英文不变审查。
+- 分工：bilingual_audit独占prologue文本；bilingual_validation独占items/wabe/tundra/ranch/item-rules文本；主代理独占animal-rules、测试/浏览器与共享文档。只读审计后已协调文件锁。
+- 状态：👀 2026-10-21本地验收完成、开发分支交付待审查。321/321测试、章节规范、九组真实页面与767组英文/状态差分通过；出口43旧项报告逐字不变。提交前fetch/rebase成功，main仍57c5f9d。不合并main或部署；未调用的nannyBlock和叫卖计数选择等机制另记，不混入本轮修复。完整验收与检查边界见计划。

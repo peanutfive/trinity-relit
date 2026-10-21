@@ -49,7 +49,7 @@ function spillMill(s, eng) {
   }
   for (const id of s.roomItems()) s.placeItem(id, "underwater");
   if (s.cnt("ranch_breath_remaining") > 0) s.setCnt("ranch_breath_remaining", 1);
-  eng.print("CRACK! The landing tips wildly under your feet. You manage a brief, hysterical shriek...\n\n... and your mouth fills with water.\n\n咔嚓！平台在你脚下猛烈倾斜。你勉强发出一声短促、歇斯底里的尖叫……\n\n……接着，水灌进了你的嘴里。");
+  eng.print("CRACK! The landing tips wildly under your feet. You manage a brief, hysterical shriek...\n\n咔嚓！平台在你脚下猛烈倾斜。你勉强发出一声短促、歇斯底里的尖叫……\n\n... and your mouth fills with water.\n\n……接着，水灌进了你的嘴里。");
   eng.moveTo("reservoir");
 }
 
@@ -139,7 +139,7 @@ function startSnake(s, eng) {
   if (s.hasFlag("snake_gone") || s.hasFlag("snake_started")) return;
   s.setFlag("snake_started");
   s.setCnt("snake_delay", 1);
-  eng.print("You turn to face an urgent noise behind you. Your heart skips a beat. Two tiny eyes, bright with hunger, black with menace, are glaring at you from only a few feet away.\n\nYou hear the noise again. It's like a pebble in an empty can.\n\n你转身面对身后急促的声响，心头一紧。几英尺外，两只小眼睛正瞪着你，闪着饥饿的光，透着阴森的威胁。\n\n你又听到了那声音，像一颗小石子在空罐里晃动。");
+  eng.print("You turn to face an urgent noise behind you. Your heart skips a beat. Two tiny eyes, bright with hunger, black with menace, are glaring at you from only a few feet away.\n\n你转身面对身后急促的声响，心头一紧。几英尺外，两只小眼睛正瞪着你，闪着饥饿的光，透着阴森的威胁。\n\nYou hear the noise again. It's like a pebble in an empty can.\n\n你又听到了那声音，像一颗小石子在空罐里晃动。");
 }
 function retreatSnake(s, eng) {
   if (!s.hasFlag("snake_started") || s.hasFlag("snake_gone")) return;
@@ -177,12 +177,14 @@ function snakeTick(s, eng) {
     s.setFlag("snake_gone");
     s.setFlag("snake_bitten");
     s.setCnt("snake_bite_turn", s.turns);
-    eng.print("The rattlesnake strikes your ankle like lightning, recoils in an instant and slithers out of sight.\n\nSobbing with pain and shock, you peer at the tender wound. It's already beginning to swell.\n\n响尾蛇闪电般咬住你的脚踝，瞬间缩回身子，滑出了视野。\n\n你痛苦而惊恐地啜泣，低头查看柔嫩的伤口。它已经开始肿起来了。");
+    eng.print("The rattlesnake strikes your ankle like lightning, recoils in an instant and slithers out of sight.\n\n响尾蛇闪电般咬住你的脚踝，瞬间缩回身子，滑出了视野。\n\nSobbing with pain and shock, you peer at the tender wound. It's already beginning to swell.\n\n你痛苦而惊恐地啜泣，低头查看柔嫩的伤口。它已经开始肿起来了。");
     return;
   }
   if (s.itemAt("lemming") === "closet" && s.room === "closet") {
     consumeLemming(s);
-    eng.print("The lemming " + SNAKE_LUNCH_TAIL + "\n\n旅鼠" + SNAKE_LUNCH_CN);
+    const en = ("The lemming " + SNAKE_LUNCH_TAIL).split("\n\n");
+    const cn = ("旅鼠" + SNAKE_LUNCH_CN).split("\n\n");
+    eng.print(en.flatMap((paragraph, index) => [paragraph, cn[index]]).join("\n\n"));
   }
 }
 function closetLight(s, eng) {
@@ -251,7 +253,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "You're at the northwest corner of a stone wall. A closed iron gate leads in to a dilapidated ranch house.\n\nA paved road bears northwest into the desert. Other paths curve east and south, along the wall's perimeter.\n\n你来到一堵石墙的西北角。一扇关闭的铁门通向破败的牧场屋内。\n\n一条铺设道路向西北延伸进入沙漠。其他小路沿墙的外围向东和南蜿蜒。";
+      return "You're at the northwest corner of a stone wall. A closed iron gate leads in to a dilapidated ranch house.\n\n你来到一堵石墙的西北角。一扇关闭的铁门通向破败的牧场屋内。\n\nA paved road bears northwest into the desert. Other paths curve east and south, along the wall's perimeter.\n\n一条铺设道路向西北延伸进入沙漠。其他小路沿墙的外围向东和南蜿蜒。";
     },
     exits() {
       return {
@@ -289,7 +291,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This patch of ground lies between the ranch house to the west, and a huge cement reservoir to the east. Well-worn paths curve north and south, around the stone wall enclosing the house. Other trails skirt the reservoir on either side.\n\nA ramp slopes up through a gap in the stone wall, ending on a raised deck.\n\n这片地位于西面的牧场屋和东面的巨大水泥蓄水池之间。踩踏已久的小径沿围住房屋的石墙向南北两侧弯去。其他小路沿蓄水池两边延伸。\n\n一道斜坡穿过石墙的缺口向上，通到一处高起的平台。";
+      return "This patch of ground lies between the ranch house to the west, and a huge cement reservoir to the east. Well-worn paths curve north and south, around the stone wall enclosing the house. Other trails skirt the reservoir on either side.\n\n这片地位于西面的牧场屋和东面的巨大水泥蓄水池之间。踩踏已久的小径沿围住房屋的石墙向南北两侧弯去。其他小路沿蓄水池两边延伸。\n\nA ramp slopes up through a gap in the stone wall, ending on a raised deck.\n\n一道斜坡穿过石墙的缺口向上，通到一处高起的平台。";
     },
     exits() {
       return {
@@ -676,7 +678,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This patch of dust lies within the elbow of the ranch house, and is enclosed by a stone wall to the north and west.\n\nAn open hallway leads south, into the house. There's also a" + (s.hasFlag("ranch_screen_door_open") ? "n open" : " closed") + " screen door to the east, and a closed iron gate in the northwest corner of the stone wall.\n\n这片尘土位于牧场屋的转角内，北面和西面被石墙围住。\n\n敞开的走廊向南通往屋内。东面还有一扇" + (s.hasFlag("ranch_screen_door_open") ? "敞开" : "关闭") + "的纱门，石墙西北角有一扇关闭的铁门。";
+      return "This patch of dust lies within the elbow of the ranch house, and is enclosed by a stone wall to the north and west.\n\n这片尘土位于牧场屋的转角内，北面和西面被石墙围住。\n\nAn open hallway leads south, into the house. There's also a" + (s.hasFlag("ranch_screen_door_open") ? "n open" : " closed") + " screen door to the east, and a closed iron gate in the northwest corner of the stone wall.\n\n敞开的走廊向南通往屋内。东面还有一扇" + (s.hasFlag("ranch_screen_door_open") ? "敞开" : "关闭") + "的纱门，石墙西北角有一扇关闭的铁门。";
     },
     exits() {
       return {
@@ -725,7 +727,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "This room is stripped bare of all furnishings. Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\nA" + (s.hasFlag("ranch_outside_door_open") ? "n open" : " closed") + " outside door in the east wall leads outside. Another exit opens west, into the ranch house.\n\n这间屋子里的家具已被搬空。只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。\n\n东墙上一扇" + (s.hasFlag("ranch_outside_door_open") ? "敞开" : "关闭") + "的外门通往屋外。另一出口向西通往牧场屋内。";
+      return "This room is stripped bare of all furnishings. Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\n这间屋子里的家具已被搬空。只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。\n\nA" + (s.hasFlag("ranch_outside_door_open") ? "n open" : " closed") + " outside door in the east wall leads outside. Another exit opens west, into the ranch house.\n\n东墙上一扇" + (s.hasFlag("ranch_outside_door_open") ? "敞开" : "关闭") + "的外门通往屋外。另一出口向西通往牧场屋内。";
     },
     exits() {
       return {
@@ -776,7 +778,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "The walls of this underground chamber are cool and clammy to your touch. It feels as if nobody's been down here for a long time.\n\nGray light seeps in from a stairway climbing east.\n\n这间地下室的墙壁摸起来冰凉潮湿。似乎很久没有人下来过。\n\n灰色的光从东面向上的楼梯渗进来。";
+      return "The walls of this underground chamber are cool and clammy to your touch. It feels as if nobody's been down here for a long time.\n\n这间地下室的墙壁摸起来冰凉潮湿。似乎很久没有人下来过。\n\nGray light seeps in from a stairway climbing east.\n\n灰色的光从东面向上的楼梯渗进来。";
     },
     exits() {
       return {
@@ -871,11 +873,11 @@ export const ROOMS = {
       const broken = landingBroken(s);
       const en = "A squat wooden windmill rises overhead, its dark timbers tapering up to a " +
         (broken ? "broken landing that's tilted over" : "square landing that overlooks") +
-        " the east side of an adjacent reservoir.\n\nThe bottom rungs of a ladder are just within reach.";
+        " the east side of an adjacent reservoir.";
       const cn = "一座矮胖的木风车耸立头顶，深色木架向上收束到" +
         (broken ? "一处破损的平台，向旁边蓄水池东侧倾斜" : "一处方形平台，俯瞰旁边蓄水池的东侧") +
-        "。\n\n梯子的最低几级刚好够得着。";
-      return en + "\n\n" + cn;
+        "。";
+      return en + "\n\n" + cn + "\n\nThe bottom rungs of a ladder are just within reach.\n\n梯子的最低几级刚好够得着。";
     },
     exits(s) {
       return {
@@ -899,7 +901,7 @@ export const ROOMS = {
     },
     onWait: breathWait,
     desc(s) {
-      return "You're near the south side of a big cement reservoir. Dusty paths lead west and northwest around a ranch house. Another curves northeast, to the base of a windmill.\n\nA stairway climbs up to the reservoir's edge.\n\n你在一座大型水泥蓄水池的南侧附近。尘土小路绕着牧场屋向西和西北延伸。另一条向东北弯到风车脚下。\n\n一道楼梯通向蓄水池边缘。";
+      return "You're near the south side of a big cement reservoir. Dusty paths lead west and northwest around a ranch house. Another curves northeast, to the base of a windmill.\n\n你在一座大型水泥蓄水池的南侧附近。尘土小路绕着牧场屋向西和西北延伸。另一条向东北弯到风车脚下。\n\nA stairway climbs up to the reservoir's edge.\n\n一道楼梯通向蓄水池边缘。";
     },
     exits() {
       return {
@@ -1058,7 +1060,7 @@ export const ROOMS = {
     },
     onWait() { return { handled: true, maxTurns: 1 }; },
     desc(s) {
-      return "You're on a square landing near the top of the windmill. The rotting planks underfoot creak ominously as you stand on them.\n\nA rickety ladder leads downward.\n\n你站在风车顶部附近的一处方形平台。脚下腐朽的木板在你站立时发出不祥的吱呀声。\n\n一道摇晃的梯子通向下方。";
+      return "You're on a square landing near the top of the windmill. The rotting planks underfoot creak ominously as you stand on them.\n\n你站在风车顶部附近的一处方形平台。脚下腐朽的木板在你站立时发出不祥的吱呀声。\n\nA rickety ladder leads downward.\n\n一道摇晃的梯子通向下方。";
     },
     exits() {
       return {
@@ -1078,7 +1080,7 @@ export const ROOMS = {
         advancesTurn: false,
         act(s, eng) {
           // reservoir_mill_recover 的已验证 ALL-IS-STILL 变体。
-          eng.print("A loud, plaintive CREAK makes you draw your hand back in alarm. You hold your breath as the landing sways uncertainly for a moment, back and forth. Then all is still.\n\nSlowly, carefully, you stretch your arm towards the pair of binoculars...\n\n一声响亮而哀怨的吱嘎声让你惊恐地缩回了手。平台来回摇晃了一阵，你屏住呼吸。随后，一切归于静止。\n\n慢慢地，小心地，你朝那副双筒望远镜伸出手……");
+          eng.print("A loud, plaintive CREAK makes you draw your hand back in alarm. You hold your breath as the landing sways uncertainly for a moment, back and forth. Then all is still.\n\n一声响亮而哀怨的吱嘎声让你惊恐地缩回了手。平台来回摇晃了一阵，你屏住呼吸。随后，一切归于静止。\n\nSlowly, carefully, you stretch your arm towards the pair of binoculars...\n\n慢慢地，小心地，你朝那副双筒望远镜伸出手……");
           spillMill(s, eng);
         },
         text: "",

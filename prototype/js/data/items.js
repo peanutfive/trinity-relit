@@ -8,13 +8,13 @@ export const ITEMS = {
   coin: {
     en: "seven-sided coin", size: 0, mass: 0,
     cn: "七边硬币", aliases: ["coin","seven-sided coin","50p","硬币","钱币","五十便士"],
-    desc: "A seven-sided coin — a British 50 pence piece.\n一枚七边形硬币——英国五十便士。",
+    desc: "A seven-sided coin — a British 50 pence piece.\n\n一枚七边形硬币——英国五十便士。",
     start: "pocket",
   },
   credit_card: {
     en: "credit card", size: 0, mass: 0,
     cn: "信用卡", aliases: ["credit card","card","信用卡","卡"],
-    desc: "Your American Express card.\n你的美国运通信用卡。",
+    desc: "Your American Express card.\n\n你的美国运通信用卡。",
     start: "pocket",
   },
   watch: {
@@ -24,27 +24,27 @@ export const ITEMS = {
       const t = Math.floor(30 + (s.turns || 0) * 0.5);
       const min = t % 60;
       const hr = 3;
-      return `Your wristwatch says it's ${hr}:${String(min).padStart(2,"0")} pm.\n你的手表显示现在是下午${hr}:${String(min).padStart(2,"0")}。`;
+      return `Your wristwatch says it's ${hr}:${String(min).padStart(2,"0")} pm.\n\n你的手表显示现在是下午${hr}:${String(min).padStart(2,"0")}。`;
     },
     start: "worn", fixed: false,
   },
   ball: {
     en: "soccer ball", size: 7, mass: 5,
     cn: "足球", aliases: ["ball","soccer ball","足球","球"],
-    desc: "You see nothing unusual about the soccer ball.\n你没看出这个足球有什么不寻常的。",
+    desc: "You see nothing unusual about the soccer ball.\n\n你没看出这个足球有什么不寻常的。",
     start: "flower_walk",
-    roomDesc: "You can see a soccer ball half-hidden among the blossoms.\n你可以看到一个足球半隐在花丛中。",
+    roomDesc: "You can see a soccer ball half-hidden among the blossoms.\n\n你可以看到一个足球半隐在花丛中。",
   },
   umbrella: {
     en: "umbrella", size: 10, mass: 7,
     cn: "雨伞", aliases: ["umbrella","伞","雨伞"],
-    desc: 'The closed umbrella\'s handle is carved in the shape of a parrot\'s head.\n合拢的雨伞手柄雕成了鹦鹉头的形状。',
+    desc: 'The closed umbrella\'s handle is carved in the shape of a parrot\'s head.\n\n合拢的雨伞手柄雕成了鹦鹉头的形状。',
     start: "lancaster_gate_tree",
   },
   gnomon: {
     en: "gnomon", size: 4, mass: 4,
     cn: "日晷指针", aliases: ["gnomon","指针","日晷指针"],
-    desc: "It's a triangular piece of metal, about a quarter-inch thick and four inches long.\n一块三角形的金属片，大约四分之一英寸厚、四英寸长。",
+    desc: "It's a triangular piece of metal, about a quarter-inch thick and four inches long.\n\n一块三角形的金属片，大约四分之一英寸厚、四英寸长。",
     start: "the_wabe",
   },
   bag: {
@@ -71,21 +71,21 @@ export const ITEMS = {
   small_coin: {
     en: "small coin", size: 0, mass: 0,
     cn: "小硬币", aliases: ["small coin","change","找零","小硬币","二十便士"],
-    desc: "A small coin — twenty pence change.\n一枚小硬币——二十便士的找零。",
+    desc: "A small coin — twenty pence change.\n\n一枚小硬币——二十便士的找零。",
     start: null,
   },
   paper_bird: {
     en(s) { return s.hasFlag("bird_unfolded") ? "piece of paper" : "paper bird"; },
     size(s) { return s.hasFlag("bird_unfolded") ? 3 : 7; }, mass: 1,
     cn: "纸鸟", aliases: ["paper bird","paper","bird","纸鸟","折纸鸟","纸鹤","折纸","纸"],
-    desc(s) { return s.hasFlag("bird_unfolded") ? 'The words "Long Water, Four O\'Clock" are scrawled on the piece of paper.\n纸上潦草地写着"Long Water, Four O\'Clock"。' : "A folded paper bird.\n一只折纸鸟。"; },
+    desc(s) { return s.hasFlag("bird_unfolded") ? 'The words "Long Water, Four O\'Clock" are scrawled on the piece of paper.\n\n纸上潦草地写着"Long Water, Four O\'Clock"（长水湖，四点钟）。' : "A folded paper bird.\n\n一只折纸鸟。"; },
     start: "round_pond",
     roomDesc: "",
   },
   ruby: {
     en: "ruby", size: 0, mass: 1,
     cn: "红宝石", aliases: ["ruby","红宝石","宝石","gem"],
-    desc(s) { return s.hasFlag("roadrunner_tower_met") ? "Its finely cut edges sparkle with crimson fire.\n\n它精细切割的棱面闪烁着绯红的火光。" : "The ruby is bigger than a walnut, with finely cut facets that sparkle with crimson fire.\n这颗红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。"; },
+    desc(s) { return s.hasFlag("roadrunner_tower_met") ? "Its finely cut edges sparkle with crimson fire.\n\n它精细切割的棱面闪烁着绯红的火光。" : "The ruby is bigger than a walnut, with finely cut facets that sparkle with crimson fire.\n\n这颗红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。"; },
     start: null,
   },
 
@@ -93,23 +93,23 @@ export const ITEMS = {
   sundial: {
     cn: "日晷",
     aliases: ["sundial", "dial", "日晷", "表盘"],
-    desc: "The perimeter of the sundial is inscribed with seven curious symbols and a compass rose.\n日晷周边刻着七个奇特的符号和罗盘玫瑰。",
+    desc: "The perimeter of the sundial is inscribed with seven curious symbols and a compass rose.\n\n日晷周边刻着七个奇特的符号和罗盘玫瑰。",
     start: "vertex",
     fixed: true,
-    fixedMsg: "The sundial is too heavy to move.\n日晷太重，无法移动。",
+    fixedMsg: "The sundial is too heavy to move.\n\n日晷太重，无法移动。",
   },
   ring: {
     cn: "符号环",
     aliases: ["ring", "symbol ring", "symbols", "符号环", "环"],
-    desc: "A ring of seven astronomical symbols. You can turn it to point to different symbols.\n七个天文符号的环。你可以转动它指向不同符号。",
+    desc: "A ring of seven astronomical symbols. You can turn it to point to different symbols.\n\n七个天文符号的环。你可以转动它指向不同符号。",
     start: "vertex",
     fixed: true,
-    fixedMsg: "The ring is part of the sundial.\n符号环是日晷的一部分。",
+    fixedMsg: "The ring is part of the sundial.\n\n符号环是日晷的一部分。",
   },
   soap_bubble: {
     cn: "肥皂泡",
     aliases: ["soap bubble", "bubble", "肥皂泡", "泡"],
-    desc: "A fragile soap bubble, glistening in the light. It might protect you in harsh conditions.\n一个脆弱的肥皂泡，在光线下闪烁。",
+    desc: "A fragile soap bubble, glistening in the light. It might protect you in harsh conditions.\n\n一个脆弱的肥皂泡，在光线下闪烁。它也许能在恶劣环境中保护你。",
     start: "cottage",
   },
   splinter: {
@@ -182,7 +182,7 @@ export const ITEMS = {
   spade: {
     en: "spade", size: 10, mass: 7,
     cn: "铲子", aliases: ["spade","铲子","铲","锹"],
-    desc: "A small spade, suitable for digging.\n一把小铁铲，适合挖掘。",
+    desc: "A small spade, suitable for digging.\n\n一把小铁铲，适合挖掘。",
     start: null,
   },
   shroud: {

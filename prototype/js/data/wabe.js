@@ -70,8 +70,7 @@ export const ROOMS = {
     onEnter(s, eng) {
       if (!s.hasFlag("meadow_entered")) {
         s.setFlag("meadow_entered");
-        eng.print("\nA noise makes you hesitate.\n\nFor a moment, nothing happens. Then the east wind puffs through the clearing, and the gnomon on the sundial wobbles with a faint scrape.\n\n" +
-          "有声音让你犹豫了一下。\n\n片刻之间什么也没发生。然后一阵东风吹过空地，日晷上的指针微微晃动，发出轻微的刮擦声。");
+        eng.print("\nA noise makes you hesitate.\n\n有声音让你犹豫了一下。\n\nFor a moment, nothing happens. Then the east wind puffs through the clearing, and the gnomon on the sundial wobbles with a faint scrape.\n\n片刻之间什么也没发生。然后一阵东风吹过空地，日晷上的指针微微晃动，发出轻微的刮擦声。");
       }
     },
 
@@ -293,8 +292,7 @@ export const ROOMS = {
     cn: "植物园",
 
     desc(s) {
-      return "A spectacular arbor arches over your head like a great green Ferris wheel. Its tangled branches are peculiarly twisted, making it difficult to tell where the inside ends and the outside begins.\n\nOther paths lead east and west, into the surrounding arborvitaes.\n\n" +
-        "一座壮观的藤架如同巨大的绿色摩天轮般在你头顶拱起。它纠结的枝条奇特地扭曲着，让人难以分辨内侧在哪里结束、外侧又从哪里开始。\n\n其他小径向东、向西延伸，通入周围的崖柏丛中。";
+      return "A spectacular arbor arches over your head like a great green Ferris wheel. Its tangled branches are peculiarly twisted, making it difficult to tell where the inside ends and the outside begins.\n\n一座壮观的藤架如同巨大的绿色摩天轮般在你头顶拱起。它纠结的枝条奇特地扭曲着，让人难以分辨内侧在哪里结束、外侧又从哪里开始。\n\nOther paths lead east and west, into the surrounding arborvitaes.\n\n其他小径向东、向西延伸，通入周围的崖柏丛中。";
     },
 
     exits(s) {
@@ -559,10 +557,7 @@ export const ROOMS = {
     cn: "悬崖下",
 
     desc(s) {
-      return "Smooth walls of rock vault straight up and then lean inward, forming a natural roof that partially hides the sky. Trails lead out from under the cliff in many directions.\n\n" +
-        "A swarm of bees has staked out this formation for itself by building an enormous hive under the arch. The faint buzzing from the hive is magnified by the cliff's acoustics into a loud, frightening drone.\n\n" +
-        "光滑的岩壁笔直向上拔起，然后向内倾斜，形成了一个半遮天空的天然穹顶。小径从悬崖下向四面八方延伸。\n\n" +
-        "一群蜜蜂在拱形岩壁下筑起了巨大的蜂巢，将这处岩层据为己有。蜂巢中微弱的嗡嗡声被悬崖的回音放大成响亮而令人恐惧的轰鸣。";
+      return "Smooth walls of rock vault straight up and then lean inward, forming a natural roof that partially hides the sky. Trails lead out from under the cliff in many directions.\n\n光滑的岩壁笔直向上拔起，然后向内倾斜，形成了一个半遮天空的天然穹顶。小径从悬崖下向四面八方延伸。\n\nA swarm of bees has staked out this formation for itself by building an enormous hive under the arch. The faint buzzing from the hive is magnified by the cliff's acoustics into a loud, frightening drone.\n\n一群蜜蜂在拱形岩壁下筑起了巨大的蜂巢，将这处岩层据为己有。蜂巢中微弱的嗡嗡声被悬崖的回音放大成响亮而令人恐惧的轰鸣。";
     },
 
     exits() {
@@ -822,8 +817,7 @@ export const ROOMS = {
     cn: "药草园",
 
     desc(s) {
-      return "A tall fence protects the neat rows of herbs from predators. The only exit is the gate, leading west.\n\nAnother giant toadstool grows here.\n\n" +
-        "一道高高的栅栏保护着整齐排列的药草免受天敌侵害。唯一的出口是向西的大门。\n\n这里还生长着另一株巨大的毒菌。";
+      return "A tall fence protects the neat rows of herbs from predators. The only exit is the gate, leading west.\n\n一道高高的栅栏保护着整齐排列的药草免受天敌侵害。唯一的出口是向西的大门。\n\nAnother giant toadstool grows here.\n\n这里还生长着另一株巨大的毒菌。";
     },
 
     exits(s) {
@@ -914,8 +908,7 @@ export const ROOMS = {
     cn: "弯道",
 
     desc(s) {
-      return "A mountain stream trickles into a river that bends eastward. The landscape is veiled behind a thick mist.\n\nPaths meander off in many directions from the river's edge.\n\n" +
-        "一条山涧汇入一条向东弯曲的河流。大地笼罩在浓浓的雾霭之中。\n\n小径从河岸边向四面八方蜿蜒而去。";
+      return "A mountain stream trickles into a river that bends eastward. The landscape is veiled behind a thick mist.\n\n一条山涧汇入一条向东弯曲的河流。大地笼罩在浓浓的雾霭之中。\n\nPaths meander off in many directions from the river's edge.\n\n小径从河岸边向四面八方蜿蜒而去。";
     },
 
     exits() {
