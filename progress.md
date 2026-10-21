@@ -166,3 +166,12 @@ Original prompt: 这里卡关了（Round Pond 场景中“捡起折纸鸟”和�
 - 九组真实页面通过，桌面/390px叫卖、三引语、喂鸟停止、老妇人、动物开门及跨房间纸鸟已检查截图/DOM；测试隔离玩家上下文。初版截图未等滚动结束，已让测试等待到底部；手机使用全新上下文消除缩放残影。独立审查进一步补UI捕获异常提示与console.error检查；标准客户端/tmp/trinity-t24-skill仅既有favicon404，最终浏览器产物/tmp/trinity-t24-browser-final-reviewed。
 - 独立基线差分767/767，英文内容/顺序（忽略空白和中文行）及state.serialize相同，运行异常0；不是原版逐句认证，未穷举全部事件act或全部译文语义。计划列出界限，不宣称全项目翻译全部完成。原始证据/存档/页面产物不入Git。
 - 2026-10-20提交前同步曾因自动审批额度检查失败而未执行；10-21继续后fetch/rebase成功，main仍57c5f9d。本地8083服务已重启。wabe保留既有CRLF，diff检查启用cr-at-eol识别。只在codex/animal-mechanics提交，不合并main或部署。叫卖旧turn counter与未调用nannyBlock不随翻译修复修改，后续机制需另列计划。
+
+
+## 2026-10-21 T25本地语义不可用排查
+
+- 用户截图两次“撑开伞”均显示识别组件加载失败。发现当前worktree prototype/vendor不存在，另工作树read-agents-tasks-07ad6e保存同版本资源；npm dev不会准备这些忽略文件。后续浏览器又明确出现8083连接拒绝，恢复为脱离当前工具会话的独立本地服务（日志/tmp/trinity-preview-8083.log），不把截图中的具体CDN错误未经用户网络日志就断言为已证实。
+- 源清单16项：固定transformers2.17.2、zh75c43b/en ea104d模型revision，含WASM/许可证/说明。逐项存在与版本检查、复制前后SHA256一致，79,331,448字节，当前目录prepare:models成功；资源全部Git忽略，来源清单不入库，不改变Worker/引擎/parser/章节。
+- 原真实模型13/13语料通过。额外main/存档隔离探针直接输入“撑开伞”：候选“撑伞”、确认前和取消后不改变状态；确认后1回合且正常输出东风吹回PalaceGate并收伞（初版测试错误假定最终umbrella_open，查实际章节后修正测试，不改玩法）。两个Worker、连续输入和刷新合计1次中文权重；本地JS/tokenizer/config/ONNX/WASM200。禁止外部推理资源仍成功，测试中仅对Google字体返回空CSS；页面/控制台错误0，截图/tmp/trinity-t25-main已查看。
+- 旧lifecycle回归因为main已有_semantic门控、ui.intentProgress返回null而先失败；只在/tmp副本把进度样例调用改semanticProgress，随后慢下载/超时复用/刷新缓存/buy-feed通过（downloads1/workers2）。原notice实际启用/取消/确认通过（downloads1/workers1/turn1），未宣称原lifecycle脚本无需维护。后续可在授权验证脚本范围内维护该旧入口。
+- 全套321/321和规范通过；无生产源码修改，沿用已有出口无新增结果。README补新clone/worktree需独立准备资源。标准技能客户端/tmp/trinity-t25-skill及真实语义截图已查看，仅既有favicon404。玩家原页、存档和设置未操作，提示刷新续玩以重建失败Worker。

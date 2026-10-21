@@ -221,3 +221,11 @@
 - 按docs/BILINGUAL_OUTPUT_PLAN.md执行：动态输出与来源审计 → 缺译/省译补齐 → 明确对应的长文逐段配对及单换行分隔修复 → 每条输出、条件变体和真实页面验证 → 全套/出口/英文不变审查。
 - 分工：bilingual_audit独占prologue文本；bilingual_validation独占items/wabe/tundra/ranch/item-rules文本；主代理独占animal-rules、测试/浏览器与共享文档。只读审计后已协调文件锁。
 - 状态：👀 2026-10-21本地验收完成、开发分支交付待审查。321/321测试、章节规范、九组真实页面与767组英文/状态差分通过；出口43旧项报告逐字不变。提交前fetch/rebase成功，main仍57c5f9d。不合并main或部署；未调用的nannyBlock和叫卖计数选择等机制另记，不混入本轮修复。完整验收与检查边界见计划。
+
+
+### T25 本地试玩语义资源恢复 — Codex（2026-10-21）
+- 人类报告8083输入“撑开伞”显示识别组件加载失败。本轮先恢复当前工作树缺失的忽略资产，使用现有真实模型/浏览器验收，不修改引擎、parser、章节或语义运行时代码。
+- 范围：被忽略的prototype/vendor/intent/资源、README.md、prototype/SEMANTIC_PLAN.md、TASKS/SHIP_PLAN/progress；诊断/浏览器临时产物只放/tmp。
+- 计划：P1确认缺失路径、来源版本与资源准备流程 → P2从本机已有同版本资产复用，运行prepare:models核对清单并验证HTTP → P3真实中英文13语料、当前中文表达/连续识别和缓存，检查失败不推进/候选确认 → P4记录工作树隔离原因与验收，不提交二进制，不合并main或部署。
+- 分工：bilingual_regression_audit只读复核加载链与验收入口，主代理恢复资源、真实页面验证和文档。
+- 状态：👀 本地资源/服务恢复并验收完成。清单16资产和复制摘要核对、prepare:models通过；真实模型13/13、实际main“撑开伞”候选/取消/确认和刷新缓存通过，同源权重只下载1次；lifecycle临时适配当前进度接口后通过、notice通过。全套321/321与规范通过。仅文档入库，资源仍忽略，不合并main或部署。
