@@ -175,3 +175,11 @@ Original prompt: 这里卡关了（Round Pond 场景中“捡起折纸鸟”和�
 - 原真实模型13/13语料通过。额外main/存档隔离探针直接输入“撑开伞”：候选“撑伞”、确认前和取消后不改变状态；确认后1回合且正常输出东风吹回PalaceGate并收伞（初版测试错误假定最终umbrella_open，查实际章节后修正测试，不改玩法）。两个Worker、连续输入和刷新合计1次中文权重；本地JS/tokenizer/config/ONNX/WASM200。禁止外部推理资源仍成功，测试中仅对Google字体返回空CSS；页面/控制台错误0，截图/tmp/trinity-t25-main已查看。
 - 旧lifecycle回归因为main已有_semantic门控、ui.intentProgress返回null而先失败；只在/tmp副本把进度样例调用改semanticProgress，随后慢下载/超时复用/刷新缓存/buy-feed通过（downloads1/workers2）。原notice实际启用/取消/确认通过（downloads1/workers1/turn1），未宣称原lifecycle脚本无需维护。后续可在授权验证脚本范围内维护该旧入口。
 - 全套321/321和规范通过；无生产源码修改，沿用已有出口无新增结果。README补新clone/worktree需独立准备资源。标准技能客户端/tmp/trinity-t25-skill及真实语义截图已查看，仅既有favicon404。玩家原页、存档和设置未操作，提示刷新续玩以重建失败Worker。
+
+
+## 2026-10-21 T26独立测试指南及dev上传
+
+- 人类要求测试用走法指南，不放进游戏；登记仅docs/PLAYTEST_GUIDE_CN.md、TASKS/SHIP_PLAN/progress，不修改prototype。重新运行当前walkthrough，用/tmp包装记录实际输入和每步后位置/阶段/分数，不使用旧路线硬猜。217输入、74间、27分，9阶段范围1–27/28–36/37–60/61–87/88–121/122–143/144–166/167–200/201–217。
+- 指南逐行列命令和位置，说明现有存档中途接入与日晷次数条件、三项预期阻挡40/100/204、光源和按钮顺序、连续抓旅鼠/壁橱蛇操作、普通查询也会改回合；明确当前27分重制版路线，未覆盖风车/水下/完整走鹃/原版100分/独立Finale。附语义测试和问题记录方法，不在游戏内增加攻略。
+- 独立代理核对217指令/中英房间/9阶段/危险点全部一致。从最终文档再提取217条与录制深比较，并在实际main.js独立浏览器从全新开局逐条执行，结束PalaceGate、217回合/74间/27分、蛇离开，无页面异常；/tmp/trinity-t26-guide-browser产物保留，玩家原上下文未操作。
+- 工作中人类进一步授权将指南与当前改动上传GitHub dev。fetch/ls-remote核对main仍57c5f9d且远端无dev，创建dev发布当前开发成果，不覆盖分支、不合并/部署main。上传前检查范围及版权/模型资源隔离，所有原始录制/截图仅/tmp。Git同步最初未提权报锁权限不足，随后用正确权限完成，无历史改写或冲突。
