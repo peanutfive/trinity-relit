@@ -5,6 +5,7 @@ import { createServer } from 'node:http';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { inspectIntentAssets, formatIntentAssets } from './check-intent-assets.mjs';
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -57,6 +58,12 @@ createServer(async (request, response) => {
   } catch {
     send(response, 404, '404');
   }
-}).listen(port, host, () => {
+}).listen(port, host, async () => {
   console.log(`Trinity Relit  →  http://${host}:${port}/`);
+  try {
+    const report = await inspectIntentAssets(join(root, 'vendor/intent'));
+    console.log(formatIntentAssets(report));
+  } catch (error) {
+    console.warn(`本地语义资源预检未完成：${error.message}。可单独运行 npm run check:models。`);
+  }
 });

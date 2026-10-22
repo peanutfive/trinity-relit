@@ -1,16 +1,26 @@
 // 可选真实模型验收；先 prepare:models 并启动开发服务器。需安装 Playwright，或 --playwright 指向已有模块。
 import { pathToFileURL } from 'node:url';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
 const option = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const playwright = option('--playwright', 'playwright');
-const { chromium } = await import(playwright === 'playwright' ? playwright : pathToFileURL(resolve(playwright)).href);
-import { writeFileSync } from 'node:fs';
-const browser=await chromium.launch({headless:true});
+const output = option('--output', '/tmp/trinity-semantic-eval.json');
+const url = option('--url', 'http://127.0.0.1:8081/');
+const channel = option('--channel', undefined);
+const run = { startedAt: new Date().toISOString(), url, channel: channel || 'chromium' };
+const errors = [], commandErrors = [];
+let browser, results = [];
+mkdirSync(dirname(resolve(output)), { recursive: true });
+// 先覆盖旧收据；依赖导入、浏览器启动或后续断言失败都不能留下旧的成功结果。
+writeFileSync(output, JSON.stringify({ ...run, passed: false, status: 'running' }, null, 2));
 try {
+const { chromium } = await import(playwright === 'playwright' ? playwright : pathToFileURL(resolve(playwright)).href);
+browser=await chromium.launch({headless:true, channel});
 const page=await browser.newPage({viewport:{width:1250,height:1000}});
-const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto(option('--url', 'http://127.0.0.1:8081/'));
-const results=await page.evaluate(async()=>{
+page.on('pageerror',e=>errors.push(e.message));
+page.on('console', message => { if (message.type() === 'error' && /^(?:指令处理失败|读档失败)/.test(message.text())) commandErrors.push(message.text()); });
+await page.goto(url);
+results=await page.evaluate(async()=>{
  const local = name => new URL(`js/${name}`, location.href).href;
  const {GameEngine}=await import(local('engine.js'));
  const {Parser}=await import(local('parser.js'));
@@ -50,8 +60,17 @@ const results=await page.evaluate(async()=>{
  }
  worker.terminate();return output;
 });
-writeFileSync(option('--output', '/tmp/trinity-semantic-eval.json'),JSON.stringify({results,errors},null,2));
+const passed = !errors.length && !commandErrors.length && results.every(r => r.pass);
+writeFileSync(output,JSON.stringify({ ...run, finishedAt: new Date().toISOString(), passed,
+  status: passed ? 'passed' : 'failed', results, errors, commandErrors,
+  modelCases: results.filter(r => r.response).length,
+  clarificationCases: results.filter(r => r.result === 'clarify').length },null,2));
 console.log(`Intent corpus: ${results.filter(r => r.pass).length}/${results.length}; page errors: ${errors.length}`);
 for(const r of results.filter(r => !r.pass)) console.log(JSON.stringify(r));
-if (errors.length || results.some(r => !r.pass)) process.exitCode = 1;
-} finally { await browser.close(); }
+if (!passed) process.exitCode = 1;
+} catch (error) {
+  writeFileSync(output, JSON.stringify({ ...run, finishedAt: new Date().toISOString(), passed: false,
+    status: 'failed', error: error.stack || String(error), results, errors, commandErrors }, null, 2));
+  console.error(error);
+  process.exitCode = 1;
+} finally { await browser?.close(); }

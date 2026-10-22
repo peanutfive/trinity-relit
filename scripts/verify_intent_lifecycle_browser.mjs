@@ -5,15 +5,20 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const option = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const modulePath = option('--playwright', 'playwright');
-const { chromium } = await import(modulePath === 'playwright' ? modulePath : pathToFileURL(resolve(modulePath)).href);
 const output = option('--output-dir', '/tmp/trinity-intent-lifecycle');
+const url = option('--url', 'http://127.0.0.1:8081/');
+const channel = option('--channel', undefined);
 const inferenceTimeoutMs = Number(option('--timeout-ms', '15000'));
-assert.ok(Number.isFinite(inferenceTimeoutMs) && inferenceTimeoutMs > 0);
+const run = { startedAt: new Date().toISOString(), url, channel: channel || 'chromium' };
+const errors = [], commandErrors = [];
+let browser, downloads = 0, workers = 0;
 mkdirSync(output, {recursive: true});
-const browser = await chromium.launch({headless: true});
+writeFileSync(`${output}/result.json`, JSON.stringify({ ...run, passed: false, status: 'running' }, null, 2));
 try {
+  assert.ok(Number.isFinite(inferenceTimeoutMs) && inferenceTimeoutMs > 0);
+  const { chromium } = await import(modulePath === 'playwright' ? modulePath : pathToFileURL(resolve(modulePath)).href);
+  browser = await chromium.launch({headless: true, channel});
   const context = await browser.newContext({viewport: {width: 1280, height: 960}});
-  let downloads = 0, workers = 0;
   // 路由本身关闭 HTTP cache；Cache Storage 仍可用，接近开发者工具禁用缓存的场景。
   await context.route('**/model_quantized.onnx', async route => {
     downloads++;
@@ -21,10 +26,10 @@ try {
     await route.continue();
   });
   const page = await context.newPage();
-  const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error' && /^(?:指令处理失败|读档失败)/.test(message.text())) commandErrors.push(message.text()); });
   page.on('worker', () => workers++);
-  await page.goto(option('--url', 'http://127.0.0.1:8081/'));
+  await page.goto(url);
   async function capture(name) {
     await page.locator('#output').evaluate(log => log.scrollTo({top: log.scrollHeight, behavior: 'instant'}));
     await page.waitForFunction(() => { const log = document.querySelector('#output'); return log.scrollHeight - log.clientHeight - log.scrollTop < 2; });
@@ -45,7 +50,8 @@ try {
   }
   await page.evaluate(async () => {
     const {ui} = await import('./js/ui.js');
-    const progress = ui.intentProgress(() => {});
+    // main 已绑定说明层，intentProgress 此时按设计返回 null。
+    const progress = ui.semanticProgress(() => {});
     progress.update({status: 'progress', progress: 100, loaded: 18000000, total: 16000000, language: 'zh'});
     window.progressProbe = {text: document.querySelector('[role="status"]').textContent};
     progress.close();
@@ -88,8 +94,15 @@ try {
   assert.equal(await page.evaluate(() => window.probe.state.hasFlag('birds_fed')), true);
   assert.equal(await page.evaluate(() => window.probe.state.turns), 2);
   assert.deepEqual(errors, []);
-  const result = {passed: true, downloads, workers, timeoutPreservesState: true,
-    retryReusesWorker: true, reloadUsesCacheStorage: true, buyThenFeed: true, errors};
+  assert.deepEqual(commandErrors, []);
+  assert.doesNotMatch(await page.locator('#output').innerText(), /处理指令时遇到问题，请重试。/);
+  const result = {...run, finishedAt: new Date().toISOString(), passed: true, status: 'passed', downloads, workers, timeoutPreservesState: true,
+    retryReusesWorker: true, reloadUsesCacheStorage: true, buyThenFeed: true, errors, commandErrors};
   writeFileSync(`${output}/result.json`, JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));
-} finally { await browser.close(); }
+} catch (error) {
+  writeFileSync(`${output}/result.json`, JSON.stringify({ ...run, finishedAt: new Date().toISOString(), passed: false,
+    status: 'failed', error: error.stack || String(error), downloads, workers, errors, commandErrors }, null, 2));
+  console.error(error);
+  process.exitCode = 1;
+} finally { await browser?.close(); }

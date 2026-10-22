@@ -5,18 +5,23 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const option = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
 const modulePath = option('--playwright', 'playwright');
-const { chromium } = await import(modulePath === 'playwright' ? modulePath : pathToFileURL(resolve(modulePath)).href);
 const output = option('--output-dir', '/tmp/trinity-pr6-browser');
+const url = option('--url', 'http://127.0.0.1:8082/');
+const channel = option('--channel', undefined);
+const run = { startedAt: new Date().toISOString(), url, channel: channel || 'chromium' };
+const errors = [], commandErrors = [];
+let browser, workers = 0, downloads = 0;
 mkdirSync(output, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+writeFileSync(`${output}/result.json`, JSON.stringify({ ...run, passed: false, status: 'running' }, null, 2));
 try {
+  const { chromium } = await import(modulePath === 'playwright' ? modulePath : pathToFileURL(resolve(modulePath)).href);
+  browser = await chromium.launch({ headless: true, channel });
   const page = await browser.newPage({ viewport: { width: 1280, height: 960 } });
-  const errors = [];
-  let workers = 0, downloads = 0;
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error' && /^(?:指令处理失败|读档失败)/.test(message.text())) commandErrors.push(message.text()); });
   page.on('worker', () => workers++);
   page.on('request', request => { if (request.url().endsWith('/model_quantized.onnx')) downloads++; });
-  await page.goto(option('--url', 'http://127.0.0.1:8082/'));
+  await page.goto(url);
   await page.locator('#input').waitFor();
   await page.evaluate(async () => {
     const { GameEngine } = await import('./js/engine.js');
@@ -92,7 +97,15 @@ try {
   assert.equal(await page.evaluate(() => window.resolver.worker), null);
   assert.equal(await page.evaluate(() => window.resolver.readyLanguages.size), 0);
   assert.deepEqual(errors, []);
-  const result = { workers, downloads, errors, state: JSON.parse(await page.evaluate(() => window.render_game_to_text())) };
+  assert.deepEqual(commandErrors, []);
+  assert.doesNotMatch(await page.locator('#output').innerText(), /处理指令时遇到问题，请重试。/);
+  const result = { ...run, finishedAt: new Date().toISOString(), passed: true, status: 'passed', workers, downloads, errors, commandErrors,
+    state: JSON.parse(await page.evaluate(() => window.render_game_to_text())) };
   writeFileSync(`${output}/result.json`, JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ workers, downloads, errors, turns: result.state.turns }));
-} finally { await browser.close(); }
+} catch (error) {
+  writeFileSync(`${output}/result.json`, JSON.stringify({ ...run, finishedAt: new Date().toISOString(), passed: false,
+    status: 'failed', error: error.stack || String(error), workers, downloads, errors, commandErrors }, null, 2));
+  console.error(error);
+  process.exitCode = 1;
+} finally { await browser?.close(); }

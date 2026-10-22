@@ -237,3 +237,11 @@
 - 计划：重新运行当前walkthrough并录制全部实际输入/阶段位置 → 生成9阶段217输入与检查点 → 独立核对时序/预期阻挡/分支界限 → 从文档提取命令逐项比对并验证 → 独立文件交付。
 - 分工：bilingual_regression_audit只读核对危险动作/检查点与内容边界，主代理录制、写指南、核对和交付。
 - 状态：👀 指南完成并通过独立审查。217条表格命令/房间与录制完全一致；从文档提取并经真实main页面全新开局执行至217回合/74房间/27分，无页面异常。含三项预期阻挡，是重制版测试路线，不是原版100分攻略。玩家浏览器进度未操作。人类随后明确要求将指南和当前全部开发提交上传到GitHub dev分支；远端核对尚无dev，按授权创建该分支，不覆盖已有分支或推送main。
+
+
+### T27 语义资源预检与正式页面验收 — Codex（2026-10-22）
+- 人类要求继续工作；优先关闭T25已记录的旧验收脚本接口欠账，并将临时main验证变为仓库内可重复执行的流程。开工fetch/rebase完成，main57c5f9d、dev与当前HEAD均bea10ac。
+- 范围：scripts/{check-intent-assets,serve,verify_intent_browser,verify_intent_lifecycle_browser,verify_intent_notice_browser,verify_intent_main_browser}.mjs、tests/intent-assets.test.mjs、package.json（仅增加检查命令）、README、prototype/SEMANTIC_PLAN、docs/SEMANTIC_CHECKS_PLAN.md、TASKS/SHIP_PLAN/progress。原版门系统只读调研，不修改运行时；engine/parser/main/ui/items/章节及指南均不修改。
+- 分工：bilingual_regression_audit独占三个既有intent浏览器脚本的兼容修复；主代理独占资产检查/服务器提示、新main页面验收、合成检查测试与文档。m4_source_contract只读核对下一批门系统范围与证据缺口。
+- 按docs/SEMANTIC_CHECKS_PLAN.md执行P0–P4。模型、原始证据与浏览器输出仍仅忽略目录或/tmp；不合并main或部署。
+- 状态：👀 本地实现与独立审查完成。新增check:models和开发终端预检；三个旧真实模型入口直接通过，新增真实main正常前20步/候选取消/刷新缓存/一次确认通过，活状态与磁盘分别核对；缺资源和依赖失败覆盖旧收据。325/325、规范通过，出口旧43项逐字一致。截图已查看；仅开发脚本/测试/文档交付dev，不合并main或部署。

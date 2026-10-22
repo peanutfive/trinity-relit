@@ -52,12 +52,15 @@ npm run dev
 
 ```bash
 npm run prepare:models
+npm run check:models
 # 官方模型源不可达时，可改用固定版本的公开镜像：
 # npm run prepare:models -- --model-host https://hf-mirror.com
 npm run dev -- --port 8081
 ```
 
 资源下载到被 Git 忽略的 `prototype/vendor/intent/`，含来源记录和开源许可证。Pages 部署会自动准备这些资源；未准备时按需尝试公共源，失败后仍可使用标准命令。识别在浏览器内运行，指令不会发送给模型服务。详见 [语义识别实施计划](prototype/SEMANTIC_PLAN.md)。
+
+`check:models` 只检查当前工作树必需文件是否存在且非空，不下载资源，也不代替真实推理验收。开发服务器启动时会在终端给出同样的检查结果；资源缺失不会阻止标准玩法。可重复的真实页面验收见[资源与页面验收计划](docs/SEMANTIC_CHECKS_PLAN.md)。
 
 ### 方案 A：保留原作，加一层中文接口
 
@@ -80,6 +83,7 @@ python3 trinity_cn.py
 npm run dev            # 本地起服务器
 npm test               # 单元与完整主线回归
 npm run verify         # 章节规范校验（CHAPTER_RULES.md §10）
+npm run check:models   # 检查本工作树的语义运行库、分词器与双语权重
 npm run truth          # 从 TRINITY.DAT 生成出口真值表（需自备游戏文件）
 npm run verify:exits   # 把章节出口与 Z-machine 真值逐条比对
 ```
