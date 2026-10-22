@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trinity · 花园漫步</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><div><span class="eyebrow">1986 · 肯辛顿花园</span><h1>花园漫步 <small>光影习作</small></h1></div><div class="tools"><button id="language">中文</button><button id="restart">重新开始</button></div></header>
+<section class="game-shell" aria-label="花园探索">
+  <div class="stage">
+    <canvas width="1440" height="864" tabindex="0" aria-label="方向键行走，Z 或回车互动，Esc 暂停与设置"></canvas>
+    <div class="location"><span id="room"></span><span id="room-en"></span></div>
+    <button id="pause-open" aria-label="暂停与设置" aria-keyshortcuts="Escape"><span>☰</span> <kbd>Esc</kbd></button>
+    <div id="hint" aria-live="polite"></div><button id="skip-event" hidden>跳过演出</button>
+    <aside id="quest" hidden aria-label="探索提示"><div class="panel-heading"><span>探索提示</span><button id="close-quest" aria-label="关闭提示">×</button></div><p id="objective">试着去东边的花径，寻找花丛里的足球。</p><p class="quest-note">方向键行走，走近后按互动键。</p></aside>
+    <div id="overlay"><span class="eyebrow">肯辛顿花园 · 午后</span><h2>东风吹过花园。</h2><p>在树影间行走，走近花坛、雕像与陌生人。<br>看看文字里的世界，变成可以踏入的地方。</p><button id="start">走进花园 →</button><p class="keys">方向键 / WASD 行走 · Z / 回车 互动<br>Esc 暂停与设置</p></div>
+    <section id="dialogue" hidden aria-live="polite"><div class="dialogue-top"><span id="speaker"></span><span id="page"></span></div><div id="text"></div><div id="choices"></div><button id="next">继续 ↵</button></section>
+    <nav class="touch-pad" aria-label="触屏方向控制"><button data-key="ArrowUp" aria-label="向上">↑</button><button data-key="ArrowLeft" aria-label="向左">←</button><button data-key="ArrowDown" aria-label="向下">↓</button><button data-key="ArrowRight" aria-label="向右">→</button></nav>
+    <button id="touch-interact" aria-label="互动或继续">互动</button>
+  </div>
+  <section id="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="pause-window">
+      <div class="pause-heading"><div><span class="eyebrow">时间在此停留</span><h2 id="pause-title">暂停</h2></div><button id="resume">继续探索 <kbd>Esc</kbd></button></div>
+      <nav class="settings-tabs" aria-label="设置分类" role="tablist"><button id="tab-controls" data-tab="controls" role="tab" aria-controls="settings-controls" aria-selected="true">键位设置</button><button id="tab-video" data-tab="video" role="tab" aria-controls="settings-video" aria-selected="false">画面设置</button><button id="tab-audio" data-tab="audio" role="tab" aria-controls="settings-audio" aria-selected="false">声音设置</button></nav>
+      <div id="settings-controls" class="settings-page" role="tabpanel" aria-labelledby="tab-controls">
+        <p class="settings-intro">点击按键后，按一个字母或数字重新绑定。方向键与回车始终可用。</p>
+        <div id="binding-list"></div><p id="binding-message" role="status">Esc 取消改键或关闭菜单。</p>
+        <div class="menu-actions"><button id="reset-bindings">恢复默认键位</button><button id="menu-bag">打开背包</button><button id="menu-help">查看探索提示</button></div>
+      </div>
+      <div id="settings-video" class="settings-page" role="tabpanel" aria-labelledby="tab-video" hidden>
+        <label class="setting-row" for="resolution"><span>画面清晰度<small>调整画布的绘制分辨率</small></span><select id="resolution"><option value="1">标准</option><option value="2">精细</option><option value="3">高清</option></select></label>
+        <label class="setting-row" for="brightness"><span>画面亮度</span><span class="slider-value"><input id="brightness" type="range" min="70" max="130" step="5"><output id="brightness-value"></output></span></label>
+        <label class="setting-row" for="effects"><span>环境动效<small>漂浮微尘与站立时的细微呼吸</small></span><input id="effects" type="checkbox"></label>
+        <div class="setting-row"><span>全屏显示</span><button id="fullscreen">进入全屏</button></div>
+      </div>
+      <div id="settings-audio" class="settings-page" role="tabpanel" aria-labelledby="tab-audio" hidden>
+        <label class="setting-row" for="audio-enabled"><span>启用声音<small>轻柔风声与菜单提示音</small></span><input id="audio-enabled" type="checkbox"></label>
+        <label class="setting-row" for="master"><span>总音量</span><span class="slider-value"><input id="master" type="range" min="0" max="100"><output id="master-value"></output></span></label>
+        <label class="setting-row" for="ambience"><span>环境音量</span><span class="slider-value"><input id="ambience" type="range" min="0" max="100"><output id="ambience-value"></output></span></label>
+        <label class="setting-row" for="interface-volume"><span>界面音量</span><span class="slider-value"><input id="interface-volume" type="range" min="0" max="100"><output id="interface-volume-value"></output></span></label>
+        <button id="test-sound">试听提示音</button><p id="audio-status" class="settings-intro"></p>
+      </div>
+      <p class="settings-footnote">设置自动保存在当前浏览器 · 游戏进度仅保留在本次试玩</p>
+    </div>
+  </section>
+</section>
+<p class="note">独立概念试玩 · 序章场景 · 场景内部为视觉改编，出口和互动沿用现有游戏数据。</p>
+</main><script type="module" src="game.js"></script></body></html>
