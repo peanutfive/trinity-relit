@@ -29,7 +29,8 @@ async function command(game, input) {
 }
 const json = value => JSON.parse(JSON.stringify(value));
 const visual = (engine, patch = {}) => ({ room: engine.state.room,
-  x: SCENES[engine.state.room].spawn[0], y: SCENES[engine.state.room].spawn[1], face: 'right', ...patch });
+  x: SCENES[engine.state.room].spawn[0], y: SCENES[engine.state.room].spawn[1], face: 'right',
+  knowledge: { observed: [], paper: { observed: [], identified: [] } }, ...patch });
 
 async function reachMeadow(game) {
   for (const input of ['e', 'take ball', 'nw', 'unscrew gnomon', 'take gnomon',
@@ -148,7 +149,10 @@ test('视觉坏坐标、越界或碰撞回退spawn，错房绝不猜测', () => 
 
 test('无碰撞但与出生点隔离的位置也回退，读档不把人锁在封闭区域', () => {
   const g = session();
-  const scene = { ...SCENES.palace_gate, spawn: [40, 40], obstacles: [
+  const scene = { ...SCENES.palace_gate, spawn: [40, 40],
+    // An explicit test floor, independent of Palace Gate's calibrated path mesh.
+    walkablePolygons: [[[12, 12], [468, 12], [468, 276], [12, 276]]],
+    blockedPolygons: [], footprint: { rx: 6, ry: 3 }, obstacles: [
     { x: 150, y: 100, w: 60, h: 4 }, { x: 150, y: 160, w: 60, h: 4 },
     { x: 150, y: 100, w: 4, h: 64 }, { x: 206, y: 100, w: 4, h: 64 },
   ] };
@@ -296,4 +300,52 @@ test('M4关键状态：车内恢复后经背包撑伞到Long Water，白门前�
   assert.ok(crossing.engine.loadedChapters.has('wabe'));
   assert.equal(crossing.engine.state.score, 15);
   assert.equal(crossing.engine.state.turns, beforeDoor.turns + 1);
+});
+
+
+test('二维观察和纸鸟辨认知识随导出导入保留，旧档缺省为空且不写游戏flag', async () => {
+  const original = session(); await command(original, 'ne');
+  const beforeEngine = json(original.engine.serialize().state);
+  const knowledge = { observed: ['the_wabe:sundial', 'round_pond:paper-craft', 'item:ball'],
+    paper: { observed: ['round_pond:paper-craft'], identified: ['round_pond:paper-craft'] } };
+  const save = makeVisualSave(original.engine, visual(original.engine, { knowledge }));
+  assert.deepEqual(save.visual.knowledge, knowledge);
+  knowledge.observed.push('palace_gate:sky');
+  assert.equal(save.visual.knowledge.observed.includes('palace_gate:sky'), false, '不能与调用方数组共享引用');
+  const storage = memoryStorage(), store = createVisualSaveStore({ storage });
+  assert.equal(store.write(save).ok, true);
+  const restored = session({ start: false });
+  const result = await store.restore(restored.engine, store.export().text);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.visual.knowledge, save.visual.knowledge);
+  assert.deepEqual(restored.engine.serialize().state, beforeEngine, '知识只属于视觉层，不补写引擎flag');
+  const legacy = json(save); delete legacy.visual.knowledge;
+  assert.deepEqual(parseVisualSave(legacy).visual.knowledge, { observed: [], paper: { observed: [], identified: [] } });
+  const oldResult = await restoreVisualSave(restored.engine, legacy);
+  assert.deepEqual(oldResult.visual.knowledge, { observed: [], paper: { observed: [], identified: [] } });
+});
+
+test('畸形或自相矛盾的knowledge拒绝导入，不覆盖活进度和盘上好档', async () => {
+  const g = session(), storage = memoryStorage(), store = createVisualSaveStore({ storage });
+  const good = makeVisualSave(g.engine, visual(g.engine));
+  assert.equal(store.write(good).ok, true);
+  const disk = storage.getItem(VISUAL_SAVE_KEY), before = json(g.engine.serialize().state);
+  const empty = { observed: [], paper: { observed: [], identified: [] } };
+  const malformed = [null, [], 'bad', {},
+    { ...empty, observed: 'bad' }, { ...empty, observed: [1] },
+    { ...empty, observed: [''] }, { ...empty, observed: ['arbitrary prose'] },
+    { ...empty, observed: ['item:ball', 'item:ball'] },
+    { ...empty, extra: true }, { ...empty, paper: null },
+    { ...empty, paper: { observed: [], identified: 'bad' } },
+    { ...empty, paper: { observed: ['item:ball'], identified: [] } },
+    { ...empty, paper: { observed: [], identified: ['round_pond:paper-craft'] } },
+    { ...empty, paper: { observed: ['round_pond:paper-craft'], identified: ['round_pond:paper-craft'], extra: true } },
+  ];
+  for (const knowledge of malformed) {
+    const bad = { ...good, visual: { ...good.visual, knowledge } };
+    assert.equal(store.write(bad).ok, false, JSON.stringify(knowledge));
+    assert.equal((await store.restore(g.engine, bad)).ok, false, JSON.stringify(knowledge));
+    assert.deepEqual(g.engine.serialize().state, before);
+    assert.equal(storage.getItem(VISUAL_SAVE_KEY), disk);
+  }
 });

@@ -49,6 +49,7 @@ export function renderStorySprite(ctx,object,state,time) {
   }
   if(kind==='ball')return stamp(ctx,'ball',x,y,10,10);
   if(kind==='gnomon')return stamp(ctx,'gnomon',x,y,13,10,options);
+  if(kind==='paper_boat')return stamp(ctx,'paper_bird',x,y,15,7,{rotation:.06});
   if(kind==='paper_bird'||kind==='paper')return stamp(ctx,has(state,'bird_unfolded')||options.unfold>.5?'paper_open':'paper_bird',x,y,has(state,'bird_unfolded')?18:15,11);
   if(kind==='bag')return stamp(ctx,'bag',x,y,13,12);
   if(kind==='missile')return stamp(ctx,'missile',x,y,56,33,options);

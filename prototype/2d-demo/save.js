@@ -84,6 +84,28 @@ function reachable(scene, point, blocked) {
   }
   return false;
 }
+const PAPER_CRAFT_ID = 'round_pond:paper-craft';
+const stableObjectId = value => typeof value === 'string'
+  && /^[a-z][a-z0-9_-]*(?::[a-z0-9_-]+)+$/i.test(value);
+function knowledgeLists(value, validId) {
+  return Array.isArray(value) && value.every(validId) && new Set(value).size === value.length;
+}
+function normalizeKnowledge(value) {
+  if (value === undefined) return { observed: [], paper: { observed: [], identified: [] } };
+  const knownKeys = (object, keys) => record(object)
+    && Object.keys(object).every(key => keys.includes(key));
+  if (!knownKeys(value, ['observed', 'paper']) || !knowledgeLists(value.observed, stableObjectId)
+    || !knownKeys(value.paper, ['observed', 'identified'])
+    || !knowledgeLists(value.paper.observed, id => id === PAPER_CRAFT_ID)
+    || !knowledgeLists(value.paper.identified, id => id === PAPER_CRAFT_ID)
+    || value.paper.identified.some(id => !value.paper.observed.includes(id))) {
+    fail('VISUAL_KNOWLEDGE', '存档中的观察与辨认记录格式错误。');
+  }
+  return { observed: [...value.observed], paper: {
+    observed: [...value.paper.observed], identified: [...value.paper.identified],
+  } };
+}
+
 function visualPosition(visual, scene, blocked) {
   if (!Array.isArray(scene.spawn) || !Number.isFinite(scene.spawn[0]) || !Number.isFinite(scene.spawn[1])
     || blocked(scene, scene.spawn[0], scene.spawn[1])) fail('SCENE_SPAWN', '当前场景缺少可用的出生点。');
@@ -102,7 +124,9 @@ function prepare(input, { scenes = SCENES, isBlocked = worldIsBlocked } = {}) {
     || !record(packet.engine) || !record(packet.visual)) fail('VISUAL_FORMAT', '这不是兼容的二维游戏存档。');
   validateEngineEnvelope(packet.engine, scenes);
   if (packet.visual.room !== packet.engine.state.room) fail('VISUAL_ROOM_MISMATCH', '角色位置与存档房间不一致。');
+  const knowledge = normalizeKnowledge(packet.visual.knowledge);
   const position = visualPosition(packet.visual, scenes[packet.visual.room], isBlocked);
+  position.visual.knowledge = knowledge;
   // Copy only the supported package fields. Imported objects cannot alias the
   // running state or carry the text entry point's unrelated presentation state.
   let engine;

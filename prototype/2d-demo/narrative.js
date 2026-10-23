@@ -49,7 +49,7 @@ const length = {birds_arrive:1.25,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:
 
 export function createNarrativeDirector() {
   let queue=[],active=null,lastRoom=null,latest=null,history=[],leafOffset=0,windChanged=false;
-  const triggered=new Set(),visuals=new Map();
+  const triggered=new Set();
   function add(type,before,after,options={}) {
     const room=options.room||after.room||before.room;
     const id=options.id||type;
@@ -61,7 +61,6 @@ export function createNarrativeDirector() {
   function onCommand(before={},after={},command='') {
     if(!latest)windChanged=has(before,'wind_changed');
     latest=after;lastRoom=after.room;
-    for(const snapshot of [before,after])if(snapshot.room&&visualOf(snapshot).hotspots)visuals.set(snapshot.room,visualOf(snapshot));
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
     const gained=flag=>!has(before,flag)&&has(after,flag);
@@ -72,7 +71,8 @@ export function createNarrativeDirector() {
     if(gained('ruby_snatched'))push('ruby_snatch');
     if(gained('wind_changed'))push('wind_reversal');
     if(gained('gnomon_unscrewed'))push('gnomon_unscrew');
-    if(gained('seen_paper_bird'))push('paper_approach',{busy:false});
+    if((gained('seen_paper_bird')&&after.visual?.paperIdentified!==false)
+      || (before.visual?.paperIdentified===false&&after.visual?.paperIdentified===true))push('paper_approach',{busy:false});
     if(gained('bird_unfolded'))push('paper_unfold');
     if(gained('umbrella_woman_done'))push('umbrella_gust');
     // These are the actual source flags/locations, not invented convenience flags.
@@ -113,9 +113,12 @@ export function createNarrativeDirector() {
     while(active&&remaining>0){const step=Math.min(remaining,active.duration-active.elapsed);active.elapsed+=step;remaining-=step;if(active.elapsed>=active.duration-.00001)finish();else break;}
   }
   function skip() { while(active)finish(true); }
-  function getState() {
+  function getState(state=latest||{}) {
     const type=active?.type||null;
     const hiddenKinds=[];
+    if(['birds_arrive','feed_birds'].includes(type))hiddenKinds.push('birds','pigeons');
+    if(type==='gnomon_unscrew')hiddenKinds.push('gnomon');
+    if(type==='missile_reveal')hiddenKinds.push('missile');
     if(['feed_birds','ruby_reveal','ruby_snatch'].includes(type))hiddenKinds.push('ruby','gem');
     if(type==='umbrella_gust'||type==='umbrella_dislodged')hiddenKinds.push('umbrella','umbrella_tree');
     if(type==='umbrella_dislodged')hiddenKinds.push('ball');
@@ -123,16 +126,18 @@ export function createNarrativeDirector() {
     if(type==='paper_approach')hiddenKinds.push('paper_bird');
     if(type==='door_reveal')hiddenKinds.push('door','white_door');
     if(type==='boy_startled')hiddenKinds.push('boy','teenager','dish');
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom:active?.room||lastRoom,hidePlayer:['pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
+    const sceneRoom=active?.room||state.room||lastRoom;
+    // Available commands can disappear without the people leaving the scene.
+    // Return these actors to the caller's shared depth/collision pass; draw()
+    // must never paint them above foreground objects after that pass has ended.
+    const persistentActors=[];
+    if(state.room==='broad_walk'&&has(state,'birds_fed')){
+      persistentActors.push({id:'broad_walk:woman',room:'broad_walk',kind:'woman',actorId:'bird_food_seller',x:143,y:166,label:'卖鸟食的老妇人',visual:true,visualOnly:true,radius:0,actions:[],visualOptions:{pose:'seated'}});
+      if(!['feed_birds','birds_arrive'].includes(type))persistentActors.push({id:'broad_walk:birds',room:'broad_walk',kind:'birds',x:185,y:185,label:'鸽子',visual:true,visualOnly:true,radius:0,actions:[]});
+    }
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
-    const sceneVisual=visuals.get(room),source=sceneVisual?{...state,visual:sceneVisual}:state;
-    // Hotspots express available commands, not the continued presence of actors.
-    // The source never sends the crumb seller away after feeding the pigeons.
-    if(room==='broad_walk'&&has(state,'birds_fed')){
-      const woman=point(source,room,['woman','bird_woman']);drawStoryProp(c,{...woman,kind:'woman'},state,clock);
-      if(!['feed_birds','birds_arrive'].includes(active?.type))drawStoryProp(c,{...point(source,room,['birds','pigeons']),kind:'birds'},state,clock);
-    }
     drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();

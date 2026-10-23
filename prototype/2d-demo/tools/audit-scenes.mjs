@@ -1,6 +1,6 @@
 // Checks runtime references and visual reachability; does NOT certify original-game truth.
 import assert from 'node:assert/strict';
-import { isBlocked as blocked } from '../world.js';
+import { isBlocked as blocked, isSegmentWalkable } from '../world.js';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SCENES, SCENE_SCHEMA_VERSION, LOGICAL_SIZE } from '../scene-manifest.js';
@@ -18,7 +18,7 @@ function reachable(scene) {
   seen.add(key(...scene.spawn));
   for (let i=0;i<queue.length;i++) for (const [dx,dy] of [[6,0],[-6,0],[0,6],[0,-6]]) {
     const [x,y]=queue[i], nx=x+dx,ny=y+dy,id=key(nx,ny);
-    if (!seen.has(id) && !blocked(scene,nx,ny)) { seen.add(id);queue.push([nx,ny]); }
+    if (!seen.has(id) && !blocked(scene,nx,ny) && isSegmentWalkable(scene,[x,y],[nx,ny])) { seen.add(id);queue.push([nx,ny]); }
   }
   return queue;
 }

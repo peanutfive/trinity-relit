@@ -24,6 +24,16 @@ export function drawScene(c,room,time,effects=true){
 export function drawActor(c,x,y,color='#b99b6b',facing='down',walk=0,elder=false,animation={}) {
   paintCharacter(c,x,y,color,facing,walk,elder,animation);
 }
+// Repaint only traced foreground silhouettes over actors standing behind them.
+export function drawOcclusion(c,room,footY){
+  const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(background?.image);
+  if(!atlas?.complete||!atlas.naturalWidth)return;
+  for(const cover of scene.occluders||[]){
+    if(footY>=cover.depthY)continue;
+    c.save();c.beginPath();cover.points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
+    const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();
+  }
+}
 export function drawProp(c,o,time){
   const {x,y,kind}=o;
   if(kind==='woman')drawActor(c,x,y,'#777489','down',0,true,{time,moving:false,blend:0,action:'idle'});

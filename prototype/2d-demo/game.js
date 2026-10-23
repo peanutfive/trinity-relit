@@ -1,15 +1,19 @@
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
 import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
+import { heroArtStatus } from './character.js';
 import { createPrologueSession } from './engine-adapter.js';
-import { getHotspots, getInventoryActions } from './interaction-catalog.js';
+import { getHotspots } from './interaction-catalog.js';
+import { createDiscovery, PAPER_CRAFT_ID } from './discovery.js';
+import { resolveInteraction, resolveHeldSelf } from './interaction-intent.js';
+import { roomArrival } from './arrivals.js';
 import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
-import { isBlocked } from './world.js';
+import { isBlocked, findPath, nearestWalkable, pointInPolygon, approachingExit } from './world.js';
 import { SCENES, LOGICAL_SIZE, sceneExits } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
-import { drawScene, drawActor, artStatus } from './art.js';
+import { drawScene, drawActor, drawOcclusion, artStatus } from './art.js';
 import { ITEMS } from '../js/data/items.js';
 
 const $ = selector => document.querySelector(selector);
@@ -29,14 +33,23 @@ let exitLock = 0;
 let player;
 let motion;
 let started = false;
+let discovery = createDiscovery();
+let observedObjects = new Set();
+let heldItem = null;
+let focusedItem = null;
+let walkPath = [];
+let walkTarget = null;
+let walkExit = null;
+let previousScene = null;
+let lastArrival = null;
 let busy = false;
+let lastCommand = null;
 let language = 'cn';
 let pages = [];
 let pageIndex = 0;
 let dialogSource = '';
 let dialogActions = [];
 let inventoryOpen = false;
-let actionMenuOpen = false;
 let clock = 0;
 let paused = false;
 let captureBinding = null;
@@ -54,6 +67,8 @@ function beginOutput() {
 }
 const ui = {
   text(text) {
+    text = discovery.filterOutput(text, engine?.state || {});
+    if (!String(text).trim()) return;
     if (roomDescription === null) roomDescription = text;
     else if (isRepeatedItemDescription(text, roomDescription, roomItemDescriptions)) return;
     output.push(text);
@@ -71,6 +86,9 @@ function reset() {
   engine = createPrologueSession({ ui });
   director = createNarrativeDirector();
   resetWabeArt();
+  discovery = createDiscovery(); observedObjects = new Set(); heldItem = null;
+  previousScene = null;
+  lastArrival = null;
   portrait = null;
   // New games enter the first room once, matching the current text entry point.
   player = { x: 238, y: 218, face: 'down', walk: 0 };
@@ -78,7 +96,7 @@ function reset() {
   closeQuest();
   closeDialog();
   updateLabels();
-  $('#objective').textContent = '试着去东边的花径，寻找花丛里的足球。';
+  $('#objective').textContent = '沿着小径走走。观察周围，再试试手中物品能做什么。';
   if (started) enterOpening();
   updateHud();
   paintSaveState();
@@ -103,6 +121,8 @@ function updateHud() {
   $('#touch-interact').textContent = reading ? '继续' : director.getState().busy ? '跳过' : '互动';
   $('#skip-event').hidden = !director.getState().busy || paused;
   $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} / ↵ · ${near.label}` : '';
+  $('#hand-kit').hidden = !heldItem || !started || paused || reading;
+  $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
 
 function paginate(text) {
@@ -126,10 +146,10 @@ function paginate(text) {
 function stopMovement() {
   keys.clear();
   motion.moving = false;
+  walkPath = []; walkTarget = null; walkExit = null;
 }
 
 function show(text, actions = []) {
-  actionMenuOpen = false;
   closeQuest();
   dialogSource = text;
   dialogActions = actions;
@@ -154,12 +174,12 @@ function paintDialog() {
     button.onclick = action.run;
     $('#choices').append(button);
   }
-  $('#next').textContent = last ? '收起 ↵' : '继续 ↵';
+  $('#next').textContent = `${last?'收起':'继续'} ${keyLabel(preferences.bindings.interact)} / ↵`;
   updateHud();
 }
 
 function closeDialog() {
-  actionMenuOpen = false;
+  focusedItem = null;
   $('#dialogue').hidden = true;
   pages = [];
   dialogActions = [];
@@ -214,26 +234,35 @@ function faceObject(object) {
 }
 
 function gameSnapshot() {
-  return { ...engine.state.serialize(), visual: { room: engine.state.room, player: { ...player }, hotspots: objects() } };
+  return { ...engine.state.serialize(), visual: { room: engine.state.room, player: { ...player }, hotspots: objects(), paperIdentified:discovery.snapshot().identified.includes(PAPER_CRAFT_ID) } };
 }
-async function command(input, actions = []) {
+async function command(input, actions = [], observedId = null) {
   if (busy || paused) return;
+  lastCommand=input;
   busy = true;
   const before = gameSnapshot();
   beginOutput();
   updateHud();
   try {
     await engine.processInput(input);
+    const revelation=discovery.inspect(engine.state,{command:input,success:!engine.state.dead});
+    if(revelation.text)output.push(revelation.text);
+    if(observedId&&!engine.state.dead)observedObjects.add(observedId);
+    if(heldItem&&!engine.state.has(heldItem))heldItem=null;
     if (before.room !== engine.state.room) {
+      previousScene=before;
       const scene = scenes[engine.state.room];
       if (scene) [player.x, player.y] = scene.spawn;
+      lastArrival=roomArrival(navigationScene(),{fromRoom:before.room,direction:input,exits:exits()});
+      if(lastArrival){player.x=lastArrival.x;player.y=lastArrival.y;player.face=lastArrival.face;}
       stopMovement(); motion.blend = 0; player.walk = 0; exitLock = 0.5;
     }
+    normalizePlayerLocation();
     const after = gameSnapshot();
     director.onCommand(before, after, input);
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
-    if (engine.state.chapter === 'wabe') $('#objective').textContent = '探索林地、沼泽与石阶，看看日晷上的符号环。';
+    if (engine.state.chapter === 'wabe') $('#objective').textContent = '沿林间小路前行，留意石头、植物与光影中的细节。';
     persistProgress({force:true});
   } finally {
     busy = false;
@@ -258,7 +287,7 @@ function enterOpening() {
 
 function persistProgress({force=false}={}) {
   if (!started || engine.state.dead || (busy&&!force)) return {ok:false,skipped:true};
-  const result = saveStore.write(engine, {room:engine.state.room,x:player.x,y:player.y,face:player.face});
+  const result = saveStore.write(engine, {room:engine.state.room,x:player.x,y:player.y,face:player.face,knowledge:{observed:[...observedObjects],paper:discovery.snapshot()}});
   if (!result.ok && !result.skipped) $('#save-message').textContent = '进度未能保存：' + result.error.message;
   return result;
 }
@@ -284,9 +313,13 @@ async function restoreProgress(input) {
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
+    previousScene=null;
+    lastArrival=null;
+    discovery=createDiscovery(restored.visual.knowledge.paper);observedObjects=new Set(restored.visual.knowledge.observed);heldItem=null;
     player = {x:restored.visual.x,y:restored.visual.y,face:restored.visual.face,walk:0};
     motion = {moving:false,blend:0,action:'idle',elapsed:0,duration:0};
     exitLock = .5;
+    normalizePlayerLocation();
     closeQuest(); closeDialog(); setPaused(false);
     $('#overlay').hidden = true;
     updateLabels();
@@ -304,7 +337,12 @@ function loadSavedProgress() {
   if(result.ok&&result.save) restoreProgress(result.save);
 }
 
-function objects() { return getHotspots(engine.state); }
+function objects() {
+  const listed=discovery.mapHotspots(engine.state,getHotspots(engine.state));
+  const ids=new Set(listed.map(object=>object.id));
+  const persistent=director.getState(engine.state).persistentActors.filter(object=>object.room===engine.state.room&&!ids.has(object.id));
+  return [...listed,...persistent].map(object=>object.id==='palace_gate:self'?{...object,visual:false}:object);
+}
 function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
 
 function nearby() {
@@ -312,20 +350,6 @@ function nearby() {
     .filter(object => object.d < object.radius).sort((a, b) => a.d - b.d)[0];
 }
 
-function actionMenu(label, actions, portraitId = null) {
-  closeQuest();
-  actionMenuOpen = true;
-  dialogSource = '';
-  portrait = portraitId;
-  dialogActions = actions.map(action => ({ label: action.label, run: () => {
-    if (/^(take|get|pick)/.test(action.command)) animateAction('pickup');
-    else animateAction('inspect');
-    command(action.command);
-  } }));
-  pages = ['选择操作。']; pageIndex = 0; inventoryOpen = false;
-  stopMovement(); paintDialog(); $('#speaker').textContent = label;
-  canvas.focus({ preventScroll: true });
-}
 function interact() {
   if (!started || busy || paused) return;
   if (pages.length) { next(); return; }
@@ -333,8 +357,23 @@ function interact() {
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
   if (!object) { describe(); return; }
+  interactWith(object);
+}
+
+function interactWith(object) {
+  if(busy||paused||!object)return;
   faceObject(object);
-  actionMenu(object.label, object.actions, object.kind === 'woman' ? (engine.state.room === 'broad_walk' ? 'bird_woman' : 'umbrella_woman') : null);
+  const input=resolveInteraction(engine.state,object,{heldItem,observed:observedObjects});
+  if(!input){sound.playUi('click');$('#hand-status').textContent='没有反应。';return;}
+  portrait=object.kind==='woman'?(engine.state.room==='broad_walk'?'bird_woman':'umbrella_woman'):null;
+  animateAction(/^(take|get|pick)/.test(input)?'pickup':'inspect');
+  command(input,[],object.id);
+}
+
+function useHeldItem() {
+  const input=heldItem==='paper_bird'?'examine paper bird':resolveHeldSelf(heldItem,engine.state);
+  focusedItem=heldItem==='paper_bird'?heldItem:null;
+  if(input&&!paused&&!busy)command(input);
 }
 
 function inventory() {
@@ -343,29 +382,38 @@ function inventory() {
   closeQuest();
   stopMovement();
   inventoryOpen = true;
-  actionMenuOpen = false;
   pages = ['背包'];
   pageIndex = 0;
   dialogActions = [];
   $('#dialogue').hidden = false;
   $('#speaker').textContent = '随身物品';
   $('#page').textContent = '';
-  $('#text').textContent = '选择物品查看。';
+  $('#text').textContent = '选择一件物品拿在手中，再点击场景尝试使用。点击手中物品可以近看。';
   $('#choices').replaceChildren();
   for (const { id } of engine.state.inventoryList()) {
     const button = document.createElement('button');
     button.textContent = ITEMS[id].cn;
-    button.onclick = () => actionMenu(ITEMS[id].cn, getInventoryActions(id, engine.state));
+    button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
     $('#choices').append(button);
   }
-  $('#next').textContent = '收起 ↵';
+  $('#next').textContent = `收起 ${keyLabel(preferences.bindings.interact)} / ↵`;
   updateHud();
   canvas.focus({ preventScroll: true });
 }
 
 function obstacles() { return scenes[engine.state.room].obstacles; }
 
-function solid(x, y) { return isBlocked(scenes[engine.state.room], x, y); }
+function bodyObstacles(){return objects().filter(o=>['woman','umbrella_woman','boy','pram','sundial','door'].includes(o.kind)).map(o=>{
+  const rx=o.kind==='pram'?20:o.kind==='sundial'?16:o.kind==='door'?11:6,ry=o.kind==='pram'?7:o.kind==='sundial'?7:3;
+  return {x:o.x-rx,y:o.y-ry,w:rx*2,h:ry*2};
+});}
+function navigationScene(){const scene=scenes[engine.state.room];return {...scene,obstacles:[...scene.obstacles,...bodyObstacles()]};}
+function solid(x, y) { return isBlocked(navigationScene(), x, y); }
+function normalizePlayerLocation(){
+  if(engine.state.hasFlag('in_pram')||!solid(player.x,player.y))return;
+  const safe=nearestWalkable(navigationScene(),player);
+  if(safe){player.x=safe.x;player.y=safe.y;}
+}
 
 async function transition(exit) {
   if (busy) return;
@@ -373,7 +421,6 @@ async function transition(exit) {
   if (!scenes[target]) return;
   await command(exit.dir);
   if (engine.state.room === target) {
-    [player.x, player.y] = exit.spawn;
     stopMovement();
     motion.blend = 0;
     motion.action = 'idle';
@@ -390,14 +437,33 @@ function update(dt) {
   motion.elapsed += dt;
   if (motion.action !== 'idle' && motion.elapsed >= motion.duration) motion.action = 'idle';
   const canWalk = started && !pages.length && !busy && !paused && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram') && $('#quest').hidden;
-  const dx = canWalk ? Number(keys.has('ArrowRight') || keys.has(preferences.bindings.right)) - Number(keys.has('ArrowLeft') || keys.has(preferences.bindings.left)) : 0;
-  const dy = canWalk ? Number(keys.has('ArrowDown') || keys.has(preferences.bindings.down)) - Number(keys.has('ArrowUp') || keys.has(preferences.bindings.up)) : 0;
+  if(canWalk&&walkTarget){
+    const target=objects().find(o=>o.id===walkTarget);
+    if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius-1){walkPath=[];walkTarget=null;interactWith(target);return;}
+  }
+  let dx = canWalk ? Number(keys.has('ArrowRight') || keys.has(preferences.bindings.right)) - Number(keys.has('ArrowLeft') || keys.has(preferences.bindings.left)) : 0;
+  let dy = canWalk ? Number(keys.has('ArrowDown') || keys.has(preferences.bindings.down)) - Number(keys.has('ArrowUp') || keys.has(preferences.bindings.up)) : 0;
+  let remainingDistance=Infinity;
+  if(dx||dy){walkPath=[];walkTarget=null;walkExit=null;}
+  else if(canWalk&&walkPath.length){
+    while(walkPath.length&&Math.hypot(player.x-walkPath[0][0],player.y-walkPath[0][1])<.45)walkPath.shift();
+    if(walkPath.length){dx=walkPath[0][0]-player.x;dy=walkPath[0][1]-player.y;remainingDistance=Math.hypot(dx,dy);}
+    else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius)interactWith(target);}
+    else if(walkExit){
+      const exit=exits().find(candidate=>candidate.dir===walkExit);walkExit=null;
+      if(exit&&Math.hypot(exit.x-player.x,exit.y-player.y)<exit.radius){command(exit.dir);return;}
+    }
+  }
   const oldX = player.x, oldY = player.y;
   if (dx || dy) {
     player.face = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    const step = 92 * dt / Math.hypot(dx, dy);
-    if (!solid(player.x + dx * step, player.y)) player.x += dx * step;
-    if (!solid(player.x, player.y + dy * step)) player.y += dy * step;
+    const step = Math.min(92 * dt,remainingDistance) / Math.hypot(dx, dy);
+    const nx=player.x+dx*step,ny=player.y+dy*step;
+    if(walkPath.length&&!solid(nx,ny)){player.x=nx;player.y=ny;}
+    else {
+      if (!solid(nx, player.y)) player.x = nx;
+      if (!solid(player.x, ny)) player.y = ny;
+    }
   }
   const distance = Math.hypot(player.x - oldX, player.y - oldY);
   motion.moving = distance > 0.001;
@@ -407,7 +473,7 @@ function update(dt) {
     player.walk = (player.walk + distance / 46 * Math.PI * 2) % (Math.PI * 2);
     motion.action = 'idle';
     for (const exit of exits()) {
-      if (!exitLock && Math.hypot(player.x - exit.x, player.y - exit.y) < exit.radius) { transition(exit); break; }
+      if (!walkTarget&&!walkPath.length&&!exitLock && approachingExit(exit,{x:oldX,y:oldY},player)) { transition(exit); break; }
     }
   }
   updateHud();
@@ -421,25 +487,56 @@ function animationState() {
   };
 }
 
+function paperDetailLayout() {
+  return canvas.clientWidth<600?{left:150,top:34,width:180,height:90,x:240,y:114,scale:4.5}
+    :{left:166,top:58,width:148,height:110,x:240,y:144,scale:5};
+}
+function pointedPaperDetail(point) {
+  if(focusedItem!=='paper_bird'||!pages.length)return false;
+  const box=paperDetailLayout();
+  return point.x>box.left&&point.x<box.left+box.width&&point.y>box.top&&point.y<box.top+box.height;
+}
+
+function exitLabel(exit) {
+  const anchor=scenes[engine.state.room].exitLabelAnchors?.[exit.dir];
+  const x=anchor?.[0]??Math.max(52,Math.min(416,exit.x));
+  const y=anchor?.[1]??(['ne','nw'].includes(exit.dir)?Math.max(49,exit.y-10):exit.dir==='n'?Math.max(27,exit.y-10):exit.dir==='s'?Math.min(268,exit.y-7):exit.y-10);
+  const text=(exit.dir==='n'?'↑ ':exit.dir==='w'?'← ':'')+exit.label+(exit.dir==='e'?' →':exit.dir==='s'?' ↓':'');
+  ctx.save();ctx.font='8px serif';const width=ctx.measureText(text).width+14;ctx.restore();
+  return {x,y,text,width,left:x-width/2,top:y-9,height:14};
+}
+
+function pointedExitLabel(point) {
+  return exits().find(exit=>{const label=exitLabel(exit);return point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
+}
+
 function render() {
   const scale = preferences.video.resolution;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
-  const story = director.getState();
+  const story = director.getState(engine.state);
   const renderRoom = story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room;
+  const crossing=renderRoom!==engine.state.room;
+  const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
+  const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   drawScene(ctx, renderRoom, clock, preferences.video.effects);
-  const actors = objects().filter(object => !(story.hiddenKinds || []).includes(object.kind)).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, object, engine.state, preferences.video.effects ? clock : 0) }));
-  if (!story.hidePlayer) actors.push({ y: player.y, draw: () => drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState()) });
-  actors.sort((a, b) => a.y - b.y).forEach(actor => actor.draw());
+  const inPram=engine.state.hasFlag('in_pram');
+  const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind)).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, object.kind==='pram'&&inPram?{...object,visualOptions:{rider:true,open:true}}:object, renderState, preferences.video.effects ? clock : 0) }));
+  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState()) });
+  actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
   director.draw(ctx, renderRoom, engine.state, clock);
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
-  for (const exit of exits()) {
-    const x = Math.max(52, Math.min(416, exit.x));
-    const y = ['ne','nw'].includes(exit.dir) ? 49 : exit.dir === 'n' ? 27 : exit.dir === 's' ? 268 : exit.y - 10;
-    const label = (exit.dir === 'n' ? '↑ ' : exit.dir === 'w' ? '← ' : '') + exit.label
-      + (exit.dir === 'e' ? ' →' : exit.dir === 's' ? ' ↓' : '');
+  if(focusedItem==='paper_bird'&&pages.length){
+    const box=paperDetailLayout();
+    ctx.save();ctx.fillStyle='#192820f5';ctx.strokeStyle='#bfa46e';ctx.fillRect(box.left,box.top,box.width,box.height);ctx.strokeRect(box.left,box.top,box.width,box.height);
+    ctx.beginPath();ctx.rect(box.left+2,box.top+2,box.width-4,box.height-4);ctx.clip();ctx.translate(box.x,box.y);ctx.scale(box.scale,box.scale);
+    drawStoryProp(ctx,{kind:'paper_bird',x:0,y:0},engine.state,clock);
+    if(engine.state.hasFlag('bird_unfolded')){ctx.fillStyle='#59472d';ctx.font='italic 2px Georgia,serif';ctx.textAlign='center';ctx.fillText('Long Water,',0,-6);ctx.fillText("Four O’Clock",0,-3.4);}
+    ctx.restore();
+  }
+  for (const exit of crossing?[]:exits()) {
+    const {x,y,text:label,width}=exitLabel(exit);
     ctx.font = '8px serif';
     ctx.textAlign = 'center';
-    const width = ctx.measureText(label).width + 14;
     ctx.fillStyle = '#19251ed6';
     ctx.fillRect(x - width / 2, y - 9, width, 14);
     ctx.strokeStyle = '#cfb48177';
@@ -448,14 +545,46 @@ function render() {
     ctx.fillStyle = '#efe0b8';
     ctx.fillText(label, x, y);
   }
-  const near = nearby();
-  if (near && started && !pages.length && !paused && !story.busy && $('#quest').hidden) {
-    ctx.fillStyle = '#ffdfa1'; ctx.font = '11px serif'; ctx.textAlign = 'center';
-    ctx.shadowColor = '#f3c673'; ctx.shadowBlur = 5;
-    ctx.fillText('◇', near.x, near.y - 38 + Math.sin(clock * 4) * 1.2);
-    ctx.shadowBlur = 0;
-  }
 }
+
+function pointerPoint(event){const rect=canvas.getBoundingClientRect();return {x:(event.clientX-rect.left)/rect.width*480,y:(event.clientY-rect.top)/rect.height*288};}
+function pointedObject(point){return objects().filter(o=>o.id!=='palace_gate:self'&&!o.visualOnly).map(o=>{
+  const shape=o.pointerShape;
+  if(shape){
+    const outer=((point.x-shape.x)/shape.rx)**2+((point.y-shape.y)/shape.ry)**2;
+    const hit=shape.kind==='polygon'?pointInPolygon(point.x,point.y,shape.points)
+      :outer<=1&&(shape.kind!=='annulus'||((point.x-shape.x)/shape.innerRx)**2+((point.y-shape.y)/shape.innerRy)**2>=1);
+    return {o,d:hit?-shape.priority:Infinity};
+  }
+  const person=['woman','umbrella_woman','boy'].includes(o.kind),pram=o.kind==='pram';
+  const rx=person?16:pram?24:20,ry=person?23:pram?19:20,cy=o.y-(person?20:pram?13:10);
+  return {o,d:((o.x-point.x)/rx)**2+((cy-point.y)/ry)**2};
+}).filter(hit=>hit.d<1).sort((a,b)=>a.d-b.d)[0]?.o;}
+canvas.addEventListener('pointermove',event=>{const p=pointerPoint(event);canvas.style.cursor=pointedPaperDetail(p)||pointedObject(p)||pointedExitLabel(p)?'pointer':'default';});
+canvas.addEventListener('pointerdown',event=>{
+  if(!started||paused||busy)return;
+  if(pages.length){
+    const point=pointerPoint(event);
+    if(pointedPaperDetail(point)){command(resolveHeldSelf('paper_bird',engine.state));return;}
+    next();return;
+  }
+  if(director.getState().busy){director.skip();return;}
+  const point=pointerPoint(event),target=pointedObject(point);
+  const labelExit=pointedExitLabel(point);
+  const requestedExit=labelExit||(!target&&exits().find(exit=>Math.hypot(exit.x-point.x,exit.y-point.y)<13));
+  if(requestedExit&&!engine.state.hasFlag('in_pram')){
+    const navigation=navigationScene();walkPath=findPath(navigation,player,{x:requestedExit.x,y:requestedExit.y},{nearest:true});walkTarget=null;walkExit=walkPath.length?requestedExit.dir:null;canvas.focus({preventScroll:true});return;
+  }
+  if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius){interactWith(target);return;}
+  if(engine.state.hasFlag('in_pram')){if(heldItem)useHeldItem();else command('exit pram');return;}
+  const navigation=navigationScene();
+  const landing=nearestWalkable(navigation,target||point,{from:player});
+  if(!landing)return;
+  walkPath=findPath(navigation,player,landing);
+  walkExit=null;
+  walkTarget=target&&Math.hypot(target.x-landing.x,target.y-landing.y)<target.radius?target.id:null;
+  canvas.focus({preventScroll:true});
+});
 
 function start() {
   if (started || busy) return;
@@ -489,7 +618,7 @@ function paintBindings() {
     button.classList.toggle('is-capturing', captureBinding === action);
     button.onclick = () => {
       captureBinding = action;
-      $('#binding-message').textContent = `正在设置「${label}」：按一个字母或数字，Esc 取消。`;
+      $('#binding-message').textContent = `正在设置「${label}」：按字母、数字或 F11，Esc 取消。`;
       paintBindings();
       $(`[data-binding="${action}"]`).focus();
     };
@@ -497,6 +626,7 @@ function paintBindings() {
     $('#binding-list').append(row);
   }
   $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} / 回车 互动 · Esc 暂停与设置`;
+  canvas.setAttribute('aria-label',`方向键行走，${keyLabel(preferences.bindings.interact)}或回车互动和继续对话，Esc暂停与设置`);
 }
 
 function selectTab(tab) {
@@ -568,7 +698,7 @@ window.addEventListener('keydown', event => {
   if (paused && captureBinding) {
     event.preventDefault();
     if (key === 'Escape') { captureBinding = null; paintBindings(); $('#binding-message').textContent = '已取消改键。'; return; }
-    if (!/^[a-z0-9]$/.test(key)) { $('#binding-message').textContent = '请选择字母或数字；方向键、回车和 Esc 为固定按键。'; return; }
+    if (!/^[a-z0-9]$/.test(key)&&!(key==='F11'&&captureBinding==='fullscreen')) { $('#binding-message').textContent = '请选择字母或数字；F11仅用于全屏，方向键、回车和Esc为固定按键。'; return; }
     const conflict = Object.entries(preferences.bindings).find(([action, value]) => value === key && action !== captureBinding);
     if (conflict) { $('#binding-message').textContent = `${keyLabel(key)} 已用于「${bindingNames[conflict[0]]}」，请选择其他按键。`; return; }
     preferences.bindings[captureBinding] = key;
@@ -592,6 +722,7 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.target.closest('button') && ['Enter', ' '].includes(key)) return;
+  if(key===preferences.bindings.fullscreen)event.preventDefault();
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) event.preventDefault();
   if (!event.repeat) actionKey(key);
   keys.add(key);
@@ -599,6 +730,8 @@ window.addEventListener('keydown', event => {
 window.addEventListener('keyup', event => keys.delete(normalKey(event.key)));
 window.addEventListener('blur', stopMovement);
 $('#start').onclick = start;
+$('#held-item').onclick = useHeldItem;
+$('#clear-hand').onclick = () => {heldItem=null;$('#hand-status').textContent='';updateHud();canvas.focus({preventScroll:true});};
 $('#continue-save').onclick = loadSavedProgress;
 $('#load-save').onclick = loadSavedProgress;
 $('#save-now').onclick = () => { const result=persistProgress(); paintSaveState(); if(result.ok) $('#save-message').textContent='已保存当前探索进度。'; };
@@ -655,7 +788,7 @@ document.addEventListener('fullscreenchange', () => { $('#fullscreen').textConte
 $('#language').onclick = () => {
   language = language === 'cn' ? 'en' : language === 'en' ? 'both' : 'cn';
   $('#language').textContent = { cn: '中文', en: '英文', both: '双语' }[language];
-  if (pages.length && !inventoryOpen && !actionMenuOpen) show(dialogSource, dialogActions);
+  if (pages.length && !inventoryOpen) show(dialogSource, dialogActions);
 };
 for (const button of document.querySelectorAll('[data-key]')) {
   button.onpointerdown = event => {
@@ -665,12 +798,12 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), wabeSprites:wabeArtStatus(), mode: paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), mode: paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, processing:busy,
-  inventory: engine.state.inventoryList().map(item => item.id), score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
+  inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
   controls: { ...preferences.bindings, pause: 'Escape' },
   settings: { video: { ...preferences.video }, audio: sound.getState(), captureBinding },
   hint: !$('#quest').hidden ? $('#objective').textContent : null,
