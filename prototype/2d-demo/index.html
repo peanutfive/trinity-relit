@@ -2,28 +2,25 @@
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Trinity · 花园漫步</title><link rel="stylesheet" href="style.css"></head>
 <body><main>
-<header><div><span class="eyebrow">1986 · Trinity</span><h1>花园漫步 <small>序章 · Wabe</small></h1></div><div class="tools"><button id="language">中文</button><button id="restart">重新开始</button></div></header>
+
 <section class="game-shell" aria-label="花园探索">
   <div class="stage">
-    <canvas width="1440" height="864" tabindex="0" aria-label="方向键行走，F 或回车互动和继续对话，Esc 暂停与设置"></canvas>
-    <div class="location"><span id="room"></span><span id="room-en"></span></div>
-    <button id="pause-open" aria-label="暂停与设置" aria-keyshortcuts="Escape"><span>☰</span> <kbd>Esc</kbd></button>
+    <canvas width="1440" height="864" tabindex="0" aria-label="方向键行走，F互动和继续对话，Esc 暂停与设置"></canvas>
+    <div class="location"><svg class="compass" viewBox="0 0 40 48" aria-label="北在上方"><text x="20" y="9">北</text><path d="M20 14 26 36 20 31 14 36Z"/><path d="M20 14V31"/></svg><div><span id="room"></span><span id="room-en"></span></div></div>
+
     <div id="hint" aria-live="polite"></div><button id="skip-event" hidden>跳过演出</button>
     <div id="hand-kit" hidden><button id="held-item" aria-label="近看手中物品"></button><button id="clear-hand" aria-label="收起手中物品">×</button><span id="hand-status" role="status"></span></div>
     <aside id="quest" hidden aria-label="探索提示"><div class="panel-heading"><span>探索提示</span><button id="close-quest" aria-label="关闭提示">×</button></div><p id="objective">试着去东边的花径，寻找花丛里的足球。</p><p class="quest-note">方向键行走，走近后按互动键。</p></aside>
-    <div id="overlay"><span class="eyebrow">肯辛顿花园 · 午后</span><h2>东风吹过花园。</h2><p>在树影间行走，走近花坛、雕像与陌生人。<br>看看文字里的世界，变成可以踏入的地方。</p><button id="continue-save" hidden>继续上次探索</button><button id="start">走进花园 →</button><p id="title-save-message" role="status"></p><p class="keys">方向键 / WASD 行走 · F / 回车 互动与对话<br>Esc 暂停与设置</p></div>
-    <section id="dialogue" hidden aria-live="polite"><div class="dialogue-top"><span id="speaker"></span><span id="page"></span></div><div id="text"></div><div id="choices"></div><button id="next">继续 ↵</button></section>
-    <nav class="touch-pad" aria-label="触屏方向控制"><button data-key="ArrowUp" aria-label="向上">↑</button><button data-key="ArrowLeft" aria-label="向左">←</button><button data-key="ArrowDown" aria-label="向下">↓</button><button data-key="ArrowRight" aria-label="向右">→</button></nav>
-    <button id="touch-interact" aria-label="互动或继续">互动</button>
-  </div>
+    <div id="overlay"><span class="eyebrow">肯辛顿花园 · 午后</span><h2>东风吹过花园。</h2><p>在树影间行走，走近花坛、雕像与陌生人。<br>看看文字里的世界，变成可以踏入的地方。</p><button id="continue-save" hidden>继续上次探索</button><div class="start-actions"><button id="start">走进花园 →</button><button id="start-fullscreen">全屏探索</button></div><p id="title-save-message" role="status"></p><p class="keys">方向键 / WASD 行走 · F 互动与对话<br>M 章节地图 · Esc 暂停设置 · F11 全屏<br>点击地面行走 · 双指轻触打开菜单</p></div>
+    <section id="dialogue" hidden aria-live="polite"><div class="dialogue-top"><span id="speaker"></span><span id="page"></span></div><div id="text"></div><div id="choices"></div><button id="next">继续 F</button></section>
   <section id="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
     <div class="pause-window">
       <div class="pause-heading"><div><span class="eyebrow">时间在此停留</span><h2 id="pause-title">暂停</h2></div><button id="resume">继续探索 <kbd>Esc</kbd></button></div>
       <nav class="settings-tabs" aria-label="设置分类" role="tablist"><button id="tab-controls" data-tab="controls" role="tab" aria-controls="settings-controls" aria-selected="true">键位设置</button><button id="tab-video" data-tab="video" role="tab" aria-controls="settings-video" aria-selected="false">画面设置</button><button id="tab-audio" data-tab="audio" role="tab" aria-controls="settings-audio" aria-selected="false">声音设置</button><button id="tab-progress" data-tab="progress" role="tab" aria-controls="settings-progress" aria-selected="false">探索进度</button></nav>
       <div id="settings-controls" class="settings-page" role="tabpanel" aria-labelledby="tab-controls">
-        <p class="settings-intro">点击按键后，按字母、数字或 F11 重新绑定。方向键与回车始终可用。</p>
+        <p class="settings-intro">点击按键后，按字母、数字或 F11 重新绑定。方向键始终可用，M 查看章节地图。</p>
         <div id="binding-list"></div><p id="binding-message" role="status">Esc 取消改键或关闭菜单。</p>
-        <div class="menu-actions"><button id="reset-bindings">恢复默认键位</button><button id="menu-bag">打开背包</button><button id="menu-help">查看探索提示</button></div>
+        <div class="menu-actions"><button id="menu-map">章节地图 · M</button><button id="language">中文</button><button id="restart">重新开始</button></div><div class="menu-actions"><button id="reset-bindings">恢复默认键位</button><button id="menu-bag">打开背包</button><button id="menu-help">查看探索提示</button></div>
       </div>
       <div id="settings-video" class="settings-page" role="tabpanel" aria-labelledby="tab-video" hidden>
         <label class="setting-row" for="resolution"><span>画面清晰度<small>调整画布的绘制分辨率</small></span><select id="resolution"><option value="1">标准</option><option value="2">精细</option><option value="3">高清</option></select></label>
@@ -46,6 +43,6 @@
       <p class="settings-footnote">每次操作后自动保存 · 设置与探索进度分别保存</p>
     </div>
   </section>
+  </div>
 </section>
-<p class="note">序章与 Wabe 首批场景 · 场景内部为视觉改编，出口和互动沿用现有游戏数据。</p>
 </main><script type="module" src="game.js"></script></body></html>

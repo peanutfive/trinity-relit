@@ -25,7 +25,7 @@ export function loadPreferences() {
       bindings.interact='f';bindings.fullscreen='F11';
     }
     const values = Object.values(bindings);
-    if (Object.entries(bindings).every(([action,value]) => typeof value === 'string' && (/^[a-z0-9]$/.test(value)||(action==='fullscreen'&&value==='F11'))) && new Set(values).size === values.length) result.bindings = bindings;
+    if (Object.entries(bindings).every(([action,value]) => typeof value === 'string' && ((/^[a-z0-9]$/.test(value)&&value!=='m')||(action==='fullscreen'&&value==='F11'))) && new Set(values).size === values.length) result.bindings = bindings;
     if ([1, 2, 3].includes(saved.video?.resolution)) result.video.resolution = saved.video.resolution;
     result.video.brightness = clamp(saved.video?.brightness, 100, 70, 130);
     if (typeof saved.video?.effects === 'boolean') result.video.effects = saved.video.effects;

@@ -1,8 +1,34 @@
 import { paintCharacter } from './character.js';
+import { actorLayout, actorIdentity, boyPoseFrame, umbrellaWomanPoseFrame } from './actor-layout.js';
 const image = new Image();
 image.src = new URL('./assets/story-sprites-cutout.png', import.meta.url).href;
 const details = new Image();
 details.src = new URL('./assets/story-detail.png', import.meta.url).href;
+const boyPoses = new Image();
+boyPoses.src = new URL('./assets/boy-poses-v2.png', import.meta.url).href;
+const umbrellaWomanPoses = new Image();
+umbrellaWomanPoses.src = new URL('./assets/umbrella-woman-poses-v2.png', import.meta.url).href;
+const umbrellaWomanFeet = [[319,514],[265,513],[244,515],[263,956],[275,959],[252,958]];
+function paintUmbrellaWoman(ctx,object,options) {
+  if(!umbrellaWomanPoses.complete||!umbrellaWomanPoses.naturalWidth)return false;
+  const frame=umbrellaWomanPoseFrame(options),column=frame%3,row=Math.floor(frame/3);
+  const [fx,fy]=umbrellaWomanFeet[frame],sy=row?528:0,sh=row?448:524,scale=33/433;
+  ctx.save();ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(umbrellaWomanPoses,column*512,sy,512,sh,
+    object.x-fx*scale,object.y-(fy-sy)*scale,512*scale,sh*scale);
+  ctx.restore();return true;
+}
+// Equal source cells, one shared anatomical scale, and individually measured
+// ground anchors. Rising changes body height without making the boy grow.
+const boyFeet = [[244,763],[246,766],[246,773],[195,783]];
+function paintBoy(ctx,object,options) {
+  if(!boyPoses.complete||!boyPoses.naturalWidth)return false;
+  const column=boyPoseFrame(options),[fx,fy]=boyFeet[column],scale=21/491;
+  ctx.save();ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(boyPoses,column*384,160,384,640,
+    object.x-fx*scale,object.y-(fy-160)*scale,384*scale,640*scale);
+  ctx.restore();return true;
+}
 // The approved raster atlas uses hand-verified bounds, not assumed equal cells.
 const bounds = {
   woman:[30,30,205,330],woman_give:[270,30,225,330],woman_alarm:[518,25,230,335],
@@ -28,10 +54,11 @@ export function renderStorySprite(ctx,object,state,time) {
   const {kind,x,y}=object,options=object.visualOptions||object;
   const bob=Math.sin(time*1.8)*.12;
   if(['woman','bird_woman','old_woman','umbrella_woman'].includes(kind)){
-    const eastWoman=kind==='umbrella_woman'||object.id==='lancaster_gate:woman';
-    return stamp(ctx,eastWoman?'umbrella_woman':options.alarm?'woman_alarm':options.give?'woman_give':'woman',x,y+bob,eastWoman?26:29,40);
+    const eastWoman=actorIdentity(object)==='lancaster_umbrella_woman',layout=actorLayout(object);
+    if(eastWoman)return paintUmbrellaWoman(ctx,object,options);
+    return stamp(ctx,options.alarm?'woman_alarm':options.give?'woman_give':'woman',x,y+layout.yOffset+bob,layout.width,layout.height);
   }
-  if(kind==='boy'||kind==='teenager')return stamp(ctx,options.startled?'boy_startled':'boy',x,y+bob,27,35);
+  if(kind==='boy'||kind==='teenager')return paintBoy(ctx,object,options);
   if(kind==='birds'||kind==='pigeons'){
     for(let i=0;i<5;i++)stamp(ctx,'pigeon',x+(i*17)%36-18,y+(i*11)%22-11+Math.sin(time*3+i)*.2,10,8,{flip:i%2===0});
     return true;
@@ -72,4 +99,4 @@ export function drawStoryPortrait(ctx,id,x=20,y=45,width=82,height=100) {
   const drawHeight=(width-6)*sh/sw;
   ctx.drawImage(details,sx,sy,sw,sh,x+3,y+height-drawHeight-3,width-6,drawHeight);ctx.strokeStyle='#c3a675';ctx.lineWidth=.7;ctx.strokeRect(x,y,width,height);ctx.restore();
 }
-export function spriteArtStatus(){return image.complete&&image.naturalWidth&&details.complete&&details.naturalWidth?'loaded':'loading';}
+export function spriteArtStatus(){return image.complete&&image.naturalWidth&&details.complete&&details.naturalWidth&&boyPoses.complete&&boyPoses.naturalWidth&&umbrellaWomanPoses.complete&&umbrellaWomanPoses.naturalWidth?'loaded':'loading';}

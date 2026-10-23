@@ -77,8 +77,8 @@ export function getHotspots(state) {
   }
   if (room === 'inverness_terrace' && !state.hasFlag('boy_scared')) {
     add('inverness_terrace:boy', 300, 145, '吹泡泡的男孩', 'boy', 'examine_boy', [action('查看男孩', 'examine boy')]);
-    add('inverness_terrace:headphones', 325, 125, '耳机', 'headphones', 'examine_headphones', [action('查看耳机', 'examine headphones')]);
-    add('inverness_terrace:dish', 165, 155, '肥皂水碟子', 'dish', 'examine_dish', [action('查看碟子', 'examine dish'), action('尝试拿碟子', 'take dish')]);
+    add('inverness_terrace:headphones', 300, 132, '耳机', 'headphones', 'examine_headphones', [action('查看耳机', 'examine headphones')]);
+    add('inverness_terrace:dish', 293.5, 143.5, '肥皂水碟子', 'dish', 'examine_dish', [action('查看碟子', 'examine dish'), action('尝试拿碟子', 'take dish')]);
   }
   if (room === 'lancaster_gate') {
     const treeActions = [action('查看老树', 'examine tree')];
@@ -91,7 +91,7 @@ export function getHotspots(state) {
         womanActions.push(action('帮助老妇人', 'help woman'), action('替她拿着雨伞', 'hold umbrella'));
       }
       womanActions.push(action('等候片刻', 'wait'));
-      add('lancaster_gate:woman', 165, 155, '撑伞的老妇人', 'woman', state.hasFlag('umbrella_woman_seen') ? 'help_umbrella_woman' : undefined, womanActions);
+      add('lancaster_gate:woman', 194, 159, '撑伞的老妇人', 'woman', state.hasFlag('umbrella_woman_seen') ? 'help_umbrella_woman' : undefined, womanActions);
     }
     if (state.hasFlag('umbrella_woman_done') && state.itemAt('umbrella') === 'lancaster_gate_tree') {
       const actions = [action('查看雨伞', 'examine umbrella'), action('尝试拿雨伞', 'take umbrella')];

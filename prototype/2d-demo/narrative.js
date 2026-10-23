@@ -1,3 +1,4 @@
+import { actorLayout } from './actor-layout.js';
 import { drawStoryProp } from './prologue-art.js';
 export { drawStoryProp, drawPortrait, setStorySpriteRenderer } from './prologue-art.js';
 
@@ -10,13 +11,17 @@ const has = (state,flag) => state?.hasFlag?.(flag)
   ?? (state?.flags instanceof Set ? state.flags.has(flag) : (state?.flags || []).includes(flag));
 const item = (state,id) => state?.itemAt?.(id) ?? state?.itemLoc?.[id];
 const count = (state,id) => state?.cnt?.(id) ?? state?.counters?.[id] ?? 0;
+const boyPhase = state => ((count(state,'boy_cycle')%3)+3)%3;
+const boyPoses = ['dip','blow','admire'];
+const boyCues=actorLayout({kind:'boy'}).cuePoints;
+const umbrellaCue=actorLayout({kind:'umbrella_woman'}).cuePoints.umbrella;
 const defaults = {
   broad_walk:{woman:{x:143,y:166},birds:{x:185,y:185},ruby:{x:211,y:185}},
   the_wabe:{sundial:{x:242,y:166},gnomon:{x:242,y:136}},
   round_pond:{paper_bird:{x:311,y:176},boats:{x:330,y:140}},
   black_lion_gate:{pram:{x:275,y:190}},
-  inverness_terrace:{pram:{x:275,y:190},boy:{x:167,y:184}},
-  lancaster_gate:{pram:{x:263,y:197},tree:{x:326,y:138},umbrella:{x:326,y:93},umbrella_woman:{x:290,y:181},ball:{x:326,y:88}},
+  inverness_terrace:{pram:{x:275,y:190},boy:{x:300,y:145}},
+  lancaster_gate:{pram:{x:263,y:197},tree:{x:326,y:138},umbrella:{x:326,y:93},umbrella_woman:{x:194,y:159},ball:{x:326,y:88}},
   lancaster_walk:{pram:{x:279,y:192},notice:{x:334,y:181}},
   flower_walk:{pram:{x:270,y:174}},
   long_water:{pram:{x:216,y:211},door:{x:345,y:169},white_door:{x:345,y:169},missile:{x:335,y:67}},
@@ -38,14 +43,56 @@ function playerOf(state) {
 }
 function eventAnchors(before,after,room) {
   const source=after.room===room?after:before;
-  return {player:playerOf(source),woman:point(source,room,['woman','bird_woman']),birds:point(source,room,['birds','pigeons']),ruby:point(source,room,['ruby','gem'],{x:playerOf(source).x+8,y:playerOf(source).y}),sundial:point(source,room,'sundial'),gnomon:point(source,room,'gnomon'),paper:point(source,room,'paper_bird'),pram:point(source,room,['pram','perambulator']),tree:point(source,room,'tree'),umbrella:point(source,room,['umbrella_tree','umbrella']),umbrellaWoman:point(source,room,'umbrella_woman'),boy:point(source,room,['boy','teenager']),door:point(source,room,['door','white_door']),missile:point(source,room,'missile')};
+  const previous=before.room===room?before:source;
+  return {player:playerOf(source),woman:point(source,room,['woman','bird_woman']),birds:point(source,room,['birds','pigeons']),ruby:point(source,room,['ruby','gem'],{x:playerOf(source).x+8,y:playerOf(source).y}),sundial:point(source,room,'sundial'),gnomon:point(source,room,'gnomon'),paper:point(source,room,'paper_bird'),pram:point(source,room,['pram','perambulator']),tree:point(source,room,'tree'),umbrella:point(source,room,['umbrella_tree','umbrella']),umbrellaWoman:point(previous,room,['umbrella_woman','woman','old_woman']),boy:point(previous,room,['boy','teenager']),door:point(source,room,['door','white_door']),missile:point(source,room,'missile')};
 }
 function pramRoom(state) {
   if(has(state,'pram_broken'))return 'long_water';
   for(const [flag,room] of [['pram_at_flower','flower_walk'],['pram_at_walk','lancaster_walk'],['pram_at_lancaster','lancaster_gate'],['pram_at_inverness','inverness_terrace']])if(has(state,flag))return room;
   return 'black_lion_gate';
 }
-const length = {birds_arrive:1.25,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:2.8,umbrella_dislodged:1.9,pram_push:1.05,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:.9,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
+const length = {birds_arrive:1.25,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:4.6,umbrella_dislodged:1.9,pram_push:1.05,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:1.2,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
+
+// The chapter's cycle is 0=dip/swish, 1=raise/blow, 2=snap/pop.
+// Pose names are visual cues only; no clock or renderer advances boy_cycle.
+function boyVisual(state,event,playing=false) {
+  const targetPhase=event?.targetPhase??boyPhase(state),fromPhase=event?.fromPhase??targetPhase;
+  const progress=event?(playing?clamp(event.elapsed/event.duration):0):1;
+  const fromPose=boyPoses[fromPhase],targetPose=boyPoses[targetPhase];
+  return {pose:progress<.22?fromPose:targetPose,fromPose,targetPose,action:targetPose,
+    gesture:targetPhase===0?'swish':targetPhase===1?'blow':'snap',boyPhase:targetPhase,
+    fromPhase,targetPhase,progress,poseBlend:smooth(progress),active:Boolean(event),
+    eventId:event?.id||null,boyCycle:count(state,'boy_cycle')};
+}
+
+function umbrellaGustActors(event) {
+  const t=clamp(event.elapsed/event.duration),a=event.anchors,release=.14,land=.36;
+  const stages=[['hold',0,release],['released',release,land],['circle',land,.60],
+    ['look_up',.60,.70],['wipe',.70,.78],['kick',.78,.86],['leave',.86,1]];
+  const [action,start,end]=stages.find(([,begin,finish])=>t>=begin&&t<finish)||stages.at(-1);
+  const progress=clamp((t-start)/(end-start)),treeSide={x:a.tree.x-20,y:a.tree.y+34};
+  let x=a.umbrellaWoman.x,y=a.umbrellaWoman.y;
+  if(t>=land){
+    const circle=clamp((t-land)/(.60-land)),approach=smooth(circle/.32);
+    const orbit=clamp((circle-.25)/.75),radius=16*smooth((circle-.25)/.15)*smooth((1-circle)/.15);
+    x=lerp(x,treeSide.x,approach)+Math.sin(orbit*Math.PI*4)*radius;
+    y=lerp(y,treeSide.y,approach)+(1-Math.cos(orbit*Math.PI*4))*radius*.3;
+  }
+  if(action==='leave')y=lerp(treeSide.y,338,smooth(progress));
+  const pose=action==='hold'?'standing_umbrella':action==='circle'?'look_up':action;
+  const woman={id:'lancaster_gate:woman',room:'lancaster_gate',kind:'umbrella_woman',actorId:'lancaster_umbrella_woman',x,y,
+    visualOptions:{pose,action,progress,eventProgress:t,active:true,eventId:event.id,
+      umbrella:t<release,open:t<release,standing:true,walking:action==='circle'||action==='leave'}};
+  let umbrella=null;
+  if(t>=release){
+    const travel=smooth(clamp((t-release)/(land-release)));
+    umbrella={id:'lancaster_gate:umbrella-gust',room:'lancaster_gate',kind:'umbrella',
+      x:lerp(a.umbrellaWoman.x+umbrellaCue[0],a.umbrella.x,travel),
+      y:lerp(a.umbrellaWoman.y+umbrellaCue[1],a.umbrella.y,travel)-Math.sin(travel*Math.PI)*20,
+      visualOptions:{open:travel<.8,rotation:Math.sin(travel*Math.PI)*.55,detached:true,progress:travel}};
+  }
+  return {woman,umbrella};
+}
 
 export function createNarrativeDirector() {
   let queue=[],active=null,lastRoom=null,latest=null,history=[],leafOffset=0,windChanged=false;
@@ -61,6 +108,18 @@ export function createNarrativeDirector() {
   function onCommand(before={},after={},command='') {
     if(!latest)windChanged=has(before,'wind_changed');
     latest=after;lastRoom=after.room;
+    const cycleChanged=count(after,'boy_cycle')!==count(before,'boy_cycle');
+    const cycleId=`bubble_cycle:${count(after,'boy_cycle')}`;
+    // A newer turn supersedes a short ambient gesture. It must not leave the
+    // previous turn's pose playing behind the next turn's text or in a new room.
+    if((cycleChanged&&!triggered.has(cycleId))||after.room!=='inverness_terrace'||has(after,'boy_scared')){
+      queue=queue.filter(event=>{
+        if(event.type!=='bubble_cycle')return true;
+        history.push({id:event.id,type:event.type,skipped:true});return false;
+      });
+      if(active?.type==='bubble_cycle')finish(true);
+      history=history.slice(-64);
+    }
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
     const gained=flag=>!has(before,flag)&&has(after,flag);
@@ -82,8 +141,9 @@ export function createNarrativeDirector() {
     else if(beforePram!==afterPram)push('pram_push',{id:`pram_push:${afterPram}`,direction:afterPram==='lancaster_walk'||afterPram==='flower_walk'?'s':'e'});
     if(gained('pram_open'))push('pram_open');
     if(gained('in_pram'))push('pram_board');
-    if(gained('boy_scared'))push('boy_startled');
-    else if(after.room==='inverness_terrace'&&!has(after,'boy_scared')&&count(after,'boy_cycle')!==count(before,'boy_cycle'))push('bubble_cycle',{id:`bubble_cycle:${after.turns??count(after,'boy_cycle')}`,busy:false,phase:count(after,'boy_cycle')%3});
+    if(gained('boy_scared'))push('boy_startled',{fromPhase:boyPhase(before),targetPhase:boyPhase(after)});
+    else if(after.room==='inverness_terrace'&&!has(after,'boy_scared')&&cycleChanged)push('bubble_cycle',{
+      id:cycleId,busy:false,phase:boyPhase(after),fromPhase:boyPhase(before),targetPhase:boyPhase(after)});
     const opensUmbrella=/(?:open\s+(?:the\s+)?umbrella|撑伞|打开雨伞)/i.test(String(command));
     if(opensUmbrella&&!gained('pram_broken')){
       if(has(before,'in_pram')&&!has(after,'in_pram'))push('pram_tumble',{id:`pram_tumble:${after.turns}`,room:after.room});
@@ -121,6 +181,7 @@ export function createNarrativeDirector() {
     if(type==='missile_reveal')hiddenKinds.push('missile');
     if(['feed_birds','ruby_reveal','ruby_snatch'].includes(type))hiddenKinds.push('ruby','gem');
     if(type==='umbrella_gust'||type==='umbrella_dislodged')hiddenKinds.push('umbrella','umbrella_tree');
+    if(type==='umbrella_gust')hiddenKinds.push('woman','bird_woman','old_woman','umbrella_woman');
     if(type==='umbrella_dislodged')hiddenKinds.push('ball');
     if(['pram_push','pram_runaway','pram_open','pram_board','pram_tumble'].includes(type))hiddenKinds.push('pram','perambulator');
     if(type==='paper_approach')hiddenKinds.push('paper_bird');
@@ -135,7 +196,33 @@ export function createNarrativeDirector() {
       persistentActors.push({id:'broad_walk:woman',room:'broad_walk',kind:'woman',actorId:'bird_food_seller',x:143,y:166,label:'卖鸟食的老妇人',visual:true,visualOnly:true,radius:0,actions:[],visualOptions:{pose:'seated'}});
       if(!['feed_birds','birds_arrive'].includes(type))persistentActors.push({id:'broad_walk:birds',room:'broad_walk',kind:'birds',x:185,y:185,label:'鸽子',visual:true,visualOnly:true,radius:0,actions:[]});
     }
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
+    const actorVisuals={},visibleActorActions=[];
+    const actorState=visualOf(state).hotspots?state:latest?.room===state.room?latest:state;
+    function actor(id,room,kind,actorId,position,options,source='world'){
+      actorVisuals[id]={...options};
+      visibleActorActions.push({id,room,kind,actorId,...position,...options,source,visible:true});
+    }
+    if(sceneRoom==='inverness_terrace'&&!has(state,'boy_scared')){
+      const cycle=[active,...queue].find(event=>event?.type==='bubble_cycle'&&event.room===sceneRoom);
+      actor('inverness_terrace:boy',sceneRoom,'boy','inverness_boy',point(actorState,sceneRoom,['boy','teenager']),boyVisual(state,cycle,cycle===active));
+    }
+    if(sceneRoom==='lancaster_gate'&&!has(state,'umbrella_woman_done')){
+      actor('lancaster_gate:woman',sceneRoom,'umbrella_woman','lancaster_umbrella_woman',
+        point(actorState,sceneRoom,['umbrella_woman','woman','old_woman']),
+        {pose:'standing_umbrella',action:'hold',umbrella:true,open:true,standing:true,active:false,progress:1});
+    }
+    if(type==='umbrella_gust'){
+      const woman=umbrellaGustActors(active).woman;
+      actor(woman.id,woman.room,woman.kind,woman.actorId,{x:woman.x,y:woman.y},woman.visualOptions,'director');
+    }
+    if(type==='boy_startled'){
+      const progress=clamp(active.elapsed/active.duration),p=smooth(progress);
+      actor('inverness_terrace:boy',active.room,'boy','inverness_boy',
+        {x:active.anchors.boy.x-60*p,y:active.anchors.boy.y-15*p},
+        {pose:'startled',action:'startled',startled:true,progress,active:true,eventId:active.id,
+          fromPhase:active.fromPhase,targetPhase:active.targetPhase},'director');
+    }
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
     drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
@@ -199,9 +286,10 @@ function renderEvent(c,event,state,time) {
     case 'paper_approach': {const p=smooth(t);prop('paper_bird',a.paper.x+lerp(35,0,p),a.paper.y+Math.sin(t*4)*.8);arc(c,a.paper.x+lerp(35,0,p),a.paper.y+3,11,2,.2*(1-t));break;}
     case 'paper_unfold': {c.save();c.globalAlpha=Math.min(1,t*5,(1-t)*5);prop('paper_bird',a.player.x,a.player.y-35,{unfold:smooth(t)});c.restore();break;}
     case 'umbrella_gust': {
-      const p=smooth(clamp(t/.4)),x=lerp(a.umbrellaWoman.x+10,a.umbrella.x,p),y=lerp(a.umbrellaWoman.y-10,a.umbrella.y,p)-Math.sin(p*Math.PI)*20;
-      prop('umbrella',x,y,{rotation:Math.sin(p*Math.PI)*.55});
-      const walk=smooth(clamp((t-.45)/.55));prop('umbrella_woman',a.umbrellaWoman.x+Math.sin(t*12)*(t<.55?6:0),a.umbrellaWoman.y+walk*100,{umbrella:false});break;
+      const {woman,umbrella}=umbrellaGustActors(event);
+      drawStoryProp(c,woman,state,time);
+      if(umbrella)drawStoryProp(c,umbrella,state,time);
+      break;
     }
     case 'umbrella_dislodged': {
       const ballTarget={x:a.tree.x,y:a.tree.y-50};
@@ -224,8 +312,8 @@ function renderEvent(c,event,state,time) {
     }
     case 'pram_tumble': {prop('pram',a.pram.x+Math.sin(t*Math.PI)*-17,a.pram.y,{open:true,rider:t<.3,broken:false,sail:t<.4});break;}
     case 'umbrella_travel': {prop('umbrella',lerp(-20,a.player.x,smooth(t)),a.player.y-15-Math.sin(t*Math.PI)*8,{open:t<.7,rotation:.25});break;}
-    case 'boy_startled': {const p=smooth(t);c.save();c.globalAlpha=1-smooth((t-.75)/.25);prop('boy',a.boy.x-60*p,a.boy.y-15*p);c.restore();for(let i=0;i<9;i++){const q=clamp(t*2);particle(c,a.boy.x+15+Math.cos(i)*q*17,a.boy.y-Math.sin(q*Math.PI)*8+i%3,'#bdcdbb',.45);}arc(c,a.boy.x+32+t*21,a.boy.y-30-t*70,5+t*2,5+t*2,.35*(1-t));break;}
-    case 'bubble_cycle': {if(event.phase===1)arc(c,a.boy.x+23+t*11,a.boy.y-30-t*15,3+t*3,3+t*3,.35);else if(event.phase===2)for(let i=0;i<7;i++){const angle=i*Math.PI*2/7;particle(c,a.boy.x+30+Math.cos(angle)*t*10,a.boy.y-39+Math.sin(angle)*t*10,'#d6dfc08c',.35);}break;}
+    case 'boy_startled': {const p=smooth(t);c.save();c.globalAlpha=1-smooth((t-.75)/.25);prop('boy',a.boy.x-60*p,a.boy.y-15*p,{pose:'startled',action:'startled',startled:true,progress:t,active:true,eventId:event.id});c.restore();for(let i=0;i<9;i++){const q=clamp(t*2);particle(c,a.boy.x+15+Math.cos(i)*q*17,a.boy.y-Math.sin(q*Math.PI)*8+i%3,'#bdcdbb',.45);}arc(c,a.boy.x+5+t*21,a.boy.y-22-t*70,5+t*2,5+t*2,.35*(1-t));break;}
+    case 'bubble_cycle': {if(event.phase===1)arc(c,a.boy.x+boyCues.wand[0]+t*6,a.boy.y+boyCues.wand[1]-t*8,3+t*3,3+t*3,.35);else if(event.phase===2)for(let i=0;i<7;i++){const angle=i*Math.PI*2/7;particle(c,a.boy.x+boyCues.snap[0]+Math.cos(angle)*t*5,a.boy.y+boyCues.snap[1]+Math.sin(angle)*t*5,'#d6dfc08c',.35);}break;}
     case 'missile_reveal': {c.save();c.globalAlpha=smooth(t);prop('missile',a.missile.x,a.missile.y+t*.7);c.restore();break;}
     case 'door_reveal': {prop('white_door',a.door.x,a.door.y,{reveal:smooth(t)});for(let i=0;i<4;i++)arc(c,a.door.x,a.door.y+4,lerp(2,22+i*6,t),lerp(.5,3+i,t),.25*(1-t));break;}
     case 'wade': {for(let i=0;i<3;i++)arc(c,a.player.x,a.player.y+2,8+t*(17+i*5),1+t*(3+i),.3*(1-t));break;}

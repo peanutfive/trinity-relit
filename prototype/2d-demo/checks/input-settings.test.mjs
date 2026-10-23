@@ -39,3 +39,9 @@ test('损坏或冲突的映射整体回退到F默认，不覆盖合法音量',()
   const bad=defaultPreferences();bad.bindings.inventory='f';bad.audio.master=24;
   stored(bad,()=>{assert.deepEqual(loadPreferences().bindings,DEFAULT_BINDINGS);assert.equal(loadPreferences().audio.master,24);});
 });
+
+// A stored binding predating the map must not shadow its fixed M shortcut.
+test('地图M键不能被旧偏好占用，保留有效画面设置',()=>{
+  const saved=defaultPreferences();saved.bindings.hint='m';saved.video.brightness=110;
+  stored(saved,()=>{assert.deepEqual(loadPreferences().bindings,DEFAULT_BINDINGS);assert.equal(loadPreferences().video.brightness,110);});
+});

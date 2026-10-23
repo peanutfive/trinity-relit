@@ -24,6 +24,25 @@ export function drawScene(c,room,time,effects=true){
 export function drawActor(c,x,y,color='#b99b6b',facing='down',walk=0,elder=false,animation={}) {
   paintCharacter(c,x,y,color,facing,walk,elder,animation);
 }
+// Open ironwork must occlude at its bars, never across its ground-filled holes.
+// Decode the small leaf region once at source resolution; keep original art untouched.
+const ironMasks = new WeakMap();
+function ironMask(cover, atlas, background) {
+  let entry=ironMasks.get(cover);if(entry)return entry;
+  const xs=cover.points.map(p=>p[0]),ys=cover.points.map(p=>p[1]);
+  const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));
+  const w=Math.ceil(Math.max(...xs))-x,h=Math.ceil(Math.max(...ys))-y;
+  const scale=atlas.naturalWidth/480,panelHeight=atlas.naturalHeight/background.panels;
+  const canvas=document.createElement('canvas');canvas.width=Math.ceil(w*scale);canvas.height=Math.ceil(h*scale);
+  const context=canvas.getContext('2d',{willReadFrequently:true});
+  context.drawImage(atlas,x*scale,background.panelIndex*panelHeight+y/288*panelHeight,w*scale,h/288*panelHeight,0,0,canvas.width,canvas.height);
+  const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+  for(let i=0;i<pixels.data.length;i+=4){
+    const luma=.2126*pixels.data[i]+.7152*pixels.data[i+1]+.0722*pixels.data[i+2];
+    pixels.data[i+3]=Math.round(255*Math.max(0,Math.min(1,(115-luma)/30)));
+  }
+  context.putImageData(pixels,0,0);entry={canvas,x,y,w,h};ironMasks.set(cover,entry);return entry;
+}
 // Repaint only traced foreground silhouettes over actors standing behind them.
 export function drawOcclusion(c,room,footY){
   const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(background?.image);
@@ -31,7 +50,8 @@ export function drawOcclusion(c,room,footY){
   for(const cover of scene.occluders||[]){
     if(footY>=cover.depthY)continue;
     c.save();c.beginPath();cover.points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
-    const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();
+    if(cover.material==='iron-bars'){const mask=ironMask(cover,atlas,background);c.globalAlpha*=.72;c.drawImage(mask.canvas,mask.x,mask.y,mask.w,mask.h);}
+    else{const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);}c.restore();
   }
 }
 export function drawProp(c,o,time){

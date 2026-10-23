@@ -1,3 +1,5 @@
+import { actorHitShape } from './actor-layout.js';
+import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
 import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
@@ -21,6 +23,7 @@ const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
 setStorySpriteRenderer((ctx,object,state,time)=>renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
+const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { browserStorage = null; }
@@ -118,9 +121,8 @@ function updateHud() {
   $('#menu-bag').disabled = !started || busy;
   $('#menu-help').disabled = !started || busy;
   const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
-  $('#touch-interact').textContent = reading ? '继续' : director.getState().busy ? '跳过' : '互动';
   $('#skip-event').hidden = !director.getState().busy || paused;
-  $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} / ↵ · ${near.label}` : '';
+  $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} · ${near.label}` : '';
   $('#hand-kit').hidden = !heldItem || !started || paused || reading;
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
@@ -174,7 +176,7 @@ function paintDialog() {
     button.onclick = action.run;
     $('#choices').append(button);
   }
-  $('#next').textContent = `${last?'收起':'继续'} ${keyLabel(preferences.bindings.interact)} / ↵`;
+  $('#next').textContent = `${last?'收起':'继续'} ${keyLabel(preferences.bindings.interact)}`;
   updateHud();
 }
 
@@ -396,7 +398,7 @@ function inventory() {
     button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
     $('#choices').append(button);
   }
-  $('#next').textContent = `收起 ${keyLabel(preferences.bindings.interact)} / ↵`;
+  $('#next').textContent = `收起 ${keyLabel(preferences.bindings.interact)}`;
   updateHud();
   canvas.focus({ preventScroll: true });
 }
@@ -430,7 +432,7 @@ async function transition(exit) {
 }
 
 function update(dt) {
-  if (paused) return;
+  if (paused || chapterMap.isOpen()) return;
   clock += dt;
   director.update(dt);
   exitLock = Math.max(0, exitLock - dt);
@@ -507,7 +509,7 @@ function exitLabel(exit) {
 }
 
 function pointedExitLabel(point) {
-  return exits().find(exit=>{const label=exitLabel(exit);return point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
+  return exits().find(exit=>{const label=exitLabel(exit);return Math.hypot(exit.x-player.x,exit.y-player.y)<55 && point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
 }
 
 function render() {
@@ -520,7 +522,7 @@ function render() {
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   drawScene(ctx, renderRoom, clock, preferences.video.effects);
   const inPram=engine.state.hasFlag('in_pram');
-  const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind)).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, object.kind==='pram'&&inPram?{...object,visualOptions:{rider:true,open:true}}:object, renderState, preferences.video.effects ? clock : 0) }));
+  const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
   if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState()) });
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
   director.draw(ctx, renderRoom, engine.state, clock);
@@ -533,7 +535,7 @@ function render() {
     if(engine.state.hasFlag('bird_unfolded')){ctx.fillStyle='#59472d';ctx.font='italic 2px Georgia,serif';ctx.textAlign='center';ctx.fillText('Long Water,',0,-6);ctx.fillText("Four O’Clock",0,-3.4);}
     ctx.restore();
   }
-  for (const exit of crossing?[]:exits()) {
+  for (const exit of crossing?[]:exits().filter(exit => Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
     const {x,y,text:label,width}=exitLabel(exit);
     ctx.font = '8px serif';
     ctx.textAlign = 'center';
@@ -556,13 +558,16 @@ function pointedObject(point){return objects().filter(o=>o.id!=='palace_gate:sel
       :outer<=1&&(shape.kind!=='annulus'||((point.x-shape.x)/shape.innerRx)**2+((point.y-shape.y)/shape.innerRy)**2>=1);
     return {o,d:hit?-shape.priority:Infinity};
   }
+  if(o.kind==='headphones'||o.kind==='dish'){const rx=o.kind==='dish'?4:3,ry=o.kind==='dish'?2:3;return {o,d:((o.x-point.x)/rx)**2+((o.y-point.y)/ry)**2};}
+  const actorShape=actorHitShape(o);
+  if(actorShape)return {o,d:((actorShape.x-point.x)/actorShape.rx)**2+((actorShape.y-point.y)/actorShape.ry)**2};
   const person=['woman','umbrella_woman','boy'].includes(o.kind),pram=o.kind==='pram';
   const rx=person?16:pram?24:20,ry=person?23:pram?19:20,cy=o.y-(person?20:pram?13:10);
   return {o,d:((o.x-point.x)/rx)**2+((cy-point.y)/ry)**2};
 }).filter(hit=>hit.d<1).sort((a,b)=>a.d-b.d)[0]?.o;}
 canvas.addEventListener('pointermove',event=>{const p=pointerPoint(event);canvas.style.cursor=pointedPaperDetail(p)||pointedObject(p)||pointedExitLabel(p)?'pointer':'default';});
 canvas.addEventListener('pointerdown',event=>{
-  if(!started||paused||busy)return;
+  if(!started||paused||busy||chapterMap.isOpen()||event.button!==0)return;
   if(pages.length){
     const point=pointerPoint(event);
     if(pointedPaperDetail(point)){command(resolveHeldSelf('paper_bird',engine.state));return;}
@@ -625,8 +630,8 @@ function paintBindings() {
     row.append(name, button);
     $('#binding-list').append(row);
   }
-  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} / 回车 互动 · Esc 暂停与设置`;
-  canvas.setAttribute('aria-label',`方向键行走，${keyLabel(preferences.bindings.interact)}或回车互动和继续对话，Esc暂停与设置`);
+  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} 互动 · M 地图 · Esc 暂停设置 · F11 全屏`;
+  canvas.setAttribute('aria-label',`方向键行走，${keyLabel(preferences.bindings.interact)}互动和继续对话，Esc暂停与设置`);
 }
 
 function selectTab(tab) {
@@ -648,8 +653,7 @@ function setPaused(value) {
   stopMovement();
   motion.blend = 0;
   $('#pause-menu').hidden = !paused;
-  $('.stage').inert = paused;
-  $('header').inert = paused;
+  for(const child of $('.stage').children) if(child !== $('#pause-menu')) child.inert = paused;
   sound.setPaused(paused || !started);
   updateHud();
   if (paused) {
@@ -685,7 +689,7 @@ function applyAudio() {
 
 function actionKey(key) {
   const bindings = preferences.bindings;
-  if ([bindings.interact, 'Enter', ' '].includes(key)) interact();
+  if (key === bindings.interact) interact();
   else if (key === bindings.inventory) inventory();
   else if (key === bindings.look) describe();
   else if (key === bindings.hint) toggleQuest();
@@ -698,7 +702,7 @@ window.addEventListener('keydown', event => {
   if (paused && captureBinding) {
     event.preventDefault();
     if (key === 'Escape') { captureBinding = null; paintBindings(); $('#binding-message').textContent = '已取消改键。'; return; }
-    if (!/^[a-z0-9]$/.test(key)&&!(key==='F11'&&captureBinding==='fullscreen')) { $('#binding-message').textContent = '请选择字母或数字；F11仅用于全屏，方向键、回车和Esc为固定按键。'; return; }
+    if (key==='m'||(!/^[a-z0-9]$/.test(key)&&!(key==='F11'&&captureBinding==='fullscreen'))) { $('#binding-message').textContent = '请选择字母或数字；F11仅用于全屏，方向键、M和Esc为固定按键。'; return; }
     const conflict = Object.entries(preferences.bindings).find(([action, value]) => value === key && action !== captureBinding);
     if (conflict) { $('#binding-message').textContent = `${keyLabel(key)} 已用于「${bindingNames[conflict[0]]}」，请选择其他按键。`; return; }
     preferences.bindings[captureBinding] = key;
@@ -707,11 +711,17 @@ window.addEventListener('keydown', event => {
     $('#binding-message').textContent = '新键位已保存。';
     return;
   }
+  if ((key === 'm' && !paused && started) || (key === 'Escape' && chapterMap.isOpen())) {
+    event.preventDefault();if(event.repeat)return;
+    if(chapterMap.isOpen())chapterMap.close('key');else{stopMovement();sound.setPaused(true);chapterMap.open({state:engine.state,rooms:engine.rooms,scenes});}return;
+  }
+  if(chapterMap.isOpen())return;
   if (key === 'Escape') {
     event.preventDefault();
     if (!event.repeat) setPaused(!paused);
     return;
   }
+  if (key===preferences.bindings.fullscreen&&!captureBinding){event.preventDefault();if(!event.repeat)fullscreen();return;}
   if (paused) {
     if (key === 'Tab') {
       const focusable = [...$('#pause-menu').querySelectorAll('button:not(:disabled),input:not(:disabled),select')].filter(element => element.getClientRects().length);
@@ -727,6 +737,8 @@ window.addEventListener('keydown', event => {
   if (!event.repeat) actionKey(key);
   keys.add(key);
 });
+canvas.addEventListener('contextmenu',event=>{event.preventDefault();if(started&&!chapterMap.isOpen())setPaused(true);});
+$('.stage').addEventListener('touchstart',event=>{if(event.touches.length===2){event.preventDefault();if(chapterMap.isOpen())chapterMap.close('gesture');else setPaused(!paused);}}, {passive:false});
 window.addEventListener('keyup', event => keys.delete(normalKey(event.key)));
 window.addEventListener('blur', stopMovement);
 $('#start').onclick = start;
@@ -754,11 +766,11 @@ window.addEventListener('pagehide',persistProgress);
 $('#next').onclick = next;
 $('#restart').onclick = () => { if(!started || window.confirm('重新开始会替换当前2D存档。要重新开始吗？')) reset(); };
 $('#close-quest').onclick = () => { closeQuest(); updateHud(); canvas.focus({ preventScroll: true }); };
-$('#touch-interact').onclick = interact;
 $('#skip-event').onclick = () => { director.skip(); updateHud(); render(); };
-$('#pause-open').onclick = () => setPaused(true);
 $('#resume').onclick = () => setPaused(false);
 $('#fullscreen').onclick = fullscreen;
+$('#start-fullscreen').onclick = () => {fullscreen();start();};
+$('#menu-map').onclick = () => {setPaused(false);stopMovement();sound.setPaused(true);chapterMap.open({state:engine.state,rooms:engine.rooms,scenes});};
 $('#menu-bag').onclick = () => { setPaused(false); inventory(); };
 $('#menu-help').onclick = () => { setPaused(false); toggleQuest(); };
 $('#reset-bindings').onclick = () => { preferences.bindings = { ...DEFAULT_BINDINGS }; captureBinding = null; storeSettings(); paintBindings(); $('#binding-message').textContent = '已恢复默认键位。'; };
@@ -798,7 +810,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), mode: paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,

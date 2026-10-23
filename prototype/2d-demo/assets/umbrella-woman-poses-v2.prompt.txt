@@ -1,0 +1,19 @@
+Generation tool: built-in image_gen, transparent_background=true.
+Final atlas: umbrella-woman-poses-v2.png. Three columns by two rows, 1536x1024.
+Cell 0=open, 1=empty/upward, 2=wipe, 3=kick, 4=walk-right-step1, 5=walk-right-step2.
+Human head-to-ground scale is shared; the umbrella canopy does not define body height.
+
+Use case: stylized-concept
+Asset type: transparent six-frame NPC action sprite atlas for a painterly HD-2D adventure game.
+Primary request: an elderly Asian woman STANDING, never seated, in six coherent event animation poses, using the adult explorer rendering style of reference image 1 and the identity/costume of the umbrella woman portrait at the TOP RIGHT of reference image 2.
+Input images: image 1 STYLE/REALISTIC BODY PROPORTIONS only. Image 2 TOP RIGHT FACE/COSTUME identity only. Do not reproduce the other characters, missile, bird or any background.
+Identity: the exact same elderly Asian woman in every pose, slender and slightly stooped from age, gray hair in a low bun, thin round glasses, dark moss floral neck scarf, weathered muted olive-brown knee-length overcoat, plain charcoal long skirt and small worn dark leather shoes. Healed deep red burn scarring on her anatomical LEFT temple and cheek, coherent with reference portrait. Realistic adult small head and natural eyes. A tired human face, sorrow after loss, no monstrous expression or exaggerated villain face.
+Layout: 1536x1024 transparent canvas; exactly THREE columns and TWO rows, each cell 512x512. Full body in each cell, feet rest at local y=490 in every frame. Maintain the same anatomical scale, same adult body height roughly 345px from bare head crown to soles in ALL six cells. A parasol/umbrella extends above the head in frame 1, but never shrink that character to fit. Warm natural sunlight from upper left, softly shaded painterly cloth; slight camera elevation with three-quarter frontal view matching reference 1.
+Cell 1 top left: standing firmly on two feet, holding an OPEN weathered dark green umbrella above her head and a little to one side, one hand around its wooden curved handle at chest height. Umbrella canopy fully inside this cell, clearly above the head. She struggles a little against wind but is not sitting, kneeling or leaning on a chair.
+Cell 2 top middle: standing with EMPTY hands, arms raised a little after umbrella slips away, gazing helplessly upward. Absolutely no umbrella in this or any later cell.
+Cell 3 top right: standing, wiping a tear with a small handkerchief held against her cheek, shoulders drooping; free hand near her waist.
+Cell 4 bottom left: standing in profile, making a small frustrated kick forward with one shoe, supporting her weight on the other leg, arms naturally balanced. NO tree or target object in frame.
+Cell 5 bottom middle: slightly stooped slow shuffling walking step, right foot forward, no object in either hand, three-quarter side view facing RIGHT.
+Cell 6 bottom right: the complementary slow shuffling step, left foot forward, same camera and facing RIGHT, no object in either hand.
+Medium: original miniature oil-paint game illustration with subtle brush texture, restrained details and soft edges, natural anatomical proportions. Muted ochre and moss light, brown olive gray cloth; no anime/cartoon, no chibi, no black outlines, no glossy plastic.
+Background must be genuine transparent alpha, no scenery, no floor patches, no furniture, no opaque backdrop, no color blocks or baked checkerboard. No text, numbers, grids, labels, framing, watermark or extra props. Keep body parts and umbrella away from cell boundaries.
