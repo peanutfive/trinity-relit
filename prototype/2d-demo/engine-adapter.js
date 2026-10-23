@@ -12,8 +12,7 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
     rooms: { ...ROOMS }, items: ITEMS, parser: new Parser(), embedding: null,
     ui: ui || quietUi, onAutosave, preloadedChapters: ['prologue'],
     chapterLoader: async chapterId => {
-      // Meadow is the end of this vertical slice. Other chapter saves are rejected
-      // by the existing engine rather than partially loaded with missing callbacks.
+      // Wabe is loaded lazily. Other chapters remain outside this visual slice.
       if (chapterId !== 'wabe') return null;
       const chapter = await import('../js/data/wabe.js');
       engine.registerTimerHandlers(chapter.TIMERS);

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { SCENES, SCENE_SCHEMA_VERSION, LOGICAL_SIZE } from '../scene-manifest.js';
 import { GameState } from '../../js/engine.js';
 import { ITEMS } from '../../js/data/items.js';
+import { getHotspots } from '../interaction-catalog.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
 const modules = await Promise.all(chapters.map(id => import(`../../js/data/${id}.js`)));
 const rooms = Object.assign({}, ...modules.map(module => module.ROOMS));
@@ -27,7 +28,9 @@ for (const [id,scene] of Object.entries(SCENES)) {
   assert.equal(scene.roomId,id);
   assert.ok(existsSync(fileURLToPath(new URL(scene.background.image,new URL('../',import.meta.url)))), `${id} 美术缺失`);
   assert.ok(!blocked(scene,...scene.spawn),`${id} 出生点不可达`);
-  const state=new GameState();state.room=id;
+  const state=new GameState();state.room=id;state.chapter=scene.chapter;
+  state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));
+  assert.deepEqual(scene.objects,getHotspots(state),`${id} 场景热点与章节目录不同步`);
   const exits=rooms[id].exits(state), points=reachable(scene);
   for(const exit of scene.exits) {
     assert.equal(typeof exits[exit.dir]==='string'?exits[exit.dir]:exits[exit.dir]?.to,exit.target,`${id}.${exit.dir} 目标与运行时不符`);
@@ -46,4 +49,4 @@ for (const [id,scene] of Object.entries(SCENES)) {
 console.log(`场景协议 v${SCENE_SCHEMA_VERSION}：${Object.keys(SCENES).length} 场景、${objectIds.size} 热点；引用、出生点、${Object.values(SCENES).reduce((sum,scene)=>sum+scene.exits.length,0)} 条已绘制出口与互动可达检查通过。`);
 console.log(`运行时清点：${chapters.length} 章、${ids.length} 房间。`);
 console.log(chapters.map((id,i)=>`${id}: ${Object.keys(modules[i].ROOMS).length}`).join(' · '));
-console.log('忠实性状态：序章原版证据与既有运行时规则的差异见 PROLOGUE_PRODUCTION.md；本检查仅覆盖结构和默认状态可达性。');
+console.log('忠实性状态：本检查仅覆盖现有运行时结构与默认状态可达性，不验证原版地图/文本；序章差异见 PROLOGUE_PRODUCTION.md。Wabe Meadow 的现有 s/e/w 出口与已记录真机证据存在偏差，用户暂缓规则修正，本轮仅做2D表现适配。');

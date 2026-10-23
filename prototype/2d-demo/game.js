@@ -1,6 +1,8 @@
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
+import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { createPrologueSession } from './engine-adapter.js';
-import { getHotspots, getInventoryActions } from './prologue-actions.js';
+import { getHotspots, getInventoryActions } from './interaction-catalog.js';
+import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
 import { isBlocked } from './world.js';
@@ -13,9 +15,12 @@ import { ITEMS } from '../js/data/items.js';
 const $ = selector => document.querySelector(selector);
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
-setStorySpriteRenderer(renderStorySprite);
+setStorySpriteRenderer((ctx,object,state,time)=>renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const scenes = SCENES;
+let browserStorage;
+try { browserStorage = window.localStorage; } catch { browserStorage = null; }
+const saveStore = createVisualSaveStore({ storage: browserStorage, scenes });
 
 let engine;
 let director = createNarrativeDirector();
@@ -31,6 +36,7 @@ let pageIndex = 0;
 let dialogSource = '';
 let dialogActions = [];
 let inventoryOpen = false;
+let actionMenuOpen = false;
 let clock = 0;
 let paused = false;
 let captureBinding = null;
@@ -61,8 +67,10 @@ const ui = {
 };
 
 function reset() {
+  if (busy) return;
   engine = createPrologueSession({ ui });
   director = createNarrativeDirector();
+  resetWabeArt();
   portrait = null;
   // New games enter the first room once, matching the current text entry point.
   player = { x: 238, y: 218, face: 'down', walk: 0 };
@@ -73,6 +81,7 @@ function reset() {
   $('#objective').textContent = '试着去东边的花径，寻找花丛里的足球。';
   if (started) enterOpening();
   updateHud();
+  paintSaveState();
   render();
 }
 
@@ -120,6 +129,7 @@ function stopMovement() {
 }
 
 function show(text, actions = []) {
+  actionMenuOpen = false;
   closeQuest();
   dialogSource = text;
   dialogActions = actions;
@@ -149,6 +159,7 @@ function paintDialog() {
 }
 
 function closeDialog() {
+  actionMenuOpen = false;
   $('#dialogue').hidden = true;
   pages = [];
   dialogActions = [];
@@ -222,7 +233,8 @@ async function command(input, actions = []) {
     director.onCommand(before, after, input);
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
-    if (engine.state.chapter !== 'prologue') $('#objective').textContent = '序章已完成。你已经穿过白门，抵达新的世界。';
+    if (engine.state.chapter === 'wabe') $('#objective').textContent = '探索林地、沼泽与石阶，看看日晷上的符号环。';
+    persistProgress({force:true});
   } finally {
     busy = false;
     updateHud();
@@ -241,6 +253,55 @@ function enterOpening() {
   beginOutput();
   engine.moveTo(engine.state.room);
   show(output.join('\n\n'));
+  persistProgress();
+}
+
+function persistProgress({force=false}={}) {
+  if (!started || engine.state.dead || (busy&&!force)) return {ok:false,skipped:true};
+  const result = saveStore.write(engine, {room:engine.state.room,x:player.x,y:player.y,face:player.face});
+  if (!result.ok && !result.skipped) $('#save-message').textContent = '进度未能保存：' + result.error.message;
+  return result;
+}
+
+function paintSaveState() {
+  const result = saveStore.read();
+  const hasSave = result.ok && Boolean(result.save);
+  $('#continue-save').hidden = !hasSave;
+  $('#continue-save').textContent = hasSave ? '继续探索 · ' + scenes[result.save.engine.state.room].label : '继续上次探索';
+  $('#start').textContent = hasSave ? '重新开始' : '走进花园 →';
+  $('#load-save').disabled = !hasSave || busy;
+  $('#export-save').disabled = !hasSave;
+  $('#save-now').disabled = !started || busy || engine.state.dead;
+  $('#save-summary').textContent = hasSave ? `已保存：${scenes[result.save.engine.state.room].label} · 第${result.save.engine.state.turns}回合` : result.error ? '存档暂不可读取：' + result.error.message : '尚无探索进度。进入游戏后，每次操作都会自动保存。';
+}
+
+async function restoreProgress(input) {
+  if (busy) return;
+  busy = true;
+  try {
+    const restored = await saveStore.restore(engine, input);
+    if (!restored.ok) throw restored.error;
+    $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
+    $('#title-save-message').textContent = '';
+    started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
+    player = {x:restored.visual.x,y:restored.visual.y,face:restored.visual.face,walk:0};
+    motion = {moving:false,blend:0,action:'idle',elapsed:0,duration:0};
+    exitLock = .5;
+    closeQuest(); closeDialog(); setPaused(false);
+    $('#overlay').hidden = true;
+    updateLabels();
+    $('#objective').textContent = engine.state.chapter === 'wabe' ? '探索林地、沼泽与石阶，看看日晷上的符号环。' : '在花园中探索，寻找物品与通向白门的路。';
+    beginOutput(); engine.describeRoom(); show(output.join('\n\n'));
+    persistProgress({force:true}); sound.setPaused(false); sound.unlock().catch(()=>{});
+  } catch (error) {
+    const message='无法读取这份存档：'+error.message;
+    $('#save-message').textContent=message; $('#title-save-message').textContent=message;
+  } finally { busy=false; paintSaveState(); updateHud(); render(); }
+}
+
+function loadSavedProgress() {
+  const result=saveStore.read();
+  if(result.ok&&result.save) restoreProgress(result.save);
 }
 
 function objects() { return getHotspots(engine.state); }
@@ -253,6 +314,8 @@ function nearby() {
 
 function actionMenu(label, actions, portraitId = null) {
   closeQuest();
+  actionMenuOpen = true;
+  dialogSource = '';
   portrait = portraitId;
   dialogActions = actions.map(action => ({ label: action.label, run: () => {
     if (/^(take|get|pick)/.test(action.command)) animateAction('pickup');
@@ -280,6 +343,7 @@ function inventory() {
   closeQuest();
   stopMovement();
   inventoryOpen = true;
+  actionMenuOpen = false;
   pages = ['背包'];
   pageIndex = 0;
   dialogActions = [];
@@ -394,7 +458,8 @@ function render() {
 }
 
 function start() {
-  if (started) return;
+  if (started || busy) return;
+  if (saveStore.read().save && !window.confirm('开始新的探索会替换当前2D存档。要重新开始吗？')) return;
   started = true;
   sound.setPaused(false);
   sound.unlock().catch(() => {});
@@ -458,6 +523,7 @@ function setPaused(value) {
   sound.setPaused(paused || !started);
   updateHud();
   if (paused) {
+    persistProgress(); paintSaveState();
     selectTab('controls');
     $('#binding-message').textContent = 'Esc 取消改键或关闭菜单。';
     $('#resume').focus();
@@ -533,8 +599,27 @@ window.addEventListener('keydown', event => {
 window.addEventListener('keyup', event => keys.delete(normalKey(event.key)));
 window.addEventListener('blur', stopMovement);
 $('#start').onclick = start;
+$('#continue-save').onclick = loadSavedProgress;
+$('#load-save').onclick = loadSavedProgress;
+$('#save-now').onclick = () => { const result=persistProgress(); paintSaveState(); if(result.ok) $('#save-message').textContent='已保存当前探索进度。'; };
+$('#export-save').onclick = () => {
+  const result=saveStore.export();
+  if(!result.ok){$('#save-message').textContent='导出失败：'+result.error;return;}
+  const url=URL.createObjectURL(new Blob([result.text],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='trinity-hd2d-save.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('#import-save').onclick = () => $('#save-file').click();
+$('#save-file').onchange = async event => {
+  const file=event.target.files?.[0];if(!file)return;
+  try {
+    if(file.size>1024*1024){$('#save-message').textContent='这份存档过大，无法读取。';return;}
+    await restoreProgress(await file.text());
+  } catch { $('#save-message').textContent='无法读取这份存档文件。'; }
+  finally { event.target.value=''; }
+};
+window.addEventListener('pagehide',persistProgress);
 $('#next').onclick = next;
-$('#restart').onclick = reset;
+$('#restart').onclick = () => { if(!started || window.confirm('重新开始会替换当前2D存档。要重新开始吗？')) reset(); };
 $('#close-quest').onclick = () => { closeQuest(); updateHud(); canvas.focus({ preventScroll: true }); };
 $('#touch-interact').onclick = interact;
 $('#skip-event').onclick = () => { director.skip(); updateHud(); render(); };
@@ -570,7 +655,7 @@ document.addEventListener('fullscreenchange', () => { $('#fullscreen').textConte
 $('#language').onclick = () => {
   language = language === 'cn' ? 'en' : language === 'en' ? 'both' : 'cn';
   $('#language').textContent = { cn: '中文', en: '英文', both: '双语' }[language];
-  if (pages.length && !inventoryOpen) show(dialogSource, dialogActions);
+  if (pages.length && !inventoryOpen && !actionMenuOpen) show(dialogSource, dialogActions);
 };
 for (const button of document.querySelectorAll('[data-key]')) {
   button.onpointerdown = event => {
@@ -580,12 +665,12 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), mode: paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), wabeSprites:wabeArtStatus(), mode: paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,
-  flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter,
-  inventory: engine.state.inventoryList().map(item => item.id), score: engine.state.score,
+  flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, processing:busy,
+  inventory: engine.state.inventoryList().map(item => item.id), score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
   controls: { ...preferences.bindings, pause: 'Escape' },
   settings: { video: { ...preferences.video }, audio: sound.getState(), captureBinding },
   hint: !$('#quest').hidden ? $('#objective').textContent : null,
