@@ -10,7 +10,7 @@
 
     <div id="hint" aria-live="polite"></div><button id="skip-event" hidden>跳过演出</button>
     <div id="hand-kit" hidden><button id="held-item" aria-label="近看手中物品"></button><button id="clear-hand" aria-label="收起手中物品">×</button><span id="hand-status" role="status"></span></div>
-    <aside id="quest" hidden aria-label="探索提示"><div class="panel-heading"><span>探索提示</span><button id="close-quest" aria-label="关闭提示">×</button></div><p id="objective">试着去东边的花径，寻找花丛里的足球。</p><p class="quest-note">方向键行走，走近后按互动键。</p></aside>
+    <aside id="quest" hidden aria-label="探索提示"><div class="panel-heading"><span>探索提示</span><button id="close-quest" aria-label="关闭提示">×</button></div><p id="objective">留意路边的细节，靠近后按 F 观察，也可以尝试手中的物品。</p><p class="quest-note">方向键行走，走近后按互动键。</p></aside>
     <div id="overlay"><span class="eyebrow">肯辛顿花园 · 午后</span><h2>东风吹过花园。</h2><p>在树影间行走，走近花坛、雕像与陌生人。<br>看看文字里的世界，变成可以踏入的地方。</p><button id="continue-save" hidden>继续上次探索</button><div class="start-actions"><button id="start">走进花园 →</button><button id="start-fullscreen">全屏探索</button></div><p id="title-save-message" role="status"></p><p class="keys">方向键 / WASD 行走 · F 互动与对话<br>M 章节地图 · Esc 暂停设置 · F11 全屏<br>点击地面行走 · 双指轻触打开菜单</p></div>
     <section id="dialogue" hidden aria-live="polite"><div class="dialogue-top"><span id="speaker"></span><span id="page"></span></div><div id="text"></div><div id="choices"></div><button id="next">继续 F</button></section>
   <section id="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
@@ -37,7 +37,7 @@
       </div>
       <div id="settings-progress" class="settings-page" role="tabpanel" aria-labelledby="tab-progress" hidden>
         <p id="save-summary" class="settings-intro"></p>
-        <div class="menu-actions"><button id="save-now">保存当前进度</button><button id="load-save">读取已存进度</button><button id="export-save">导出存档</button><button id="import-save">导入存档</button></div>
+        <div class="menu-actions"><button id="replay-umbrella" hidden>重看撑伞演出</button><button id="save-now">保存当前进度</button><button id="load-save">读取已存进度</button><button id="export-save">导出存档</button><button id="import-save">导入存档</button></div>
         <input id="save-file" type="file" accept="application/json,.json" hidden><p id="save-message" role="status" class="settings-intro"></p>
       </div>
       <p class="settings-footnote">每次操作后自动保存 · 设置与探索进度分别保存</p>

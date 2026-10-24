@@ -122,15 +122,16 @@ async function umbrellaSequence(){
   await page.waitForFunction(()=>!JSON.parse(window.render_game_to_text()).processing);
   let s=await state();assert.equal(s.lastCommand,'wait','The normal first NPC interaction must advance her original event');
   assert.equal(s.narrative.currentEvent,'umbrella_gust');
-  // Let the event play beside its original text. The normal Next button is
-  // deliberately a skip gesture while a blocking event is still running.
+  // Advancing text must never silently skip a visible event.
+  await page.keyboard.press('f');await page.keyboard.press('f');
+  assert.equal((await state()).narrative.currentEvent,'umbrella_gust');
   const duration=(await state()).narrative.duration;let elapsed=0;
-  for(const [action,progress]of [['hold',.06],['released',.23],['circle',.49],['look_up',.65],['wipe',.74],['kick',.82],['leave',.90]]){
+  for(const [action,progress]of [['prepare',.03],['raise',1.4/13.2],['open',2.5/13.2],['hold',3.5/13.2],['brace',4.5/13.2],['released',6/13.2],['circle',8.6/13.2],['look_up',9.8/13.2],['wipe',10.6/13.2],['kick',11.3/13.2],['leave',12.3/13.2]]){
     await tick((duration*progress-elapsed)*1000);elapsed=duration*progress;s=await state();
     assert.equal(s.narrative.currentEvent,'umbrella_gust');
     const actors=s.narrative.visibleActorActions.filter(actor=>actor.actorId==='lancaster_umbrella_woman');
     assert.equal(actors.length,1,'A single umbrella woman must be rendered throughout the event');
-    assert.equal(actors[0].action,action);assert.equal(actors[0].umbrella,action==='hold');
+    assert.equal(actors[0].action,action);assert.equal(actors[0].umbrella,['prepare','raise','open','hold','brace'].includes(action));
     assert.equal(s.turns,before.turns+1,'Animation must not add turns');
     await shot(`umbrella-gust-${action}`);receipts.push({case:`umbrella-gust-${action}`,actor:actors[0],turns:s.turns});
   }

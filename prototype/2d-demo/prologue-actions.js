@@ -66,10 +66,14 @@ export function getHotspots(state) {
       const birdActions = [action('查看鸽子', 'examine pigeons')];
       if (state.has('bag')) birdActions.push(action('喂鸟', 'feed birds'));
       add('broad_walk:birds', 185, 185, '鸽子', 'birds', 'examine_pigeons_bw', birdActions);
+      Object.assign(result.at(-1),{pointerShape:{kind:'ellipse',x:185,y:185,rx:32,ry:24,priority:1}});
     }
     if (state.hasFlag('ruby_visible') && !state.hasFlag('ruby_snatched')) add('broad_walk:ruby', 205, 192, '红宝石', 'ruby', 'take_ruby', [action('尝试拿取红宝石', 'take ruby')], 'ruby');
   }
-  if (room === 'flower_walk') add('flower_walk:memorial', 243, 231, '阿尔伯特纪念碑', 'sign', 'examine_memorial', [action('查看纪念碑', 'examine memorial')]);
+  if (room === 'flower_walk') {
+    add('flower_walk:memorial',338,90,'阿尔伯特纪念碑','memorial','examine_memorial',[action('查看纪念碑','examine memorial')]);
+    Object.assign(result.at(-1),{baked:true,radius:125,pointerShape:{kind:'ellipse',x:338,y:55,rx:22,ry:45,priority:1}});
+  }
   if (room === 'the_wabe') add('the_wabe:sundial', 245, 148, '日晷', 'sundial', 'examine_sundial', [action('查看日晷', 'examine sundial')]);
   if (room === 'round_pond') {
     add('round_pond:pond', 165, 155, '圆池塘', 'pond', 'examine_pond', [action('查看池塘', 'examine pond')]);

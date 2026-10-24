@@ -1,3 +1,5 @@
+import {PIGEON_FLOCK} from './pigeon-motion.js';
+import {idleUmbrellaVisual,umbrellaScene,UMBRELLA_DURATION} from './umbrella-motion.js';
 import { actorLayout } from './actor-layout.js';
 import { drawStoryProp } from './prologue-art.js';
 export { drawStoryProp, drawPortrait, setStorySpriteRenderer } from './prologue-art.js';
@@ -51,7 +53,7 @@ function pramRoom(state) {
   for(const [flag,room] of [['pram_at_flower','flower_walk'],['pram_at_walk','lancaster_walk'],['pram_at_lancaster','lancaster_gate'],['pram_at_inverness','inverness_terrace']])if(has(state,flag))return room;
   return 'black_lion_gate';
 }
-const length = {birds_arrive:1.25,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:4.6,umbrella_dislodged:1.9,pram_push:1.05,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:1.2,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
+const length = {birds_arrive:2.8,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:UMBRELLA_DURATION,umbrella_dislodged:1.9,pram_push:1.05,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:1.2,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
 
 // The chapter's cycle is 0=dip/swish, 1=raise/blow, 2=snap/pop.
 // Pose names are visual cues only; no clock or renderer advances boy_cycle.
@@ -66,36 +68,18 @@ function boyVisual(state,event,playing=false) {
 }
 
 function umbrellaGustActors(event) {
-  const t=clamp(event.elapsed/event.duration),a=event.anchors,release=.14,land=.36;
-  const stages=[['hold',0,release],['released',release,land],['circle',land,.60],
-    ['look_up',.60,.70],['wipe',.70,.78],['kick',.78,.86],['leave',.86,1]];
-  const [action,start,end]=stages.find(([,begin,finish])=>t>=begin&&t<finish)||stages.at(-1);
-  const progress=clamp((t-start)/(end-start)),treeSide={x:a.tree.x-20,y:a.tree.y+34};
-  let x=a.umbrellaWoman.x,y=a.umbrellaWoman.y;
-  if(t>=land){
-    const circle=clamp((t-land)/(.60-land)),approach=smooth(circle/.32);
-    const orbit=clamp((circle-.25)/.75),radius=16*smooth((circle-.25)/.15)*smooth((1-circle)/.15);
-    x=lerp(x,treeSide.x,approach)+Math.sin(orbit*Math.PI*4)*radius;
-    y=lerp(y,treeSide.y,approach)+(1-Math.cos(orbit*Math.PI*4))*radius*.3;
-  }
-  if(action==='leave')y=lerp(treeSide.y,338,smooth(progress));
-  const pose=action==='hold'?'standing_umbrella':action==='circle'?'look_up':action;
-  const woman={id:'lancaster_gate:woman',room:'lancaster_gate',kind:'umbrella_woman',actorId:'lancaster_umbrella_woman',x,y,
-    visualOptions:{pose,action,progress,eventProgress:t,active:true,eventId:event.id,
-      umbrella:t<release,open:t<release,standing:true,walking:action==='circle'||action==='leave'}};
-  let umbrella=null;
-  if(t>=release){
-    const travel=smooth(clamp((t-release)/(land-release)));
-    umbrella={id:'lancaster_gate:umbrella-gust',room:'lancaster_gate',kind:'umbrella',
-      x:lerp(a.umbrellaWoman.x+umbrellaCue[0],a.umbrella.x,travel),
-      y:lerp(a.umbrellaWoman.y+umbrellaCue[1],a.umbrella.y,travel)-Math.sin(travel*Math.PI)*20,
-      visualOptions:{open:travel<.8,rotation:Math.sin(travel*Math.PI)*.55,detached:true,progress:travel}};
-  }
+  const scene=umbrellaScene(event.elapsed,event.anchors),{body,umbrella:motion}=scene;
+  const woman={id:'lancaster_gate:woman',room:'lancaster_gate',kind:'umbrella_woman',actorId:'lancaster_umbrella_woman',x:body.x,y:body.y,
+    visualOptions:{...body,pose:scene.action==='hold'?'standing_umbrella':scene.action,
+      umbrella:motion.attached,open:motion.openness>.72,separateUmbrella:true,
+      active:true,eventId:event.id,eventProgress:event.elapsed/event.duration}};
+  const umbrella={id:'lancaster_gate:umbrella-gust',room:'lancaster_gate',kind:'umbrella',x:motion.x,y:motion.y,
+    visualOptions:{...motion,open:motion.openness>.72,gripAnchor:true,detached:!motion.attached}};
   return {woman,umbrella};
 }
 
 export function createNarrativeDirector() {
-  let queue=[],active=null,lastRoom=null,latest=null,history=[],leafOffset=0,windChanged=false;
+  let queue=[],active=null,lastRoom=null,latest=null,history=[],leafOffset=0,windChanged=false,idleSeconds=0,replaySerial=0;
   const triggered=new Set();
   function add(type,before,after,options={}) {
     const room=options.room||after.room||before.room;
@@ -107,7 +91,7 @@ export function createNarrativeDirector() {
   }
   function onCommand(before={},after={},command='') {
     if(!latest)windChanged=has(before,'wind_changed');
-    latest=after;lastRoom=after.room;
+    latest=after;lastRoom=after.room;if(before.room!==after.room)idleSeconds=0;
     const cycleChanged=count(after,'boy_cycle')!==count(before,'boy_cycle');
     const cycleId=`bubble_cycle:${count(after,'boy_cycle')}`;
     // A newer turn supersedes a short ambient gesture. It must not leave the
@@ -167,7 +151,7 @@ export function createNarrativeDirector() {
     active=queue.shift()||null;
   }
   function update(dt) {
-    let remaining=Math.max(0,Number.isFinite(dt)?dt:0);
+    let remaining=Math.max(0,Number.isFinite(dt)?dt:0);idleSeconds+=remaining;
     const reversal=active?.type==='wind_reversal'?active.elapsed/active.duration:null;
     leafOffset+=windSpeed(windChanged,reversal)*12*remaining;
     while(active&&remaining>0){const step=Math.min(remaining,active.duration-active.elapsed);active.elapsed+=step;remaining-=step;if(active.elapsed>=active.duration-.00001)finish();else break;}
@@ -209,11 +193,12 @@ export function createNarrativeDirector() {
     if(sceneRoom==='lancaster_gate'&&!has(state,'umbrella_woman_done')){
       actor('lancaster_gate:woman',sceneRoom,'umbrella_woman','lancaster_umbrella_woman',
         point(actorState,sceneRoom,['umbrella_woman','woman','old_woman']),
-        {pose:'standing_umbrella',action:'hold',umbrella:true,open:true,standing:true,active:false,progress:1});
+        {...idleUmbrellaVisual(idleSeconds),pose:'standing_umbrella',umbrella:true,standing:true,active:false});
     }
     if(type==='umbrella_gust'){
-      const woman=umbrellaGustActors(active).woman;
+      const {woman,umbrella}=umbrellaGustActors(active);
       actor(woman.id,woman.room,woman.kind,woman.actorId,{x:woman.x,y:woman.y},woman.visualOptions,'director');
+      visibleActorActions.push({...umbrella,...umbrella.visualOptions,source:'director',visible:true});
     }
     if(type==='boy_startled'){
       const progress=clamp(active.elapsed/active.duration),p=smooth(progress);
@@ -229,7 +214,13 @@ export function createNarrativeDirector() {
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
   }
-  return {onCommand,update,draw,skip,getState};
+  function replayUmbrella(snapshot){
+    if(snapshot?.room!=='lancaster_gate')return false;
+    skip();const copy={...snapshot,flags:[...(snapshot.flags||[])].filter(flag=>flag!=='umbrella_woman_done')};
+    latest=snapshot;lastRoom=snapshot.room;
+    return add('umbrella_gust',copy,snapshot,{id:`umbrella_gust:replay:${++replaySerial}`});
+  }
+  return {onCommand,update,draw,skip,getState,replayUmbrella};
 }
 
 function windSpeed(changed,reversal) {
@@ -257,7 +248,12 @@ function renderEvent(c,event,state,time) {
   const prop=(kind,x,y,options={})=>drawStoryProp(c,{kind,x,y,visualOptions:options},state,time);
   switch(event.type){
     case 'birds_arrive': {
-      for(let i=0;i<8;i++){const p=smooth(clamp(t*1.3-i*.035));const x=lerp(40+i*43,a.birds.x+(i*17)%34-17,p),y=lerp(35+(i*23)%60,a.birds.y+(i*11)%20-10,p)-Math.sin(p*Math.PI)*24;prop('pigeon',x,y,{flap:Math.sin(time*14+i)*Math.sin(p*Math.PI),flip:i%2===0});}
+      for(let i=0;i<5;i++){
+        const p=smooth(clamp((t-i*.045)/.82)),target={x:a.birds.x+PIGEON_FLOCK[i][0],y:a.birds.y+PIGEON_FLOCK[i][1]};
+        const x=lerp(45+i*70,target.x,p)+Math.sin(p*Math.PI*2+i)*12*Math.sin(p*Math.PI);
+        const y=lerp(22+(i*23)%45,target.y,p)-Math.sin(p*Math.PI)*24;
+        prop('pigeon',x,y,{flying:p<.93,flap:Math.sin(time*14+i),phase:i,flip:i%2===0});
+      }
       break;
     }
     case 'crumbs_purchase': {
@@ -266,7 +262,7 @@ function renderEvent(c,event,state,time) {
     }
     case 'feed_birds': {
       for(let i=0;i<19;i++){const p=clamp(t*2.4-i*.018),x=a.birds.x+Math.cos(i*2.4)*(5+i*.75),y=a.birds.y+Math.sin(i*2.4)*(3+i*.4);if(p>0)particle(c,lerp(a.player.x,x,p),lerp(a.player.y-17,y,p)-Math.sin(p*Math.PI)*8,'#cbbb8c',.55);}
-      for(let i=0;i<7;i++){const p=smooth(t*2),x=lerp(a.birds.x+(i-3)*11,a.birds.x+Math.cos(i)*11,p),y=lerp(a.birds.y+((i%3)-1)*12,a.birds.y+Math.sin(i)*7,p);prop('pigeon',x,y,{peck:Math.max(0,Math.sin(time*4+i)),flip:i%2===0});}
+      for(let i=0;i<5;i++){const step=Math.sin(t*Math.PI)*2,x=a.birds.x+PIGEON_FLOCK[i][0]+Math.cos(i)*step,y=a.birds.y+PIGEON_FLOCK[i][1]+Math.sin(i)*step;prop('pigeon',x,y,{peck:Math.max(0,Math.sin(time*4+i)),phase:i,flip:i%2===0});}
       if(t>.56){c.save();c.globalAlpha=smooth((t-.56)/.25);prop('ruby',a.ruby.x,a.ruby.y);c.restore();}
       break;
     }

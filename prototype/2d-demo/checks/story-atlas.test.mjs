@@ -30,16 +30,18 @@ test('new transparent sprite file has the canvas dimensions required by pose cel
   }
 });
 
-test('standing umbrella actor uses six distinct cells and preserves body scale after losing her umbrella', () => {
-  const actions=[{action:'hold'},{action:'released',umbrella:false},{action:'wipe'},
-    {action:'kick'},{action:'leave',progress:0},{action:'leave',progress:.15}];
-  const draws=actions.map(visualOptions=>{
-    const calls=[],context={save(){},restore(){},drawImage(...args){calls.push(args);}};
-    assert.equal(renderStorySprite(context,{kind:'umbrella_woman',x:165,y:155,visualOptions},{},0),true);
-    assert.equal(calls.length,1,'free umbrella must not be baked into empty-handed poses');
-    assert.ok(calls[0][0].src.endsWith('/assets/umbrella-woman-poses-v2.png'));
+test('new standing body frames carry a separate umbrella through the opening action', async () => {
+  const {BODY_POSES}=await import('../umbrella-motion.js');
+  const draws=['prepare','raise','open','hold','brace','released','look_up','wipe','kick'].map(action=>{
+    const calls=[],context={save(){},restore(){},translate(){},rotate(){},scale(){},drawImage(...args){calls.push(args);}};
+    assert.equal(renderStorySprite(context,{kind:'umbrella_woman',x:194,y:159,visualOptions:{action,umbrella:false}},{},0),true);
+    assert.equal(calls.length,1,'empty human pose must contain no second umbrella');
+    assert.ok(calls[0][0].src.endsWith('/assets/umbrella-motion-v3.png'));
     return calls[0];
   });
-  assert.equal(new Set(draws.map(draw=>`${draw[1]}:${draw[2]}`)).size,6);
-  assert.equal(new Set(draws.map(draw=>draw[7]/draw[3])).size,1,'body scale stays constant even though the open pose has a canopy above the head');
+  assert.equal(new Set(draws.map(d=>`${d[1]}:${d[2]}`)).size,9);
+  for(let i=0;i<draws.length;i++) {
+    const d=draws[i],p=BODY_POSES[i],scale=d[8]/d[4];
+    assert.ok(Math.abs((p.foot[1]-p.head)*scale-33)<.01,'human head-to-foot height stays33 even when hands rise above head');
+  }
 });

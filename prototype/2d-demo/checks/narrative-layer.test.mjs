@@ -66,8 +66,8 @@ test('真实首次到大道时飞入鸽群替代静止鸽群，结束后恢复�
   assert.ok(getHotspots(g.engine.state).some(object=>object.kind==='birds'));
   const during=painted(g);
   assert.equal(during.filter(object=>['birds','pigeons'].includes(object.kind)).length,0);
-  assert.equal(during.filter(object=>object.kind==='pigeon').length,8);
-  g.director.update(2);
+  assert.equal(during.filter(object=>object.kind==='pigeon').length,5);
+  g.director.update(g.director.getState().duration);
   const after=painted(g);
   assert.equal(after.filter(object=>object.kind==='birds').length,1);
   assert.equal(after.filter(object=>object.kind==='pigeon').length,0);
@@ -225,11 +225,11 @@ test('男孩受惊使用离场姿态和消失前锚点，离开房间不拖带�
   assert.equal(next.director.getState().sceneRoom,'lancaster_gate');
 });
 
-test('撑伞老妇人先站立持打开伞，脱手后才出现独立伞；基础角色全部别名被隐藏',async()=>{
+test('撑伞老妇人站立抬伞并分离绘制单把伞，脱手后沿连续轨迹飞出',async()=>{
   const g=game();await reachBoy(g);await g.command('e');g.director.skip();
   const id='lancaster_gate:woman',standing=g.director.getState().actorVisuals[id];
-  assert.deepEqual([standing.pose,standing.umbrella,standing.open,standing.standing],
-    ['standing_umbrella',true,true,true]);
+  assert.deepEqual([standing.pose,standing.umbrella,standing.standing],
+    ['standing_umbrella',true,true]);
   const {before,after}=await g.command('wait');
   assert.equal(after.flags.includes('umbrella_woman_done'),true);
   assert.equal(after.itemLoc.umbrella,'lancaster_gate_tree');
@@ -238,14 +238,14 @@ test('撑伞老妇人先站立持打开伞，脱手后才出现独立伞；基�
   assert.equal(first.currentEvent,'umbrella_gust');
   for(const kind of ['woman','bird_woman','old_woman','umbrella_woman','umbrella','umbrella_tree'])
     assert.ok(first.hiddenKinds.includes(kind),kind);
-  assert.deepEqual([options.pose,options.action,options.umbrella,options.open],['standing_umbrella','hold',true,true]);
+  assert.deepEqual([options.pose,options.action,options.umbrella,options.open],['prepare','prepare',true,false]);
   const held=painted(g);
   assert.equal(held.filter(object=>object.actorId==='lancaster_umbrella_woman').length,1);
-  assert.equal(held.filter(object=>object.kind==='umbrella').length,0,'手中伞由持伞姿态绘制，不能再画第二把');
+  assert.equal(held.filter(object=>object.kind==='umbrella').length,1,'只有一把独立雨伞从手中撑开，人体素材不烘焙第二把');
   const sourceActor=before.visual.hotspots.find(object=>object.id===id);
   assert.deepEqual([first.visibleActorActions[0].x,first.visibleActorActions[0].y],[sourceActor.x,sourceActor.y],
     '使用消失前角色的真实位置，而不是错误的默认另一侧锚点');
-  g.director.update(first.duration*.20);
+  g.director.update(5.2);
   const released=g.director.getState().actorVisuals[id],drawn=painted(g);
   assert.equal(released.action,'released');assert.equal(released.umbrella,false);
   assert.equal(drawn.filter(object=>object.actorId==='lancaster_umbrella_woman').length,1);
@@ -257,7 +257,7 @@ test('夺伞演出的绕树、仰望、擦泪、踢树、离场动作可供QA读
   const g=game();await reachBoy(g);await g.command('e');await g.command('wait');
   const id='lancaster_gate:woman',committed=g.engine.state.serialize(),duration=g.director.getState().duration;
   let last=0;
-  for(const [at,action,pose] of [[.45,'circle','look_up'],[.65,'look_up','look_up'],[.74,'wipe','wipe'],[.82,'kick','kick'],[.93,'leave','leave']]){
+  for(const [at,action,pose] of [[8.3/13.2,'circle','circle'],[9.8/13.2,'look_up','look_up'],[10.6/13.2,'wipe','wipe'],[11.3/13.2,'kick','kick'],[12.3/13.2,'leave','leave']]){
     g.director.update((at-last)*duration);last=at;
     const layer=g.director.getState(),visible=layer.visibleActorActions.find(actor=>actor.id===id);
     assert.equal(visible.action,action);assert.equal(visible.pose,pose);assert.equal(visible.source,'director');

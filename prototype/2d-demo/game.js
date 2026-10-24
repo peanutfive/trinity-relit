@@ -1,3 +1,5 @@
+import {filterVisualPresence} from './visual-text-policy.js';
+import {renderNotice,noticeArtStatus} from './notice-art.js';
 import { actorHitShape } from './actor-layout.js';
 import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
@@ -21,7 +23,7 @@ import { ITEMS } from '../js/data/items.js';
 const $ = selector => document.querySelector(selector);
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
-setStorySpriteRenderer((ctx,object,state,time)=>renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -63,21 +65,27 @@ sound.setPaused(true);
 let output = [];
 let roomDescription = null;
 let roomItemDescriptions = [];
+let roomDescriptionPending=false,removedPresence=[];
 function beginOutput() {
   output = [];
   roomDescription = null;
-  roomItemDescriptions = [];
+  roomItemDescriptions = [];roomDescriptionPending=false;removedPresence=[];
 }
 const ui = {
   text(text) {
+    const isRoom=roomDescriptionPending;roomDescriptionPending=false;
+    const itemAnnotation=roomItemDescriptions.some(description=>String(description).trim()===String(text).trim());
     text = discovery.filterOutput(text, engine?.state || {});
+    if(isRoom)roomDescription=text;
+    else if(isRepeatedItemDescription(text, roomDescription, roomItemDescriptions))return;
+    const adapted=filterVisualPresence(text,{room:engine?.state.room,objects:engine?getHotspots(engine.state):[],source:isRoom?'room':itemAnnotation?'item-annotation':'event'});
+    removedPresence.push(...adapted.removed);text=adapted.text;
     if (!String(text).trim()) return;
-    if (roomDescription === null) roomDescription = text;
-    else if (isRepeatedItemDescription(text, roomDescription, roomItemDescriptions)) return;
     output.push(text);
   },
   system: text => output.push(text), inventory: text => output.push(text), userInput() {},
   location() {
+    roomDescriptionPending=true;
     roomDescription = null;
     roomItemDescriptions = engine.state.roomItems().map(id => engine.items[id]?.roomDesc)
       .filter(description => typeof description === 'string' && description.trim());
@@ -120,9 +128,10 @@ function updateHud() {
   $('.game-shell').classList.toggle('is-paused', paused);
   $('#menu-bag').disabled = !started || busy;
   $('#menu-help').disabled = !started || busy;
+  $('#replay-umbrella').hidden = !started || engine.state.room!=='lancaster_gate'||!engine.state.hasFlag('umbrella_woman_done');
   const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
-  $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} · ${near.label}` : '';
+  $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} · ${heldItem?'使用手中物品':observedObjects.has(near.id)?near.label:'观察'}` : '';
   $('#hand-kit').hidden = !heldItem || !started || paused || reading;
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
@@ -216,7 +225,6 @@ function back() {
 function next() {
   if (!pages.length) return;
   if (inventoryOpen) { closeDialog(); return; }
-  if (director.getState().busy) director.skip();
   if (pageIndex < pages.length - 1) { pageIndex++; paintDialog(); }
   else closeDialog();
 }
@@ -355,7 +363,7 @@ function nearby() {
 function interact() {
   if (!started || busy || paused) return;
   if (pages.length) { next(); return; }
-  if (director.getState().busy) { director.skip(); return; }
+  if (director.getState().busy) return;
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
   if (!object) { describe(); return; }
@@ -573,7 +581,7 @@ canvas.addEventListener('pointerdown',event=>{
     if(pointedPaperDetail(point)){command(resolveHeldSelf('paper_bird',engine.state));return;}
     next();return;
   }
-  if(director.getState().busy){director.skip();return;}
+  if(director.getState().busy)return;
   const point=pointerPoint(event),target=pointedObject(point);
   const labelExit=pointedExitLabel(point);
   const requestedExit=labelExit||(!target&&exits().find(exit=>Math.hypot(exit.x-point.x,exit.y-point.y)<13));
@@ -773,6 +781,7 @@ $('#start-fullscreen').onclick = () => {fullscreen();start();};
 $('#menu-map').onclick = () => {setPaused(false);stopMovement();sound.setPaused(true);chapterMap.open({state:engine.state,rooms:engine.rooms,scenes});};
 $('#menu-bag').onclick = () => { setPaused(false); inventory(); };
 $('#menu-help').onclick = () => { setPaused(false); toggleQuest(); };
+$('#replay-umbrella').onclick = () => {setPaused(false);closeDialog();stopMovement();director.replayUmbrella(gameSnapshot());updateHud();render();};
 $('#reset-bindings').onclick = () => { preferences.bindings = { ...DEFAULT_BINDINGS }; captureBinding = null; storeSettings(); paintBindings(); $('#binding-message').textContent = '已恢复默认键位。'; };
 for (const button of document.querySelectorAll('[data-tab]')) {
   button.onclick = () => selectTab(button.dataset.tab);
@@ -810,10 +819,10 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
-  objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,
+  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, processing:busy,
   inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
   controls: { ...preferences.bindings, pause: 'Escape' },

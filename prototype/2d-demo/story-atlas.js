@@ -1,3 +1,5 @@
+import {renderPigeon,pigeonArtStatus} from './pigeon-art.js';
+import {renderUmbrellaMotion,umbrellaMotionArtStatus} from './umbrella-motion-art.js';
 import { paintCharacter } from './character.js';
 import { actorLayout, actorIdentity, boyPoseFrame, umbrellaWomanPoseFrame } from './actor-layout.js';
 const image = new Image();
@@ -52,6 +54,7 @@ const has=(state,key)=>state.hasFlag?.(key)??(state.flags||[]).includes(key);
 export function renderStorySprite(ctx,object,state,time) {
   if(!image.complete||!image.naturalWidth)return false;
   const {kind,x,y}=object,options=object.visualOptions||object;
+  if(renderUmbrellaMotion(ctx,object,state,time)||renderPigeon(ctx,object,state,time))return true;
   const bob=Math.sin(time*1.8)*.12;
   if(['woman','bird_woman','old_woman','umbrella_woman'].includes(kind)){
     const eastWoman=actorIdentity(object)==='lancaster_umbrella_woman',layout=actorLayout(object);
@@ -99,4 +102,4 @@ export function drawStoryPortrait(ctx,id,x=20,y=45,width=82,height=100) {
   const drawHeight=(width-6)*sh/sw;
   ctx.drawImage(details,sx,sy,sw,sh,x+3,y+height-drawHeight-3,width-6,drawHeight);ctx.strokeStyle='#c3a675';ctx.lineWidth=.7;ctx.strokeRect(x,y,width,height);ctx.restore();
 }
-export function spriteArtStatus(){return image.complete&&image.naturalWidth&&details.complete&&details.naturalWidth&&boyPoses.complete&&boyPoses.naturalWidth&&umbrellaWomanPoses.complete&&umbrellaWomanPoses.naturalWidth?'loaded':'loading';}
+export function spriteArtStatus(){return image.complete&&image.naturalWidth&&details.complete&&details.naturalWidth&&boyPoses.complete&&boyPoses.naturalWidth&&umbrellaWomanPoses.complete&&umbrellaWomanPoses.naturalWidth&&umbrellaMotionArtStatus()==='loaded'&&pigeonArtStatus()==='loaded'?'loaded':'loading';}
