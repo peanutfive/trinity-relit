@@ -1,6 +1,6 @@
 import {filterVisualPresence} from './visual-text-policy.js';
 import {renderNotice,noticeArtStatus} from './notice-art.js';
-import { actorHitShape } from './actor-layout.js';
+import { nearbyTarget, pointerTarget, withinReach } from './interaction-targets.js';
 import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
 import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
@@ -13,7 +13,7 @@ import { roomArrival } from './arrivals.js';
 import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
-import { isBlocked, findPath, nearestWalkable, pointInPolygon, approachingExit } from './world.js';
+import { isBlocked, findPath, nearestWalkable, approachingExit } from './world.js';
 import { SCENES, LOGICAL_SIZE, sceneExits } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
@@ -356,8 +356,7 @@ function objects() {
 function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
 
 function nearby() {
-  return objects().map(object => ({ ...object, d: Math.hypot(player.x - object.x, player.y - object.y) }))
-    .filter(object => object.d < object.radius).sort((a, b) => a.d - b.d)[0];
+  return nearbyTarget(objects(), player);
 }
 
 function interact() {
@@ -366,12 +365,12 @@ function interact() {
   if (director.getState().busy) return;
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
-  if (!object) { describe(); return; }
+  if (!object) return;
   interactWith(object);
 }
 
 function interactWith(object) {
-  if(busy||paused||!object)return;
+  if(busy||paused||director.getState().busy||!withinReach(player,object))return;
   faceObject(object);
   const input=resolveInteraction(engine.state,object,{heldItem,observed:observedObjects});
   if(!input){sound.playUi('click');$('#hand-status').textContent='没有反应。';return;}
@@ -447,18 +446,20 @@ function update(dt) {
   motion.elapsed += dt;
   if (motion.action !== 'idle' && motion.elapsed >= motion.duration) motion.action = 'idle';
   const canWalk = started && !pages.length && !busy && !paused && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram') && $('#quest').hidden;
-  if(canWalk&&walkTarget){
-    const target=objects().find(o=>o.id===walkTarget);
-    if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius-1){walkPath=[];walkTarget=null;interactWith(target);return;}
-  }
   let dx = canWalk ? Number(keys.has('ArrowRight') || keys.has(preferences.bindings.right)) - Number(keys.has('ArrowLeft') || keys.has(preferences.bindings.left)) : 0;
   let dy = canWalk ? Number(keys.has('ArrowDown') || keys.has(preferences.bindings.down)) - Number(keys.has('ArrowUp') || keys.has(preferences.bindings.up)) : 0;
-  let remainingDistance=Infinity;
+  // A movement input wins over a previously queued click, even on the frame
+  // when the old object has just entered reach.
   if(dx||dy){walkPath=[];walkTarget=null;walkExit=null;}
-  else if(canWalk&&walkPath.length){
+  if(canWalk&&walkTarget){
+    const target=objects().find(o=>o.id===walkTarget);
+    if(target&&withinReach(player,target,1)){walkPath=[];walkTarget=null;interactWith(target);return;}
+  }
+  let remainingDistance=Infinity;
+  if(!dx&&!dy&&canWalk&&walkPath.length){
     while(walkPath.length&&Math.hypot(player.x-walkPath[0][0],player.y-walkPath[0][1])<.45)walkPath.shift();
     if(walkPath.length){dx=walkPath[0][0]-player.x;dy=walkPath[0][1]-player.y;remainingDistance=Math.hypot(dx,dy);}
-    else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius)interactWith(target);}
+    else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&withinReach(player,target))interactWith(target);}
     else if(walkExit){
       const exit=exits().find(candidate=>candidate.dir===walkExit);walkExit=null;
       if(exit&&Math.hypot(exit.x-player.x,exit.y-player.y)<exit.radius){command(exit.dir);return;}
@@ -558,22 +559,11 @@ function render() {
 }
 
 function pointerPoint(event){const rect=canvas.getBoundingClientRect();return {x:(event.clientX-rect.left)/rect.width*480,y:(event.clientY-rect.top)/rect.height*288};}
-function pointedObject(point){return objects().filter(o=>o.id!=='palace_gate:self'&&!o.visualOnly).map(o=>{
-  const shape=o.pointerShape;
-  if(shape){
-    const outer=((point.x-shape.x)/shape.rx)**2+((point.y-shape.y)/shape.ry)**2;
-    const hit=shape.kind==='polygon'?pointInPolygon(point.x,point.y,shape.points)
-      :outer<=1&&(shape.kind!=='annulus'||((point.x-shape.x)/shape.innerRx)**2+((point.y-shape.y)/shape.innerRy)**2>=1);
-    return {o,d:hit?-shape.priority:Infinity};
-  }
-  if(o.kind==='headphones'||o.kind==='dish'){const rx=o.kind==='dish'?4:3,ry=o.kind==='dish'?2:3;return {o,d:((o.x-point.x)/rx)**2+((o.y-point.y)/ry)**2};}
-  const actorShape=actorHitShape(o);
-  if(actorShape)return {o,d:((actorShape.x-point.x)/actorShape.rx)**2+((actorShape.y-point.y)/actorShape.ry)**2};
-  const person=['woman','umbrella_woman','boy'].includes(o.kind),pram=o.kind==='pram';
-  const rx=person?16:pram?24:20,ry=person?23:pram?19:20,cy=o.y-(person?20:pram?13:10);
-  return {o,d:((o.x-point.x)/rx)**2+((cy-point.y)/ry)**2};
-}).filter(hit=>hit.d<1).sort((a,b)=>a.d-b.d)[0]?.o;}
-canvas.addEventListener('pointermove',event=>{const p=pointerPoint(event);canvas.style.cursor=pointedPaperDetail(p)||pointedObject(p)||pointedExitLabel(p)?'pointer':'default';});
+function pointedObject(point,padding=0){return pointerTarget(objects(),point,{padding});}
+canvas.addEventListener('pointermove',event=>{
+  const p=pointerPoint(event),active=started&&!paused&&!chapterMap.isOpen()&&!busy&&!director.getState().busy;
+  canvas.style.cursor=active&&(pages.length?pointedPaperDetail(p):pointedObject(p)||pointedExitLabel(p))?'pointer':'default';
+});
 canvas.addEventListener('pointerdown',event=>{
   if(!started||paused||busy||chapterMap.isOpen()||event.button!==0)return;
   if(pages.length){
@@ -582,13 +572,15 @@ canvas.addEventListener('pointerdown',event=>{
     next();return;
   }
   if(director.getState().busy)return;
-  const point=pointerPoint(event),target=pointedObject(point);
+  stopMovement();
+  const point=pointerPoint(event),padding=event.pointerType==='touch'?Math.min(10,12*480/canvas.clientWidth):0;
+  const target=pointedObject(point,padding);
   const labelExit=pointedExitLabel(point);
   const requestedExit=labelExit||(!target&&exits().find(exit=>Math.hypot(exit.x-point.x,exit.y-point.y)<13));
   if(requestedExit&&!engine.state.hasFlag('in_pram')){
     const navigation=navigationScene();walkPath=findPath(navigation,player,{x:requestedExit.x,y:requestedExit.y},{nearest:true});walkTarget=null;walkExit=walkPath.length?requestedExit.dir:null;canvas.focus({preventScroll:true});return;
   }
-  if(target&&Math.hypot(target.x-player.x,target.y-player.y)<target.radius){interactWith(target);return;}
+  if(target&&withinReach(player,target)){interactWith(target);return;}
   if(engine.state.hasFlag('in_pram')){if(heldItem)useHeldItem();else command('exit pram');return;}
   const navigation=navigationScene();
   const landing=nearestWalkable(navigation,target||point,{from:player});

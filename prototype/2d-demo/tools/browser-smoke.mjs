@@ -70,7 +70,13 @@ async function touch(object) {
   const keyboard=before.nearby===object.label;
   if(keyboard)await page.keyboard.press('f');
   else if(object.id==='vertex:ring')await clickLogical(286,132);
-  else await clickLogical(object.x, object.y - 10);
+  else {
+    // Click the painted prop, not the old universal ten-pixels-above-foot
+    // point (which is above a seven-pixel-high paper boat, for example).
+    const offset = { paper_boat: -3.5, paper_bird: -5.5, ball: -5, ruby: -4,
+      headphones: 0, dish: -1.5, gnomon: -5, bag: -6, splinter: -8, sign: -17 }[object.kind] ?? -10;
+    await clickLogical(object.x, object.y + offset);
+  }
   for (let index = 0; index < 200; index++) {
     const s = await state();
     if (!s.processing && (s.mode === 'dialogue' || s.room !== before.room || s.turns > before.turns)) {

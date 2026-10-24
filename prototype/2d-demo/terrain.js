@@ -139,7 +139,8 @@ export const REMAINING_TERRAIN_ROOMS = Object.freeze(Object.keys(terrain));
 export const TERRAIN_HOTSPOT_ADJUSTMENTS = Object.freeze({
   // Park on the broad upper terrace rather than sealing the narrow southern bend.
   inverness_terrace:{'pram:inverness_terrace':{x:270,y:116}},
-  lancaster_gate:{'lancaster_gate:tree':{radius:56},'lancaster_gate:umbrella-tree':{radius:94},'item:umbrella':{x:264,y:210}},
+  lancaster_gate:{'lancaster_gate:tree':{radius:56},'lancaster_gate:umbrella-tree':{radius:94,
+    pointerShape:{kind:'ellipse',x:325,y:119.5,rx:18,ry:14,priority:2}},'item:umbrella':{x:264,y:210}},
   lancaster_walk:{'lancaster_walk:sculpture':{radius:105}},
   long_water:{'long_water:statue':{radius:108},'long_water:missile':{radius:112},'long_water:door':{radius:145},'pram:long_water':{x:175,y:232}},
   wading:{'wading:door':{x:278,y:225,radius:42}},
