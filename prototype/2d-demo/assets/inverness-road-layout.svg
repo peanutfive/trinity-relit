@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="864" viewBox="0 0 480 288">
+<rect width="480" height="288" fill="#153b29"/>
+<path d="M0 113 H480" stroke="#dab47b" stroke-width="48" fill="none"/><path d="M86 113 C86 155 64 185 118 211 M118 211 C82 224 56 239 10 267 M118 211 C167 219 224 233 232 288 M339 114 C337 157 356 179 386 200 S435 244 467 288" fill="none" stroke="#dab47b" stroke-width="28" stroke-linejoin="round"/>
+<path d="M0 113 H480 M86 113 C86 155 64 185 118 211 M118 211 C82 224 56 239 10 267 M118 211 C167 219 224 233 232 288 M339 114 C337 157 356 179 386 200 S435 244 467 288" fill="none" stroke="#efcf98" stroke-width="1"/>
+<rect x="0" y="0" width="480" height="82" fill="#1e342b"/>
+<path d="M0 64 H480" stroke="#b1b399" stroke-width="2"/>
+<g fill="#52703c"><ellipse cx="175" cy="160" rx="58" ry="24"/><ellipse cx="240" cy="190" rx="84" ry="29"/><ellipse cx="410" cy="155" rx="48" ry="25"/><ellipse cx="328" cy="254" rx="65" ry="29"/></g>
+<g fill="#c497b4"><ellipse cx="175" cy="158" rx="42" ry="15"/><ellipse cx="411" cy="156" rx="35" ry="15"/><ellipse cx="328" cy="252" rx="52" ry="20"/></g>
+<g fill="#786140"><rect x="371" y="76" width="64" height="8"/><rect x="106" y="12" width="8" height="74"/><rect x="214" y="8" width="10" height="78"/><rect x="315" y="10" width="9" height="76"/></g>
+<g fill="#e4f1df" font-family="sans-serif" font-size="8" text-anchor="middle"><text x="22" y="112">W</text><text x="460" y="112">E</text><text x="28" y="257">SW</text><text x="232" y="276">S</text><text x="450" y="269">SE</text></g>
+</svg>

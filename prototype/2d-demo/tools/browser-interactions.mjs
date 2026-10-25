@@ -85,10 +85,11 @@ try {
   s = await state(); assert.ok(Math.hypot(s.player.x - 307, s.player.y - 139) < 37); assert.ok(!s.inventory.includes('ball'));
   await shot('click-walks-to-ball'); await drain();
   receipts.push('clicking actual sprite walks around flowerbeds, then observes within reach');
-  await fixture(['n', 'ne'], 320, 128);
-  await click(293.5, 142); await tick(1000);
+  await fixture(['n', 'ne'], 320, 100);
+  const boyProps=(await state()).objects, dish=boyProps.find(o=>o.kind==='dish'), headphones=boyProps.find(o=>o.kind==='headphones');
+  await click(dish.x, dish.y-1.5); await tick(1000);
   await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).lastCommand === 'examine dish'); await drain();
-  await click(300, 132); await tick(1000);
+  await click(headphones.x, headphones.y); await tick(1000);
   await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).lastCommand === 'examine headphones');
   await shot('boy-detail-targets'); await drain();
   receipts.push('dish and headphones can be selected instead of their overlapping owner');

@@ -1,4 +1,5 @@
 import {PIGEON_FLOCK} from './pigeon-motion.js';
+import {INVERNESS_ACTORS} from './inverness-layout.js';
 import {idleUmbrellaVisual,umbrellaScene,UMBRELLA_DURATION} from './umbrella-motion.js';
 import { actorLayout } from './actor-layout.js';
 import { drawStoryProp } from './prologue-art.js';
@@ -22,7 +23,7 @@ const defaults = {
   the_wabe:{sundial:{x:242,y:166},gnomon:{x:242,y:136}},
   round_pond:{paper_bird:{x:311,y:176},boats:{x:330,y:140}},
   black_lion_gate:{pram:{x:275,y:190}},
-  inverness_terrace:{pram:{x:275,y:190},boy:{x:300,y:145}},
+  inverness_terrace:{pram:INVERNESS_ACTORS.pram,boy:INVERNESS_ACTORS.boy},
   lancaster_gate:{pram:{x:263,y:197},tree:{x:326,y:138},umbrella:{x:326,y:93},umbrella_woman:{x:194,y:159},ball:{x:326,y:88}},
   lancaster_walk:{pram:{x:279,y:192},notice:{x:334,y:181}},
   flower_walk:{pram:{x:270,y:174}},

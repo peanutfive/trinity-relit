@@ -211,11 +211,12 @@ test('男孩动作跳过后保持目标阶段；存档恢复读取真实counter�
 
 test('男孩受惊使用离场姿态和消失前锚点，离开房间不拖带上一轮动作',async()=>{
   const g=game();await reachBoy(g);
+  const beforeBoy=getHotspots(g.engine.state).find(object=>object.kind==='boy');
   await g.command('take dish',{skip:false});
   const id='inverness_terrace:boy',layer=g.director.getState();
   assert.equal(layer.currentEvent,'boy_startled');
   assert.equal(layer.actorVisuals[id].pose,'startled');
-  assert.deepEqual([layer.visibleActorActions[0].x,layer.visibleActorActions[0].y],[300,145]);
+  assert.deepEqual([layer.visibleActorActions[0].x,layer.visibleActorActions[0].y],[beforeBoy.x,beforeBoy.y]);
   const actors=painted(g).filter(object=>object.kind==='boy');
   assert.equal(actors.length,1);assert.equal(actors[0].visualOptions.startled,true);
   g.director.skip();assert.equal(g.director.getState().actorVisuals[id],undefined);

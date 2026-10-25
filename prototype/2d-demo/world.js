@@ -7,7 +7,7 @@ const point = value => Array.isArray(value) ? { x: value[0], y: value[1] } : val
 const exitVectors={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1],u:[0,-1],d:[0,1],in:[1,0],out:[-1,0]};
 export function approachingExit(exit,from,to){
   const dx=to.x-from.x,dy=to.y-from.y;
-  const distance=Math.hypot(dx,dy),vector=exitVectors[exit.dir];
+  const distance=Math.hypot(dx,dy),vector=exit.approach||exitVectors[exit.dir];
   if(distance<.001||!vector)return false;
   // A northward walk must not activate a diagonal junction lying on that road.
   // Pointer navigation already records its explicitly selected exit separately.

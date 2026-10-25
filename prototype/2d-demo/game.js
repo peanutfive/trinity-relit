@@ -23,6 +23,9 @@ import { ITEMS } from '../js/data/items.js';
 const $ = selector => document.querySelector(selector);
 const canvas = $('canvas');
 const ctx = canvas.getContext('2d');
+// Art-route review removes both painted labels and their pointer targets, so
+// walkthroughs must follow the scene itself. This never changes game rules.
+const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
 setStorySpriteRenderer((ctx,object,state,time)=>renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
@@ -518,6 +521,7 @@ function exitLabel(exit) {
 }
 
 function pointedExitLabel(point) {
+  if(reviewRoutes)return null;
   return exits().find(exit=>{const label=exitLabel(exit);return Math.hypot(exit.x-player.x,exit.y-player.y)<55 && point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
 }
 
@@ -544,7 +548,7 @@ function render() {
     if(engine.state.hasFlag('bird_unfolded')){ctx.fillStyle='#59472d';ctx.font='italic 2px Georgia,serif';ctx.textAlign='center';ctx.fillText('Long Water,',0,-6);ctx.fillText("Four O’Clock",0,-3.4);}
     ctx.restore();
   }
-  for (const exit of crossing?[]:exits().filter(exit => Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
+  for (const exit of crossing||reviewRoutes?[]:exits().filter(exit => Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
     const {x,y,text:label,width}=exitLabel(exit);
     ctx.font = '8px serif';
     ctx.textAlign = 'center';

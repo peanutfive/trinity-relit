@@ -1,6 +1,7 @@
 // Ground traces for the remaining approved background panels, in 480×288 space.
 // Room direction/target truth stays in chapter data; these are local approach
 // points on visible paths, never extra connections between rooms.
+import { INVERNESS_TERRAIN, INVERNESS_ACTORS } from './inverness-layout.js';
 const foot = { rx: 6, ry: 3 };
 const polygon = (...points) => points;
 const terrain = {
@@ -26,15 +27,7 @@ const terrain = {
     ],blockedPolygons:[],
     exitAnchors:{s:[126,275],e:[465,207],se:[277,199]},
   },
-  inverness_terrace:{
-    spawn:[235,121],
-    walkablePolygons:[
-      polygon([0,106],[100,96],[310,98],[431,105],[443,146],[332,152],[284,145],[203,145],[112,143],[45,151],[0,151]),
-      polygon([78,137],[117,146],[148,177],[196,204],[220,227],[225,253],[224,288],[177,288],[180,248],[167,226],[125,204],[91,178],[69,158]),
-      polygon([322,136],[355,149],[365,179],[392,199],[425,218],[450,239],[458,264],[416,277],[409,250],[376,229],[345,210],[328,183],[310,156]),
-    ],blockedPolygons:[],
-    exitAnchors:{w:[16,128],e:[425,126],s:[204,275],se:[424,247],sw:[165,211]},
-  },
+  inverness_terrace:INVERNESS_TERRAIN,
   lancaster_gate:{
     spawn:[233,219],
     walkablePolygons:[
@@ -138,7 +131,10 @@ const terrain = {
 export const REMAINING_TERRAIN_ROOMS = Object.freeze(Object.keys(terrain));
 export const TERRAIN_HOTSPOT_ADJUSTMENTS = Object.freeze({
   // Park on the broad upper terrace rather than sealing the narrow southern bend.
-  inverness_terrace:{'pram:inverness_terrace':{x:270,y:116}},
+  inverness_terrace:{
+    'pram:inverness_terrace':INVERNESS_ACTORS.pram,
+    'inverness_terrace:boy':INVERNESS_ACTORS.boy,'inverness_terrace:headphones':INVERNESS_ACTORS.headphones,'inverness_terrace:dish':INVERNESS_ACTORS.dish,
+  },
   lancaster_gate:{'lancaster_gate:tree':{radius:56},'lancaster_gate:umbrella-tree':{radius:94,
     pointerShape:{kind:'ellipse',x:325,y:119.5,rx:18,ry:14,priority:2}},'item:umbrella':{x:264,y:210}},
   lancaster_walk:{'lancaster_walk:sculpture':{radius:105}},
@@ -183,6 +179,7 @@ export function applyRemainingTerrain(scenes) {
     // of retaining a second, misaligned legacy bounding rectangle.
     scene.obstacles=[];
     scene.exitAnchors={...scene.exitAnchors,...Object.fromEntries(Object.entries(spec.exitAnchors).map(([dir,point])=>[dir,[...point]]))};
+    if(spec.exitApproaches)scene.exitApproaches=Object.fromEntries(Object.entries(spec.exitApproaches).map(([dir,vector])=>[dir,[...vector]]));
     if(spec.exitLabelAnchors)scene.exitLabelAnchors=Object.fromEntries(Object.entries(spec.exitLabelAnchors).map(([dir,point])=>[dir,[...point]]));
     scene.terrain={status:'basic-ground-trace',sourceImage:scene.background?.image,panelIndex:scene.background?.panelIndex,
       hotspotAdjustments:{...(TERRAIN_HOTSPOT_ADJUSTMENTS[id]||{})}};

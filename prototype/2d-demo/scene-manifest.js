@@ -20,7 +20,7 @@ const sceneSpecs = {
   the_wabe: [extraA,0,4,79,[240,225]],
   round_pond: [extraA,1,4,144,[235,242]],
   black_lion_gate: [extraA,2,4,355,[240,215]],
-  inverness_terrace: [extraA,3,4,531,[235,215]],
+  inverness_terrace: ['./assets/inverness-terrace-v2.png',0,1,531,[235,101]],
   lancaster_gate: [extraB,0,4,179,[240,215]],
   lancaster_walk: [extraB,1,4,371,[240,220]],
   long_water: [extraB,2,4,121,[205,220]],
@@ -42,7 +42,7 @@ const labels = {n:'北',ne:'东北',e:'东',se:'东南',s:'南',sw:'西南',w:'�
 const objectIds={palace_gate:236,broad_walk:354,flower_walk:250,the_wabe:79,round_pond:144,black_lion_gate:355,inverness_terrace:531,lancaster_gate:179,lancaster_walk:371,long_water:121,wading:438,meadow:576,summit:323,south_bog:319,north_bog:42,bottom_of_stairs:575,vertex:316,forest_clearing:426,trellises:317};
 export const SCENES = Object.fromEntries(Object.entries(sceneSpecs).map(([id,[image,panelIndex,panels,,spawn]]) => [id, {
   roomId:id, label:DEFAULT_ROOMS[id].cn, chapter:Object.hasOwn(WABE_ROOMS,id)?'wabe':'prologue', spawn,
-  background:{image,panelIndex,panels,layout:panels===3?'vertical-three-panel-concept':'vertical-four-panel-concept'},
+  background:{image,panelIndex,panels,layout:panels===1?'single-scene':panels===3?'vertical-three-panel-concept':'vertical-four-panel-concept'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:objectIds[id],originalBranchesVerified:false,finalArtApproved:false},
   obstacles:[], objects:[], exits:[],
 }]));
@@ -152,7 +152,8 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
     if(!anchors[dir]||!SCENES[target])return [];
     const [x,y]=SCENES[roomId].exitAnchors?.[dir]||anchors[dir];
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
-    return [{dir,x,y,target,radius:17,label:`${labels[dir]} · ${rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn}];
+    const approach=SCENES[roomId].exitApproaches?.[dir];
+    return [{dir,x,y,target,radius:17,label:`${labels[dir]} · ${rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,...(approach?{approach:[...approach]}:{})}];
   });
 }
 applyRemainingTerrain(SCENES);
