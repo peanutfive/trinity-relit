@@ -3,6 +3,17 @@
 两个 agent 开工前都先读本文件。只改自己任务「涉及文件」内的文件。
 状态：⬜ 未开始 / 🔨 进行中 / 👀 待审查 / ✅ 已合并
 
+## 当前入口（2026-10-26）
+
+分支用途、合并状态与历史恢复方式以 [BRANCHES.md](BRANCHES.md) 为索引：`main` 是发布线，`dev` 是原版机制集成线，`codex/2d-garden-demo` 是当前2D开发线；旧混合提案仍保留为草稿 PR #1。下方日期记录保留当时的验收与授权，不将其中“待合并”误作当前远端状态。
+
+### T17 Git 分支归纳与仓库清理 — Codex（2026-10-26）
+- 人类授权：整理 GitHub 开发分支并清理 Git 仓库。
+- 分支：沿用 `codex/2d-garden-demo`，不合并开发线、不推送或部署 `main`。
+- 涉及文件：`BRANCHES.md`、README、TASKS、SHIP_PLAN；Git 分支/归档引用、上游设置、本地忽略与备份元数据。不改游戏代码、章节、原版数据或既有工作树文件。
+- 状态：👀 本批已清理并复核，整理文档随当前开发分支交付。远端12→4（保留main/dev/2D/草稿PR #1），8个旧分支均先建立并核验远端归档标签；本地14→5，保留两现有工作树，main快进35提交。两份旧stash已完整本地bundle/恢复引用备份后从列表归档，`.agents/`仅本地忽略，未删除技能或原版文件。
+- 验证：备份bundle校验、8个远端标签与旧tip、两个工作树无文件改动、主线/开发线未合并或部署均通过。82/82项目测试及verify通过；出口保持43项旧偏差，无新增。原版/本地备份/模型资源不上传；旧任务的历史记录与未合并提案保留，分支和恢复索引见BRANCHES。
+
 ## 文件锁
 
 同一时间只允许一个任务修改以下共享核心文件。改之前在这里登记，合并后清除。
@@ -17,7 +28,7 @@
 
 ### T1 阶段 2：通关测试 — Codex
 - 分支：`codex/integrate-claude-tests`
-- 状态：👀（本地整合与验证完成，尚未合并 main）
+- 状态：✅ 范围内的拆分测试已随 PR #3 合入 main；旧混合分支及草稿 PR #1 仍单独保留。
 - 涉及文件：新建 `tests/`（`harness.js`、`walkthrough.test.js`、`graph.test.js`）、`package.json`（仅添加 `test` 脚本）、`.github/workflows/deploy.yml`（仅在 check job 中添加 `npm test` 一步）
 - **不得修改**：`prototype/` 下任何文件。测试暴露出的缺陷记录在下方「发现的问题」，不要顺手修。
 - 说明：CI 已存在于 `deploy.yml` 的 check job，扩展它即可，不要另建 `check.yml`。详见 `SHIP_PLAN.md` 阶段 2。
@@ -44,7 +55,7 @@
 
 ### T2 阶段 3：存档 — Claude
 - 分支：`claude/save-system`
-- 状态：👀（已自测通过，等人类审查开 PR）
+- 状态：✅ 已通过拆分整合随 PR #3 合入 main；本次8个旧提交与main逐个补丁等价核对一致，旧分支归档见BRANCHES。
 - 涉及文件：`prototype/js/engine.js`（仅新增 `serialize()` / `deserialize()` 及每回合自动存档钩子）、`prototype/js/ui.js`、`prototype/js/main.js`、`prototype/index.html`
 - 说明：存档须带 `version` 字段；`flags` / `visited` 为 Set，存为数组；读档前先 `activateChapter(state.chapter)`。详见 `SHIP_PLAN.md` 阶段 3。
 - 验收：中途刷新后进度、物品、日晷符号、flag 全部保留；导出存档可在另一浏览器导入继续。

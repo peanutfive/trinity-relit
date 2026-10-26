@@ -86,6 +86,7 @@ npm run verify:exits   # 把章节出口与 Z-machine 真值逐条比对
 
 | 文档 | 内容 |
 |---|---|
+| [`BRANCHES.md`](./BRANCHES.md) | main / dev / 2D 开发线、旧分支归档与本地恢复方式 |
 | [`PROJECT_REVIEW.md`](./PROJECT_REVIEW.md) | 全项目评估、当前优化清单与剩余验收门槛 |
 | [`SHIP_PLAN.md`](./SHIP_PLAN.md) | 发布收尾路线图与当前进度 |
 | [`prototype/ARCHITECTURE.md`](./prototype/ARCHITECTURE.md) | 分层结构、事件执行路径、章节切换协议 |
