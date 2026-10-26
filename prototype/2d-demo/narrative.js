@@ -1,5 +1,6 @@
 import {PIGEON_FLOCK} from './pigeon-motion.js';
 import {INVERNESS_ACTORS} from './inverness-layout.js';
+import {createPramPushMotion,samplePramPushMotion} from './pram-motion.js';
 import {idleUmbrellaVisual,umbrellaScene,UMBRELLA_DURATION} from './umbrella-motion.js';
 import { actorLayout } from './actor-layout.js';
 import { drawStoryProp } from './prologue-art.js';
@@ -54,7 +55,7 @@ function pramRoom(state) {
   for(const [flag,room] of [['pram_at_flower','flower_walk'],['pram_at_walk','lancaster_walk'],['pram_at_lancaster','lancaster_gate'],['pram_at_inverness','inverness_terrace']])if(has(state,flag))return room;
   return 'black_lion_gate';
 }
-const length = {birds_arrive:2.8,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:UMBRELLA_DURATION,umbrella_dislodged:1.9,pram_push:1.05,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:1.2,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
+const length = {birds_arrive:2.8,crumbs_purchase:.7,feed_birds:2.5,ruby_reveal:1.1,ruby_snatch:2.25,wind_reversal:2.1,gnomon_unscrew:1.2,paper_approach:1,paper_unfold:1.1,umbrella_gust:UMBRELLA_DURATION,umbrella_dislodged:1.9,pram_open:.65,pram_board:.7,pram_runaway:3.1,pram_tumble:1.3,umbrella_travel:1.3,boy_startled:1.4,bubble_cycle:1.2,missile_reveal:1.1,door_reveal:1.4,wade:.9,door_cross:1.2,doomsday:1,death:1.7};
 
 // The chapter's cycle is 0=dip/swish, 1=raise/blow, 2=snap/pop.
 // Pose names are visual cues only; no clock or renderer advances boy_cycle.
@@ -123,7 +124,10 @@ export function createNarrativeDirector() {
     if(gained('ball_in_tree')&&item(before,'umbrella')==='lancaster_gate_tree'&&item(after,'umbrella')==='lancaster_gate')push('umbrella_dislodged');
     const beforePram=pramRoom(before),afterPram=pramRoom(after);
     if(gained('pram_broken'))push('pram_runaway');
-    else if(beforePram!==afterPram)push('pram_push',{id:`pram_push:${afterPram}`,direction:afterPram==='lancaster_walk'||afterPram==='flower_walk'?'s':'e'});
+    else if(beforePram!==afterPram){
+      const motion=createPramPushMotion({fromRoom:beforePram,room:afterPram,target:point(after,afterPram,['pram','perambulator'])});
+      push('pram_push',{id:`pram_push:${afterPram}`,motion,duration:motion.duration});
+    }
     if(gained('pram_open'))push('pram_open');
     if(gained('in_pram'))push('pram_board');
     if(gained('boy_scared'))push('boy_startled',{fromPhase:boyPhase(before),targetPhase:boyPhase(after)});
@@ -208,7 +212,10 @@ export function createNarrativeDirector() {
         {pose:'startled',action:'startled',startled:true,progress,active:true,eventId:active.id,
           fromPhase:active.fromPhase,targetPhase:active.targetPhase},'director');
     }
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
+    const pushEvent=[active,...queue].find(event=>event?.type==='pram_push'&&event.room===state.room);
+    const pair=type==='pram_push'?samplePramPushMotion(active.motion,active.elapsed):null;
+    const groundActors=pair?[pair.pusher,pair.pram]:[];
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
     drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
@@ -294,20 +301,18 @@ function renderEvent(c,event,state,time) {
       const fall=clamp((t-.35)/.6),uy=lerp(a.umbrella.y,a.tree.y+30,fall*fall);
       prop('umbrella',a.umbrella.x+Math.sin(t*19)*(1-fall)*3,uy,{rotation:Math.sin(t*14)*(1-fall)*.3});break;
     }
-    case 'pram_push': {
-      const p=smooth(t),start=event.direction==='s'?{x:a.pram.x,y:-16}:{x:-30,y:a.pram.y};
-      prop('pram',lerp(start.x,a.pram.x,p),lerp(start.y,a.pram.y,p),{rolling:true,broken:false});break;
-    }
+    // The pushing pair participates in the caller's common ground/depth pass.
+    case 'pram_push': break;
     case 'pram_open': {prop('pram',a.pram.x,a.pram.y,{open:t>.45,broken:false});break;}
-    case 'pram_board': {prop('pram',a.pram.x,a.pram.y,{open:true,broken:false,rider:t>.35});break;}
+    case 'pram_board': {prop('pram',a.pram.x,a.pram.y,{legacyPram:true,open:true,broken:false,rider:t>.35});break;}
     case 'pram_runaway': {
       const crash=.73,p=smooth(clamp(t/crash));
       const x=lerp(-30,a.pram.x,p),y=lerp(a.pram.y-22,a.pram.y,p)+Math.sin(p*29)*2*(1-p);
-      prop('pram',x,y,{rolling:t<crash,open:true,rider:t<crash,sail:t<crash,broken:t>=crash});
+      prop('pram',x,y,{legacyPram:true,rolling:t<crash,open:true,rider:t<crash,sail:t<crash,broken:t>=crash});
       if(t>=crash){const q=(t-crash)/(1-crash);for(let i=0;i<19;i++){const angle=Math.PI*(.08+i/19*.84);particle(c,x+Math.cos(angle)*q*33,y-Math.sin(angle)*Math.sin(q*Math.PI)*25+q*8,i%2?'#b5c9bd':'#e1e4c6',.6);}for(let i=0;i<3;i++)arc(c,x+4,y+4,q*(18+i*7),q*(3+i),.55*(1-q));}
       break;
     }
-    case 'pram_tumble': {prop('pram',a.pram.x+Math.sin(t*Math.PI)*-17,a.pram.y,{open:true,rider:t<.3,broken:false,sail:t<.4});break;}
+    case 'pram_tumble': {prop('pram',a.pram.x+Math.sin(t*Math.PI)*-17,a.pram.y,{legacyPram:true,open:true,rider:t<.3,broken:false,sail:t<.4});break;}
     case 'umbrella_travel': {prop('umbrella',lerp(-20,a.player.x,smooth(t)),a.player.y-15-Math.sin(t*Math.PI)*8,{open:t<.7,rotation:.25});break;}
     case 'boy_startled': {const p=smooth(t);c.save();c.globalAlpha=1-smooth((t-.75)/.25);prop('boy',a.boy.x-60*p,a.boy.y-15*p,{pose:'startled',action:'startled',startled:true,progress:t,active:true,eventId:event.id});c.restore();for(let i=0;i<9;i++){const q=clamp(t*2);particle(c,a.boy.x+15+Math.cos(i)*q*17,a.boy.y-Math.sin(q*Math.PI)*8+i%3,'#bdcdbb',.45);}arc(c,a.boy.x+5+t*21,a.boy.y-22-t*70,5+t*2,5+t*2,.35*(1-t));break;}
     case 'bubble_cycle': {if(event.phase===1)arc(c,a.boy.x+boyCues.wand[0]+t*6,a.boy.y+boyCues.wand[1]-t*8,3+t*3,3+t*3,.35);else if(event.phase===2)for(let i=0;i<7;i++){const angle=i*Math.PI*2/7;particle(c,a.boy.x+boyCues.snap[0]+Math.cos(angle)*t*5,a.boy.y+boyCues.snap[1]+Math.sin(angle)*t*5,'#d6dfc08c',.35);}break;}

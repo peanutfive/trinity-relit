@@ -2,7 +2,7 @@
 // These ground edges are then traced against the DELIVERED painting, rather
 // than assuming the image generator preserved blueprint coordinates exactly.
 export const INVERNESS_ACTORS = Object.freeze({
-  pram:Object.freeze({x:270,y:86}),boy:Object.freeze({x:300,y:135}),
+  pram:Object.freeze({x:270,y:88}),boy:Object.freeze({x:300,y:135}),
   headphones:Object.freeze({x:300,y:122}),dish:Object.freeze({x:293.5,y:133.5}),
 });
 export const INVERNESS_TERRAIN = {

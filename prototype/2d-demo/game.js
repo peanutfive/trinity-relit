@@ -273,6 +273,8 @@ async function command(input, actions = [], observedId = null) {
     normalizePlayerLocation();
     const after = gameSnapshot();
     director.onCommand(before, after, input);
+    const landing=director.getState(engine.state).playerLanding;
+    if(landing){player.x=landing.x;player.y=landing.y;player.face=landing.face;stopMovement();}
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
     if (engine.state.chapter === 'wabe') $('#objective').textContent = '沿林间小路前行，留意石头、植物与光影中的细节。';
@@ -536,6 +538,7 @@ function render() {
   drawScene(ctx, renderRoom, clock, preferences.video.effects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
+  for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
   if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState()) });
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
   director.draw(ctx, renderRoom, engine.state, clock);

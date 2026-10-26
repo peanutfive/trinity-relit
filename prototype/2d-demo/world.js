@@ -46,10 +46,10 @@ function ellipseTouchesPolygon(x, y, rx, ry, polygon) {
 
 // The foot ellipse, rather than the character's whole sprite, contacts the ground.
 // Uncalibrated scenes retain their previous rectangular collision behavior.
-export function isBlocked(scene, x, y) {
+function blockedFoot(scene, x, y, footprint = scene.footprint) {
   if (!Number.isFinite(x) || !Number.isFinite(y) || x < 12 || x > LOGICAL_SIZE.width - 12 || y < 12 || y > LOGICAL_SIZE.height - 12) return true;
   if (!scene.walkablePolygons?.length) return scene.obstacles.some(object => x > object.x - 7 && x < object.x + object.w + 7 && y > object.y - 4 && y < object.y + object.h + 5);
-  const { rx = 6, ry = 3 } = scene.footprint || {};
+  const { rx = 6, ry = 3 } = footprint || {};
   if (!scene.walkablePolygons.some(polygon => pointInPolygon(x, y, polygon))) return true;
   // Test the perimeter against the UNION of walkable areas. Shared seams between
   // path pieces remain passable, while neither foot can extend over a flowerbed.
@@ -66,6 +66,15 @@ export function isBlocked(scene, x, y) {
   });
 }
 
+export function isBlocked(scene, x, y) {
+  // A carried or pushed assembly has several ground contacts. Use the same
+  // ground mesh and pathfinder for every contact instead of sliding its centre
+  // along a valid road while its wheels or the person cut across a flowerbed.
+  if (scene.contactOffsets?.length) return scene.contactOffsets.some(contact =>
+    blockedFoot(scene, x + contact.x, y + contact.y, contact.footprint));
+  return blockedFoot(scene, x, y);
+}
+
 export function isSegmentWalkable(scene, fromValue, toValue) {
   const from = point(fromValue), to = point(toValue);
   if (!from || !to) return false;
@@ -78,7 +87,7 @@ export function isSegmentWalkable(scene, fromValue, toValue) {
 }
 
 function gridFor(scene, step) {
-  const signature = JSON.stringify([step, scene.walkablePolygons, scene.blockedPolygons, scene.footprint, scene.obstacles]);
+  const signature = JSON.stringify([step, scene.walkablePolygons, scene.blockedPolygons, scene.footprint, scene.obstacles, scene.contactOffsets]);
   const cached = navigationCache.get(scene);
   if (cached?.signature === signature) return cached;
   const nodes = [], byKey = new Map();
