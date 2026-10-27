@@ -1,3 +1,4 @@
+async function main(){
 // CHAPTER_RULES.md §10 + 关键规则 检查所有章节
 // 从仓库根目录运行: node scripts/verify_chapters_rules.js [章节名...]
 // 若传入章节名则仅报告这些章节的问题，例如: node scripts/verify_chapters_rules.js japan underground orbit pacific tundra
@@ -29,41 +30,26 @@ function fail(check, msg, file, line) {
   issues.push({ check, msg, file, line });
 }
 
-// 加载所有章节 ROOMS（需 strip export）
-function loadChapterRooms(filename) {
-  const filepath = path.join(DATA, filename);
-  if (!fs.existsSync(filepath)) return null;
-  let code = fs.readFileSync(filepath, "utf8");
-  if (filename.endsWith(".js") && !filename.startsWith("_") && filename !== "items.js") {
-    code = code.replace(/export const ROOMS\s*=\s*/g, "const ROOMS = ");
-    code = code.replace(/^const SUNDIAL_/gm, "const SUNDIAL_");
-    code = code.replace(/^export\s+/gm, "");
-    try {
-      const fn = new Function(code + " return typeof ROOMS !== 'undefined' ? ROOMS : {};");
-      return fn();
-    } catch (e) {
-      fail("语法检查", e.message, filename);
-      return {};
-    }
-  }
-  return null;
+// Use the real ES-module loader so chapter helpers are checked as shipped.
+async function loadChapterRooms(filename) {
+  const filepath=path.join(DATA,filename);
+  if(!fs.existsSync(filepath))return null;
+  try{return (await import(require('url').pathToFileURL(filepath).href)).ROOMS||{};}
+  catch(e){fail('语法检查',e.message,filename);return {};}
 }
 
 // 收集所有房间 ID（含 main 预加载 + 懒加载章节）
 const chapterFiles = ["prologue.js", "wabe.js", "japan.js", "underground.js", "orbit.js", "pacific.js", "tundra.js", "islet.js", "desert.js", "ranch.js", "finale.js"];
 const allRooms = {};
 for (const f of chapterFiles) {
-  const ROOMS = loadChapterRooms(f);
+  const ROOMS = await loadChapterRooms(f);
   if (ROOMS && typeof ROOMS === "object") Object.assign(allRooms, ROOMS);
 }
 
 // 加载 items
 let ITEMS = {};
 try {
-  let itemsCode = fs.readFileSync(path.join(DATA, "items.js"), "utf8");
-  itemsCode = itemsCode.replace("export const ITEMS", "const ITEMS");
-  const fn = new Function(itemsCode + " return ITEMS;");
-  ITEMS = fn();
+  ITEMS = (await import(require('url').pathToFileURL(path.join(DATA,'items.js')).href)).ITEMS;
 } catch (e) {
   fail("items.js", e.message, "items.js");
 }
@@ -138,7 +124,7 @@ function exitTarget(exits, dir) {
 }
 
 for (const filename of chapterFiles) {
-  const ROOMS = loadChapterRooms(filename);
+  const ROOMS = await loadChapterRooms(filename);
   if (!ROOMS || Object.keys(ROOMS).length === 0) continue;
 
   const state = { room: "meadow", flipped: false, sundialSymbol: 2, has: () => false, hasFlag: () => false };
@@ -192,7 +178,7 @@ for (const filename of chapterFiles) {
 // 仅检查同章节；跨章节出口不要求严格反向；有意单向出口加入 ONE_WAY_EXITS。
 const roomToFile = {};
 for (const filename of chapterFiles) {
-  const ROOMS = loadChapterRooms(filename);
+  const ROOMS = await loadChapterRooms(filename);
   if (ROOMS) for (const id of Object.keys(ROOMS)) roomToFile[id] = filename;
 }
 for (const [roomAId, roomA] of Object.entries(allRooms)) {
@@ -239,9 +225,12 @@ for (const filename of chapterFiles) {
 // 出口 act 中不应 eng.moveTo（仅检查 exits 内 to: "..." 同块的 act）
 for (const filename of chapterFiles) {
   const code = fs.readFileSync(path.join(DATA, filename), "utf8");
-  // 匹配出口项：to: "room_id" ... act(...) { ... eng.moveTo
-  const badExitAct = /to\s*:\s*["'][^"']+["'][\s\S]{0,500}?act\s*\([^)]*\)\s*\{[\s\S]{0,400}?eng\.moveTo\s*\(/;
-  if (badExitAct.test(code)) fail("出口act", "条件出口的 act 中不应调用 eng.moveTo（由引擎统一 moveTo）", filename, null);
+  const rooms=await loadChapterRooms(filename);
+  for(const [id,room] of Object.entries(rooms||{})){
+    const exits=room.exits;
+    const source=typeof exits==='function'?exits.toString():Object.values(exits||{}).map(e=>e?.act?.toString()||'').join('\n');
+    if(/eng\.moveTo\s*\(/.test(source))fail('出口act','条件出口的 act 中不应调用 eng.moveTo（由引擎统一 moveTo）',filename,id);
+  }
 }
 
 // 描述格式：含中文（§0 核心原则）
@@ -348,3 +337,6 @@ if (issues.length === 0) {
 console.log(`共 ${issues.length} 项不符合:\n`);
 issues.forEach(({ check, msg, file }) => console.log(`  [${check}] ${file}: ${msg}`));
 process.exit(1);
+
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});

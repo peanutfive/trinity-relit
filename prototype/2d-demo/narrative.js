@@ -153,9 +153,9 @@ export function createNarrativeDirector() {
     if(gained('white_door_visible'))push('door_reveal');
     if(after.room==='wading'){
       if(before.room!=='wading')push('wade',{id:`wade:${after.turns}`});
-      // Repeated ravens are absent from both sampled original routes; no visual loop.
+      // Original lake phase 4 contains one flock, never a per-turn visual loop.
     }
-    if(gained('prologue_done')||(before.chapter==='prologue'&&after.chapter==='wabe'))push('door_cross',{room:before.room==='wading'?'wading':after.room});
+    if(gained('prologue_done')||(before.chapter==='prologue'&&after.chapter==='wabe'))push('door_cross',{room:before.room==='wading'?'wading':after.room,roadrunner:count(before,'long_water_phase')<6});
     if(count(after,'doom_phase')>count(before,'doom_phase'))push('doomsday',{id:`doomsday:${count(after,'doom_phase')}`,busy:false,phase:count(after,'doom_phase')});
     if(!before.dead&&after.dead)push('death');
     return added;
@@ -228,7 +228,7 @@ export function createNarrativeDirector() {
     const pushEvent=[active,...queue].find(event=>event?.type==='pram_push'&&event.room===state.room);
     const pair=type==='pram_push'?samplePramPushMotion(active.motion,active.elapsed):null;
     const groundActors=[...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors];
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
     drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
@@ -335,9 +335,9 @@ function renderEvent(c,event,state,time) {
     case 'door_reveal': {prop('white_door',a.door.x,a.door.y,{reveal:smooth(t)});for(let i=0;i<4;i++)arc(c,a.door.x,a.door.y+4,lerp(2,22+i*6,t),lerp(.5,3+i,t),.25*(1-t));break;}
     case 'wade': {for(let i=0;i<3;i++)arc(c,a.player.x,a.player.y+2,8+t*(17+i*5),1+t*(3+i),.3*(1-t));break;}
     case 'door_cross': {
-      // Only the ruby-carrying roadrunner is confirmed by original-route evidence.
-      // Keep the rest a brief scene transition, without shell collapse/desaturation.
-      if(t<.76){const p=smooth(t/.76);prop('roadrunner',lerp(190,a.door.x,p),lerp(190,a.door.y-11,p)-Math.sin(p*Math.PI)*10,{flying:true});}
+      // HCNT > 1: the bird crosses here; otherwise it already left on the log.
+      // Full source-verified shell-collapse staging remains future visual work.
+      if(event.roadrunner&&t<.76){const p=smooth(t/.76);prop('roadrunner',lerp(190,a.door.x,p),lerp(190,a.door.y-11,p)-Math.sin(p*Math.PI)*10,{flying:true});}
       const fade=smooth((t-.62)/.38);c.fillStyle=`rgba(237,235,215,${fade*.55})`;c.fillRect(0,0,480,288);break;
     }
     case 'doomsday': {const pulse=Math.sin(t*Math.PI)*Math.min(.12,event.phase*.015);c.fillStyle=`rgba(84,101,97,${pulse})`;c.fillRect(0,0,480,288);break;}

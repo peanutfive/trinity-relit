@@ -1,3 +1,4 @@
+async function main(){
 // CHAPTER_RULES.md §10 验证：针对 wabe 章节的完整性检查。
 // 从仓库根目录运行：node scripts/verify_wabe.js
 const fs = require("fs");
@@ -27,26 +28,15 @@ function ok(name, pass, msg) {
   }
 }
 
-// 1. 语法检查
-function checkSyntax() {
-  const code = fs.readFileSync(WABE_PATH, "utf8");
-  const wrapped = code
-    .replace(/export const ROOMS/g, "const ROOMS")
-    .replace(/^const SUNDIAL_/gm, "const SUNDIAL_");
-  try {
-    new Function(wrapped);
-    ok("语法检查", true);
-  } catch (e) {
-    ok("语法检查", false, e.message);
-  }
-}
+// Load exactly the ES modules shipped to the browser, including item helpers.
+const {ROOMS} = await import(require('url').pathToFileURL(WABE_PATH).href);
+const {ITEMS} = await import(require('url').pathToFileURL(ITEMS_PATH).href);
+
+// 1. 模块加载成功即已通过语法检查
+function checkSyntax() { ok("语法检查", true); }
 
 // 2. 房间数 + 出口目标存在
 function checkExits() {
-  const code = fs.readFileSync(WABE_PATH, "utf8");
-  const mod = code.replace(/export const ROOMS/g, "const ROOMS").replace(/^const SUNDIAL_/gm, "const SUNDIAL_");
-  const fn = new Function(mod + " return ROOMS;");
-  const ROOMS = fn();
   const ids = new Set(Object.keys(ROOMS));
   ok("房间数 30", Object.keys(ROOMS).length === 30, `got ${Object.keys(ROOMS).length}`);
   const state = { room: "meadow", flipped: false, sundialSymbol: 2, has: () => false };
@@ -67,9 +57,6 @@ function checkExits() {
 
 // 3. 事件中物品 ID 在 items.js 存在
 function checkItems() {
-  const itemsCode = fs.readFileSync(ITEMS_PATH, "utf8");
-  const itemsFn = new Function(itemsCode.replace("export const ITEMS", "const ITEMS") + " return ITEMS;");
-  const ITEMS = itemsFn();
   const itemIds = new Set(Object.keys(ITEMS));
   const wabeCode = fs.readFileSync(WABE_PATH, "utf8");
   const refs = [...wabeCode.matchAll(/(?:s\.(?:has|inRoom|take|drop|carrying)|inRoom\()\s*\(\s*[\"']([^\"']+)[\"']/g)].map((m) => m[1]);
@@ -109,10 +96,6 @@ function checkOnTurnGuard() {
 
 // 6. 事件 ID 唯一（同房间内）
 function checkEventIds() {
-  const code = fs.readFileSync(WABE_PATH, "utf8");
-  const mod = code.replace(/export const ROOMS/g, "const ROOMS").replace(/^const SUNDIAL_/gm, "const SUNDIAL_");
-  const fn = new Function(mod + " return ROOMS;");
-  const ROOMS = fn();
   for (const [rid, room] of Object.entries(ROOMS)) {
     const events = room.events || [];
     const ids = events.map((e) => e.id).filter(Boolean);
@@ -144,3 +127,6 @@ if (failed > 0) {
 }
 console.log("全部检查通过。");
 process.exit(0);
+
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});

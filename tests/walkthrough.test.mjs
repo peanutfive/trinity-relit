@@ -69,8 +69,8 @@ test("从宫殿门经过六扇蘑菇门、牧场，剪线后回到开局", async
     assert.equal(state.itemAt("paper_bird"), "long_water");
     await act("take paper bird");
     await act("take gnomon");
+    await act("enter water"); at("prologue", "wading");
     flag("white_door_visible");
-    await walk("wading");
     await act("enter door"); at("wabe", "meadow");
     flag("prologue_done");
     assert.equal(state.score, 15);

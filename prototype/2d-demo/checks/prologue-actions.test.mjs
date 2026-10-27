@@ -102,8 +102,8 @@ test('当前规则回归：序章操作均由热点/背包目录完成，经既�
   assert.equal(state.itemAt('paper_bird'), 'long_water');
   await choose(g, 'take paper bird');
   await choose(g, 'take gnomon');
+  await choose(g, 'enter water');
   assert.ok(state.hasFlag('white_door_visible'));
-  await choose(g, 's');
   assert.equal(state.room, 'wading');
   assert.equal(g.engine.loadedChapters.has('wabe'), false);
   await choose(g, 'enter door');
@@ -205,7 +205,7 @@ test('动作目录覆盖当前序章可解析事件；仅记录既有不可解�
     }
   }
   const gaps = Object.values(ROOMS).flatMap(room => room.events.map(event => event.id)).filter(id => !covered.has(id));
-  assert.deepEqual(gaps.sort(), ['go_through_door_emb', 'walk_on_grass']);
+  assert.deepEqual(gaps.sort(), ['go_through_door_emb','walk_on_grass','unseen_white_door','unseen_white_door_shore',...Object.keys(ROOMS).map(id=>`read_time_${id}`)].sort());
   // No visual bypass of the parser: the existing grass event's verbs are unsupported,
   // while the white-door trigger-only event duplicates the exposed enter_door action.
   assert.equal(parser.parse('walk on grass'), null);

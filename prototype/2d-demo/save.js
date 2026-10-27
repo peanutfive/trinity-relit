@@ -1,5 +1,5 @@
 import { SAVE_VERSION as ENGINE_SAVE_VERSION } from '../js/engine.js';
-import { TIMERS as PROLOGUE_TIMERS } from '../js/data/prologue.js';
+import { TIMERS as PROLOGUE_TIMERS,restorePrologueTime } from '../js/data/prologue.js';
 import { SCENES, LOGICAL_SIZE } from './scene-manifest.js';
 import { isBlocked as worldIsBlocked } from './world.js';
 
@@ -153,6 +153,7 @@ export async function restoreVisualSave(engine, input, options = {}) {
   // replacing active progress. deserialize is itself atomic and never onEnters.
   if (typeof engine.validateSave === 'function') await engine.validateSave(prepared.save.engine);
   await engine.deserialize(prepared.save.engine);
+  restorePrologueTime(engine.state);
   return { ...prepared, visual: { ...prepared.save.visual } };
 }
 

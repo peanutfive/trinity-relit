@@ -73,7 +73,7 @@ test('真实新开局启动一次首房间事件；续玩保持计时器，不�
       await input('wait');
       const state = JSON.parse(stored).state;
       assert.equal(state.timer.id, 'doomsday');
-      assert.equal(state.timer.remaining, phase === 'new' ? 79 : 78);
+      assert.equal(state.timer.remaining, phase === 'new' ? 116 : 112);
       assert.ok(state.flags.includes('palace_gate_visited'));
     }
   } finally {

@@ -1,3 +1,4 @@
+async function main(){
 // 把各章节的 exits 与 Z-machine 出口真值表逐条比对。
 //
 // verify_chapters_rules.js 只能发现「两个房间互相矛盾」的出口；
@@ -58,16 +59,10 @@ function loadRoomMap() {
 }
 
 // ── 章节 ROOMS 加载（与 verify_chapters_rules.js 同法）──
-function loadChapterRooms(chapter) {
+async function loadChapterRooms(chapter) {
   const filepath = path.join(DATA, `${chapter}.js`);
   if (!fs.existsSync(filepath)) return {};
-  let code = fs.readFileSync(filepath, "utf8").replace(/^export\s+/gm, "");
-  try {
-    return new Function(code + " return typeof ROOMS !== 'undefined' ? ROOMS : {};")();
-  } catch (error) {
-    console.error(`[语法] ${chapter}.js: ${error.message}`);
-    return {};
-  }
+  return (await import(require('url').pathToFileURL(filepath).href)).ROOMS || {};
 }
 
 // 出口可能是函数且依赖 state。用一个宽松 stub 取「默认分支」的出口集合，
@@ -98,7 +93,7 @@ const unmapped = [], deviations = [];
 
 for (const chapter of CHAPTERS) {
   if (filter.length && !filter.includes(chapter)) continue;
-  const rooms = loadChapterRooms(chapter);
+  const rooms = await loadChapterRooms(chapter);
 
   for (const [roomId, room] of Object.entries(rooms)) {
     const objNum = roomToObj[roomId];
@@ -186,3 +181,6 @@ for (const [kind, list] of Object.entries(byKind)) {
   console.log();
 }
 process.exit(1);
+
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});

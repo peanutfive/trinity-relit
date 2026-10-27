@@ -101,6 +101,14 @@ event.act() → await eng.transitionChapter()
 
 缺失的兼容字段采用默认值；已出现但错误的字段拒绝恢复。读档不会重放 onEnter；死亡不覆盖最后的活存档。坏档预检可能加载模块缓存，但不得改进度、计时器或物品。
 
+### 4.8 序章时钟（2026-10-27，T19）
+
+`prologue-time.js`在已有counter/flag中保存秒数、停表状态和长水湖阶段；章节`TIMERS.doomsday`负责结算，不使用总回合数或图形帧率代替时间。普通有效动作15秒，WAIT请求四个周期并可被事件打断；TIME不结算。湖边手表停在3:59:45，七阶段危险仍推进。具体证据和未覆盖范围见[原版时间核实](PROLOGUE_TIME_AUDIT.md)。
+
+`main.js`和2D存档适配在deserialize之后调用`restorePrologueTime()`，不重放进入事件。新档精确恢复，旧档只能估算并登记标记；跨白门结束序章计时器。引擎文件未为本轮修改。2D的T/R/L分别提交查询、等待、环顾，地图/暂停/读文字/演出不额外提交周期。
+
+章节允许导入辅助模块；三个校验器使用真实ES module加载。加载异常必须报错退出，不能当成空章继续验收；新增依赖时需同时验证本地工具与浏览器路径。
+
 ## 5. 章节扩展步骤
 新增一个章节的标准流程：
 1. 复制 `prototype/js/data/_chapter_template.js` 到 `prototype/js/data/<chapter>.js`

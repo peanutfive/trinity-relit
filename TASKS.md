@@ -5,6 +5,12 @@
 
 ## 当前入口（2026-10-27）
 
+### T19 原版手表与长水湖时间机制复核 — Codex（2026-10-27）
+- 人类明确要求：“先去核实一下原版，然后按照原版来做”。本任务取代此前对这一部分时钟/长水湖规则的暂缓，其他原规则债务仍保持原决定。
+- 分支：`codex/2d-garden-demo`。涉及文件：`prototype/js/data/prologue.js`、`prototype/js/data/items.js`（仅手表）、`prototype/js/parser.js`（仅原版时间/涉水所需词）、`prototype/js/main.js`（仅旧档时钟迁移）、新章节时间辅助模块与相关tests、`scripts/verify_chapters_rules.js`（真实ES module加载及出口作用域检查）、`scripts/verify_exits_vs_zmachine.js`与`verify_wabe.js`（人类追加授权：只修模块加载与补回归，不改真值/判断标准）；`prototype/2d-demo/**`、TASKS/SHIP_PLAN/ARCHITECTURE及章节记录。`engine.js`不在本轮范围。
+- 工作：dfrotz独立对照与原始机制互证→按证据修正手表和长水湖时序→文字/2D、存档及通关回归。不假定“四点”为排他准入条件，不提交原版DAT/原始源码/转录。
+- 状态：👀 本批实现与本地验收完成。原版确认四点不是排他准入条件，已实现共用时钟、停表与七阶段危机、涉水/门时序及T/R按键、旧档迁移；engine.js未改。95项目测试、159表现检查、规范/Wabe专检与真实时钟/完整序章/日本浏览器流程通过。出口补序章映射并实际覆盖111房/499出口，仍43旧偏差，无新增。其他规则及涉水E/IN入门别名/完整动物演出保持单列，详见prototype/PROLOGUE_TIME_AUDIT.md。开发分支交付，不部署main。
+
 ### T18 双版本定位与2D首个蘑菇门章节 — Codex（2026-10-26）
 - 人类授权：保留原版式文字游戏和当前2D改编两个版本，继续按2D路线开发后续章节。
 - 分支：`codex/2d-garden-demo`。涉及文件：`prototype/2d-demo/**`、README、BRANCHES、TASKS、SHIP_PLAN；不修改原引擎/解析器/物品/章节，不整合dev或部署main。

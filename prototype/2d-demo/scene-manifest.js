@@ -59,6 +59,8 @@ for(const [id,layout] of Object.entries(JAPAN_ROUTE_LAYOUT))SCENES[id]={
 Object.assign(SCENES.moor,{interactionExitDirs:['in']});
 Object.assign(SCENES.playground,{interactionExitDirs:['in','out'],exitLabels:{n:'北 · 孩子们',s:'南 · 老师们',e:'东 · 避难所'}});
 Object.assign(SCENES.shelter,{interactionExitDirs:['out'],hiddenExitDirs:['d','in']});
+Object.assign(SCENES.long_water,{interactionExitDirs:['e','in'],hiddenExitDirs:['n','ne','se','s','sw','w','nw']});
+Object.assign(SCENES.wading,{interactionExitDirs:['out']});
 // Ground meshes traced against the current background panels, in 480×288 space.
 // The first four detailed meshes are complemented by terrain.js below.
 const foot = { rx: 6, ry: 3 };

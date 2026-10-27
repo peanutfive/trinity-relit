@@ -33,7 +33,7 @@ async function finishPrologue(game) {
     ['feed birds', true], ['take ruby', true], ['n'], ['push pram', true], ['push pram', true],
     ['wait', true], ['throw ball at tree', true], ['take umbrella', true], ['push pram', true],
     ['open pram', true], ['enter pram', true], ['open umbrella', true],
-    ['take paper bird', true], ['take gnomon', true], ['s', true], ['enter door', true],
+    ['take paper bird', true], ['take gnomon', true], ['enter water', true], ['enter door', true],
   ];
   for (const [input, fromCatalog] of steps) await (fromCatalog ? choose(game, input) : command(game, input));
   assert.equal(game.engine.state.room, 'meadow');

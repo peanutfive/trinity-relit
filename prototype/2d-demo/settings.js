@@ -1,6 +1,6 @@
 export const DEFAULT_BINDINGS = Object.freeze({
   up: 'w', down: 's', left: 'a', right: 'd',
-  interact: 'f', inventory: 'i', look: 'l', hint: 'h', fullscreen: 'F11',
+  interact: 'f', inventory: 'i', look: 'l', hint: 'h', watch:'t',wait:'r',fullscreen: 'F11',
 });
 const STORAGE_KEY = 'trinity-2d-demo-preferences-v1';
 export function defaultPreferences() {
@@ -18,7 +18,7 @@ export function loadPreferences() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved || typeof saved !== 'object') return result;
     // Load bindings as a complete conflict-free set; corrupted maps fall back together.
-    const bindings = Object.fromEntries(Object.keys(DEFAULT_BINDINGS).map(key => [key, saved.bindings?.[key]]));
+    const bindings = Object.fromEntries(Object.keys(DEFAULT_BINDINGS).map(key => [key, saved.bindings?.[key]??(['watch','wait'].includes(key)?DEFAULT_BINDINGS[key]:undefined)]));
     // Upgrade the old Z-interact/F-fullscreen pair without discarding custom
     // movement or audio/video preferences. Versioning preserves later remaps.
     if(!saved.bindingsVersion&&bindings.interact==='z'&&bindings.fullscreen==='f'){

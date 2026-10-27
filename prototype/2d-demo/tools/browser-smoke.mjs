@@ -96,6 +96,8 @@ async function perform(command, { objectId } = {}) {
     assert.ok(object, `${s.room}: no prop offers ${command}`);
     const after = await touch(object);
     if (after.lastCommand === command) return after;
+    // The shore's E/IN aliases share the painted water entry.
+    if(command==='enter water'&&s.room==='long_water'&&after.room==='wading'&&['e','in'].includes(after.lastCommand))return after;
     assert.match(after.lastCommand || '', /^(examine |read |look$|wait$)/, `Unexpected intention before ${command}`);
   }
   throw new Error(`Direct interaction never reached ${command}`);
@@ -157,7 +159,7 @@ try {
   assert.equal((await state()).room, 'long_water'); assert.equal((await state()).lastCommand, 'open umbrella');
   await clearHand(); await perform('take paper bird'); await perform('take gnomon'); await drain();
   await screenshot('prologue-long-water');
-  await walk('s', 'wading'); await perform('enter door'); await drain();
+  await perform('enter water'); await drain(); assert.equal((await state()).room,'wading'); await perform('enter door'); await drain();
   assert.equal((await state()).room, 'meadow'); assert.equal((await state()).chapter, 'wabe'); assert.equal((await state()).score, 15);
   await screenshot('prologue-finish');
 

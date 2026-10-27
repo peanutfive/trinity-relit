@@ -107,15 +107,14 @@ export function getHotspots(state) {
     add('lancaster_walk:notice', 315, 170, '草坪告示牌', 'sign', 'examine_notice', [action('阅读告示', 'read notice'), action('尝试向东走', 'e')]);
     add('lancaster_walk:sculpture', 392, 105, '骑马雕塑', 'sculpture', 'examine_sculpture', [action('查看雕塑', 'examine sculpture')]);
   }
-  // Compatibility with the present runtime, not a certification of 1986 truth.
-  // The original transcript audit requires swim/wade/enter-water commands here;
-  // switch the adapter once the corresponding parser/chapter repair is authorized.
   if (room === 'long_water') {
+    add('long_water:water',202,247,'湖水','water_edge','wade_long_water',[action('涉入湖水','enter water')]);
+    Object.assign(result.at(-1),{baked:true,pointerShape:{kind:'ellipse',x:219,y:247,rx:12,ry:22,priority:1}});
     add('long_water:statue', 92, 148, '湖畔雕像', 'statue', 'examine_statue_lw', [action('查看雕像', 'examine statue'), action('等候片刻', 'wait')]);
     if (state.hasFlag('missile_visible')) add('long_water:missile', 280, 95, '空中的导弹', 'missile', 'examine_missile', [action('查看导弹', 'examine missile')]);
-    if (state.hasFlag('white_door_visible')) add('long_water:door', 320, 145, '白门', 'door', 'examine_door_lw', [action('查看白门', 'examine door'), action('涉入湖水', 's')]);
+    if (state.hasFlag('white_door_visible')) add('long_water:door', 320, 145, '白门', 'door', 'examine_door_lw', [action('查看白门', 'examine door'), action('尝试穿门','enter door')]);
   }
-  if (room === 'wading') add('wading:door', 300, 145, '白门', 'door', 'examine_door_w', [action('查看白门', 'examine door'), action('穿过白门', 'enter door')]);
+  if (room === 'wading'&&state.hasFlag('white_door_visible')) add('wading:door', 300, 145, '白门', 'door', 'examine_door_w', [action('查看白门', 'examine door'), action('穿过白门', 'enter door')]);
 
   if (pramRoom(state) === room) {
     const eventId = { black_lion_gate: 'examine_pram_blg', inverness_terrace: 'push_pram_it', lancaster_gate: 'push_pram_lg', lancaster_walk: 'enter_pram_lw' }[room];

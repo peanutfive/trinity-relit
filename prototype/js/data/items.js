@@ -2,6 +2,7 @@
 //  Trinity 全部物品定义
 // ═══════════════════════════════════════════════════
 
+import {watchDescription} from '../prologue-time.js';
 export const ITEMS = {
 
   // ── 序章：肯辛顿花园 ──
@@ -17,12 +18,7 @@ export const ITEMS = {
   },
   watch: {
     cn: "手表", aliases: ["watch","wristwatch","手表","表"],
-    desc(s) {
-      const t = Math.floor(30 + (s.turns || 0) * 0.5);
-      const min = t % 60;
-      const hr = 3;
-      return `Your wristwatch says it's ${hr}:${String(min).padStart(2,"0")} pm.\n你的手表显示现在是下午${hr}:${String(min).padStart(2,"0")}。`;
-    },
+    desc: watchDescription,
     start: "worn", fixed: false,
   },
   ball: {

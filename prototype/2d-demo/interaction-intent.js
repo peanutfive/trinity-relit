@@ -5,6 +5,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(!object)return null;
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
+  if(object.kind==='water_edge')return find('enter water');
   // Doorways are navigation: carrying a prop must not lock the player inside.
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');

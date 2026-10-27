@@ -5,6 +5,8 @@
 //  original Infocom Trinity (1986).
 // ═══════════════════════════════════════════════════
 
+import {ensurePrologueClock,freezeLongWater,settlePrologueClock,freePrologueAction,watchDescription} from '../prologue-time.js';
+
 function pramRoom(s) {
   if (s.hasFlag("pram_broken")) return "long_water";
   if (s.hasFlag("pram_at_flower")) return "flower_walk";
@@ -97,14 +99,12 @@ const DOOMSDAY_MSGS = [
 ];
 
 function doomTick(s, eng) {
-  if (s.hasFlag("at_long_water") || s.hasFlag("prologue_done")) return;
+  if (s.cnt('prologue_seconds') < 1665 && !s.cnt('doom_phase')) return false;
   s.inc("doom_phase");
   const phase = s.cnt("doom_phase");
-  if (phase === 1) {
-    eng.print("\nThey are of sick and diseased imaginations who would toll the world's knell so soon.\n— Henry David Thoreau");
-  } else if (phase >= 2 && phase <= 9) {
-    eng.print("\n" + DOOMSDAY_MSGS[phase - 2]);
-  } else if (phase >= 10) {
+  if (phase <= 8) {
+    eng.print("\n" + DOOMSDAY_MSGS[phase - 1]);
+  } else {
     eng.print(
       "\nThe east wind falls silent, and a new star flashes to life over the doomed city.\n\n" +
       "东风沉寂了，一颗新星在这座注定毁灭的城市上空闪耀。"
@@ -116,16 +116,41 @@ function doomTick(s, eng) {
       "船夫将他的平底船无声地靠了岸。他弯曲骸骨般手指的方式令你不由自主地登上了船。"
     );
   }
+  return true;
 }
+
+function lakeTick(s,eng){
+  if(!['long_water','wading'].includes(s.room))return;
+  s.inc('long_water_phase');const phase=s.cnt('long_water_phase');
+  if(phase===2)s.setFlag('missile_visible');
+  if(phase===3)s.setFlag('white_door_visible');
+  const messages=[
+    'The west wind is still. Everything is very quiet.\n\n西风停了。四周一片寂静。',
+    'A gleam overhead catches your eye.\n\nOh, dear. A missile is hanging motionless in the sky.\n\n头顶一道闪光吸引了你的目光。\n\n天哪。一枚导弹悬停在空中。',
+    "The missile isn't completely motionless. It's falling very, very slowly towards the Long Water.\n\nYour eyes follow the missile's trajectory downward, where you notice another peculiar phenomenon. It looks like a white door, suspended just above the surface of the water.\n\n导弹并非完全静止。它正非常、非常缓慢地向长水湖坠落。\n\n你的目光顺着导弹的轨迹向下追去，在那里你注意到另一种奇异现象：一扇白色的门悬浮在水面上方。",
+    'A flock of ravens glides into view! They circle over the Long Water and disappear through the open white door.\n\nThe missile continues its slow descent.\n\n一群乌鸦滑翔而入！它们在长水湖上空盘旋，随后消失在敞开的白门中。\n\n导弹继续缓慢坠落。',
+    'Swans and ducks paddle through the open white door, vanishing without a trace.\n\nThe missile is only a few dozen yards above the door.\n\n天鹅和鸭子游过敞开的白门，消失得无影无踪。\n\n导弹距离门上方只剩几十码。',
+    'A log is being pushed across the Long Water by a pair of mallards. Its surface is crowded with squirrels, chipmunks and other inhabitants of the Kensington Gardens, including the roadrunner you met before. The ruby in its beak gleams enticingly as the log sails through the white door.\n\nThe missile is closing in fast.\n\n一对绿头鸭正推着一根圆木横穿长水湖。圆木上挤满了松鼠、花栗鼠和肯辛顿花园的其他居民，包括你先前遇见的走鹃。圆木穿过白门时，它喙中的红宝石闪着诱人的光芒。\n\n导弹正在飞快逼近。',
+  ];
+  if(phase<=6)eng.print(messages[phase-1]);
+  else eng.die("The missile's nose nudges into the white door. Then a searing glare envelops the Long Water, and you discover what it feels like to be vaporized in extreme slow motion.\n\n导弹的尖端轻触白门。炽烈的光芒随即笼罩长水湖，你终于体会到以极慢速度被汽化是什么滋味。");
+}
+
+function stopAtLake(s){
+  const first=s.cnt('long_water_phase')<1;
+  if(first)s.setCnt('long_water_phase',1);
+  const output=[first?'You begin to move away, but stop dead in your tracks.\n\n你刚要离开，却猛地停住了脚步。':'The spectacle on the Long Water has you frozen in your tracks.\n\n长水湖上的奇景让你僵在原地。'];
+  lakeTick(s,{print:t=>output.push(t),die:t=>{s.dead=true;output.push(t);}});
+  freePrologueAction(s);return output.join('\n\n');
+}
+
+export function restorePrologueTime(s){ensurePrologueClock(s,TIMERS.doomsday);}
 
 // 计时器回调按 id 导出。存档只能带走 { remaining, id }，函数存不进 JSON，
 // 读档时引擎靠这张表把回调装回去（见 engine.registerTimerHandlers）。
 export const TIMERS = {
   doomsday(s, eng) {
-    if (s.hasFlag("at_long_water") || s.hasFlag("prologue_done")) return;
-    if (s.timer && s.timer.remaining <= 10) {
-      doomTick(s, eng);
-    }
+    settlePrologueClock(s,eng,TIMERS.doomsday,{raid:doomTick,lakeEvent:lakeTick,extraTurn:(state,engine)=>ROOMS[state.room]?.onTurn?.(state,engine)});
   },
 };
 
@@ -151,7 +176,7 @@ export const ROOMS = {
     onEnter(s, eng) {
       if (!s.hasFlag("palace_gate_visited")) {
         s.setFlag("palace_gate_visited");
-        s.startTimer(80, "doomsday", TIMERS.doomsday);
+        ensurePrologueClock(s,TIMERS.doomsday);
       }
     },
 
@@ -207,9 +232,10 @@ export const ROOMS = {
 
     onTurn(s, eng) {
       if (s.room !== "broad_walk") return;
+      if(s.hasFlag('prologue_clock_skip'))return;
       if (!s.hasFlag("birds_fed")) {
         const cry = birdCry(s);
-        if (cry && s.hasFlag("seen_bird_woman")) eng.print("\n" + cry);
+        if (cry && s.hasFlag("seen_bird_woman")){s.setFlag('prologue_clock_event');eng.print("\n" + cry);}
       }
     },
 
@@ -566,6 +592,8 @@ export const ROOMS = {
 
     onTurn(s, eng) {
       if (s.room !== "inverness_terrace" || s.hasFlag("boy_scared")) return;
+      if(s.hasFlag('prologue_clock_skip'))return;
+      s.setFlag('prologue_clock_event');
       s.inc("boy_cycle");
       const phase = s.cnt("boy_cycle") % 3;
       if (phase === 0) {
@@ -668,9 +696,11 @@ export const ROOMS = {
 
     onTurn(s, eng) {
       if (s.room !== "lancaster_gate") return;
+      if(s.hasFlag('prologue_clock_skip'))return;
       if (!s.hasFlag("umbrella_woman_done") && s.hasFlag("umbrella_woman_seen")) {
         s.inc("umbrella_woman_turns");
         if (s.cnt("umbrella_woman_turns") >= 2) {
+          s.setFlag('prologue_clock_event');
           finishUmbrellaWomanScene(s, eng, "pass");
         }
       }
@@ -828,7 +858,7 @@ export const ROOMS = {
 
             const items = s2.inventoryList();
             for (const { id } of items) {
-              if (id !== "umbrella") s2.placeItem(id, "long_water");
+              if (id !== "umbrella" && !s2.wearing(id)) s2.placeItem(id, "long_water");
             }
           },
           text: "The west wind fills the umbrella the moment you open it. You and your perambulator are blown helplessly eastward onto the grass.\n\n" +
@@ -890,7 +920,7 @@ export const ROOMS = {
               s.setFlag("at_long_water");
               const items = s.inventoryList();
               for (const { id } of items) {
-                if (id !== "umbrella") s.placeItem(id, "long_water");
+                if (id !== "umbrella" && !s.wearing(id)) s.placeItem(id, "long_water");
               }
               eng.print(
                 "The west wind fills the umbrella the moment you open it. You and your perambulator are blown helplessly eastward onto the grass.\n\n" +
@@ -969,42 +999,33 @@ export const ROOMS = {
     },
 
     onEnter(s, eng) {
-      s.setFlag("at_long_water");
-      s.setCnt("lw_turns", 0);
-    },
-
-    onTurn(s, eng) {
-      if (s.room !== "long_water") return;
-      s.inc("lw_turns");
-      const t = s.cnt("lw_turns");
-      if (t === 1 && !s.hasFlag("missile_visible")) {
-        s.setFlag("missile_visible");
-        eng.print(
-          "\nYou begin to move away, but stop dead in your tracks.\n\n" +
-          "A gleam overhead catches your eye.\n\n" +
-          "Oh, dear. A missile is hanging motionless in the sky.\n\n" +
-          "你刚要离开，却猛地停住了脚步。\n\n" +
-          "头顶一道闪光吸引了你的目光。\n\n" +
-          "天哪。一枚导弹悬停在空中。"
-        );
-      }
-      if (t === 2 && !s.hasFlag("white_door_visible")) {
-        s.setFlag("white_door_visible");
-      }
+      freezeLongWater(s,TIMERS.doomsday);
     },
 
     exits(s) {
-      return {
-        s: {
-          to: "wading",
-          when: (s2) => s2.hasFlag("white_door_visible"),
-          fail: "You begin to move away, but stop dead in your tracks.\n\nA gleam overhead catches your eye.\n\nOh, dear. A missile is hanging motionless in the sky.\n\n你刚要离开，却猛地停住了脚步。\n\n头顶一道闪光吸引了你的目光。\n\n天哪。一枚导弹悬停在空中。",
-          text: "You wade into the cool, dark water.\n\n你涉入清凉幽暗的湖水中。",
-        },
-      };
+      const enter={to:'wading',text:'You wade into the cool, dark water.\n\n你涉入清凉幽暗的湖水中。'};
+      const blocked={to:'long_water',when:()=>false,fail:stopAtLake};
+      return {e:enter,in:enter,n:blocked,ne:blocked,se:blocked,s:blocked,sw:blocked,w:blocked,nw:blocked};
     },
 
     events: [
+      {
+        id:'wade_long_water',
+        match:{verb:['enter'],noun:['water','long water','湖水','长水湖','水']},
+        act(s,eng){eng.print('You wade into the cool, dark water.\n\n你涉入清凉幽暗的湖水中。');eng.moveTo('wading');},
+        text:'',
+      },
+      {
+        id:'unseen_white_door_shore',
+        match:{verb:['examine','enter'],noun:['door','white door','门','白门']},
+        when:s=>!s.hasFlag('white_door_visible'),
+        act(s,eng){freePrologueAction(s);eng.print("You can't see any white door here.\n\n你在这里看不到白门。");},text:'',
+      },
+      {
+        id:'door_from_shore',match:{verb:['enter'],noun:['door','white door','门','白门']},
+        when:s=>s.hasFlag('white_door_visible'),
+        text:"You couldn't do that from where you're standing.\n\n你站在这里，无法那么做。",
+      },
       {
         id: "examine_statue_lw",
         match: { verb: ["examine"], noun: ["statue", "peter pan", "peter", "铜像", "雕像"] },
@@ -1035,27 +1056,24 @@ export const ROOMS = {
     cn: "涉水",
 
     desc(s) {
-      let d = "You're standing knee-deep in the Long Water, not far from the western shore. Looking east, you can see a white door hovering just above the surface.\n\n" +
-              "你站在长水湖中，水没过膝盖，离西岸不远。向东望去，你可以看到一扇白色的门悬浮在水面上方。";
-      return d;
-    },
-
-    onTurn(s, eng) {
-      if (s.room !== "wading") return;
-      eng.print(
-        "\nA flock of ravens glides into view! They circle over the Long Water and disappear through the open white door.\n\n" +
-        "一群乌鸦滑翔而入！它们在长水湖上空盘旋，然后消失在打开的白门中。\n\n" +
-        "The missile continues its slow descent.\n\n导弹继续缓慢坠落。"
-      );
+      return "You're standing knee-deep in the Long Water, not far from the western shore"+
+        (s.hasFlag('white_door_visible')?". Looking east, you can see a white door hovering just above the surface.":".")+
+        "\n\n你站在长水湖中，水没过膝盖，离西岸不远。"+
+        (s.hasFlag('white_door_visible')?'向东望去，你可以看到一扇白色的门悬浮在水面上方。':'');
     },
 
     exits() {
-      return {
-        w: "long_water",
-      };
+      return {w:'long_water',out:'long_water'};
     },
 
     events: [
+      {
+        id:'unseen_white_door',
+        match:{verb:['examine','enter','go','walk'],noun:['door','white door','门','白门','白色的门']},
+        when:s=>!s.hasFlag('white_door_visible'),
+        act(s,eng){freePrologueAction(s);eng.print("You can't see any white door here.\n\n你在这里看不到白门。");},
+        text:'',
+      },
       {
         id: "examine_door_w",
         match: { verb: ["examine"], noun: ["door", "white door", "白门", "门"] },
@@ -1073,8 +1091,10 @@ export const ROOMS = {
         async act(s, eng) {
           s.setFlag("prologue_done");
           eng.print(
+            (s.cnt('long_water_phase')<6?
             "As you wade to the threshold a familiar roadrunner flutters past. The ruby in its beak gleams enticingly as it slips through the white door.\n\n" +
-            "当你涉水走到门槛处，一只熟悉的走鹃扑棱着飞过。它喙中的红宝石闪烁着诱人的光芒，滑入了白门。\n\n" +
+            "当你涉水走到门槛处，一只熟悉的走鹃扑棱着飞过。它喙中的红宝石闪烁着诱人的光芒，滑入了白门。\n\n":
+            "You wade to the threshold of the white door.\n\n你涉水来到白门的门槛前。\n\n") +
             'All color abruptly drains from the landscape. Trees, sky and sun flatten into a spherical shell, with you at the very center. A hissing in your ears becomes a rumble, then a roar as the walls of the shell collapse inward, faster and faster.\n\n' +
             "所有色彩突然从景物中褪去。树木、天空和太阳被压平成一个球形壳，而你正处于正中心。耳中的嘶嘶声变成隆隆声，然后化为轰鸣，壳壁越来越快地向内坍缩。\n\n" +
             '"This way, please."\n\nYou turn, but see no one.\n\n' +
@@ -1109,3 +1129,11 @@ export const ROOMS = {
     ],
   },
 };
+
+
+for(const [roomId,room] of Object.entries(ROOMS)){
+  room.onWait=function(s){if(s.room!==roomId)return;s.setCnt('prologue_clock_steps',4);};
+  room.events.push({id:`read_time_${roomId}`,match:{verb:['time'],noun:['watch']},
+    when:s=>s.has('watch')||s.inRoom('watch'),
+    act(s,eng){freePrologueAction(s);eng.print(watchDescription(s));},text:''});
+}

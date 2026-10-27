@@ -10,7 +10,7 @@ import {JAPAN_POINTS as P} from '../japan-route-layout.js';
 import {roomArrival} from '../arrivals.js';
 import {terrainMarkup} from '../chapter-map-art.js';
 import {buildChapterMap} from '../chapter-map.js';
-const route=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','s','enter door','n','ne','e','u'];
+const route=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','e','u'];
 async function japan(){
  const engine=createPrologueSession();engine.moveTo(engine.state.room);
  for(const c of route)await engine.processInput(c);

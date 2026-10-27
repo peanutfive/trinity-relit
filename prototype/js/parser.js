@@ -99,6 +99,10 @@ export class Parser {
 
     // Meta commands
     if (META[low]) return { type: "meta", cmd: META[low] };
+    if (['time','现在几点','几点了','查看时间'].includes(low)) return {type:'simple',verb:'time',noun:'watch'};
+    if (/^(?:read|look on) (?:the |my )?(?:watch|wristwatch)$/.test(low)) return {type:'simple',verb:'examine',noun:'watch'};
+    if (/^(?:swim|wade)(?: (?:in|into) (?:the )?(?:water|long water))?$/.test(low)||['游泳','涉水','下水','走进湖水','进入湖水'].includes(low))
+      return {type:'simple',verb:'enter',noun:'water'};
 
     // Direction (exact)
     if (DIR_MAP[low]) return { type: "direction", dir: DIR_MAP[low] };

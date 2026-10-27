@@ -33,6 +33,26 @@
 
 ---
 
+## 章节 1：Kensington Gardens（序章）
+
+2026-10-27：补齐原版对象号，供出口真值工具实际覆盖序章。房间已实现不代表全部条件机制已验真；T19时钟/长水湖核实见[时间机制记录](PROLOGUE_TIME_AUDIT.md)，其他差异见[序章制作表](2d-demo/PROLOGUE_PRODUCTION.md)。
+
+| Obj# | 房间 ID | 英文名 |
+|------|---------|--------|
+| 236 | `palace_gate` | Palace Gate |
+| 354 | `broad_walk` | Broad Walk |
+| 250 | `flower_walk` | Flower Walk |
+| 79 | `the_wabe` | The Wabe |
+| 144 | `round_pond` | Round Pond |
+| 355 | `black_lion_gate` | Black Lion Gate |
+| 531 | `inverness_terrace` | Inverness Terrace |
+| 179 | `lancaster_gate` | Lancaster Gate |
+| 371 | `lancaster_walk` | Lancaster Walk |
+| 121 | `long_water` | Long Water |
+| 438 | `wading` | Wading |
+
+---
+
 ## 章节 2：The Wabe（中央枢纽）
 
 **文件**：`prototype/js/data/wabe.js`

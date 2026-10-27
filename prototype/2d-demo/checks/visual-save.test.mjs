@@ -37,7 +37,7 @@ async function reachMeadow(game) {
     'n', 'take paper bird', 'open paper bird', 'w', 'buy crumbs', 'feed birds',
     'take ruby', 'n', 'push pram', 'push pram', 'wait', 'throw ball at tree',
     'take umbrella', 'push pram', 'open pram', 'enter pram', 'open umbrella',
-    'take paper bird', 'take gnomon', 's', 'enter door']) await command(game, input);
+    'take paper bird', 'take gnomon', 'enter water', 'enter door']) await command(game, input);
   assert.equal(game.engine.state.room, 'meadow');
   assert.equal(game.engine.state.score, 15);
 }
@@ -67,10 +67,10 @@ test('二维存档往返真实序章中段，位置/朝向/物品与计时器保
   assert.equal(restored.engine.state.timer.remaining, before.timer.remaining - 1);
 });
 
-test('读回序章计时器后继续原有回合副作用，而非重新从80开始', async () => {
+test('读回原版时钟后继续警报阶段，不重置倒计时', async () => {
   const original = session();
   // This fixture advances the real timer using ordinary commands.
-  for (let i = 0; i < 71; i++) await command(original, 'wait');
+  for (let i = 0; i < 112; i++) await command(original, 'look');
   const save = makeVisualSave(original.engine, visual(original.engine));
   const restored = session({ start: false });
   await restoreVisualSave(restored.engine, save);
@@ -95,7 +95,7 @@ test('完整真实序章到Meadow后导出/导入，懒加载和跨章标志保�
   assert.equal(restored.engine.state.score, 15);
   assert.deepEqual(restored.engine.serialize().state, save.engine.state);
   assert.equal(restored.engine.state.turns, save.engine.state.turns);
-  assert.equal(typeof restored.engine.state.timer.perTurn, 'function');
+  assert.equal(restored.engine.state.timer,null,'穿过白门后解除伦敦倒计时');
   await command(restored, 'wait');
   assert.equal(restored.engine.state.room, 'meadow');
 });
@@ -278,7 +278,7 @@ test('M4关键状态：车内恢复后经背包撑伞到Long Water，白门前�
   assert.equal(seated.engine.state.hasFlag('in_pram'), false);
   assert.equal(seated.engine.state.itemAt('paper_bird'), 'long_water');
   assert.equal(seated.engine.state.turns, seatedState.turns + 1);
-  for (const input of ['take paper bird', 'take gnomon', 's']) await command(seated, input);
+  for (const input of ['take paper bird', 'take gnomon', 'enter water']) await command(seated, input);
   assert.equal(seated.engine.state.room, 'wading');
   assert.ok(seated.engine.state.hasFlag('white_door_visible'));
   const beforeDoor = json(seated.engine.serialize().state);

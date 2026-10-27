@@ -8,7 +8,7 @@ import { LocalIntentResolver } from "./intent-model.js";
 import { createIntentNotice } from "./intent-notice.js";
 import { ui } from "./ui.js";
 import { ITEMS } from "./data/items.js";
-import { ROOMS as PROLOGUE, TIMERS as PROLOGUE_TIMERS } from "./data/prologue.js";
+import { ROOMS as PROLOGUE, TIMERS as PROLOGUE_TIMERS, restorePrologueTime } from "./data/prologue.js";
 
 // 按章节注册房间。preload: true 的章节随首屏加载；
 // 其余章节通过 loader 函数懒加载（动态 import）。
@@ -220,6 +220,7 @@ async function resumeOrStart(engine) {
 
   try {
     await engine.deserialize(save);
+    restorePrologueTime(engine.state);
   } catch (err) {
     // 存档读不了就说清楚原因并从头开始，不要卡在半截状态里。
     console.error("读档失败", err);

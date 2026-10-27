@@ -5,6 +5,7 @@ import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
 import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
+import {prologueClock} from '../js/prologue-time.js';
 import {renderJapanSprite,japanArtStatus} from './japan-art.js';
 import { createPrologueSession } from './engine-adapter.js';
 import { getHotspots } from './interaction-catalog.js';
@@ -291,9 +292,7 @@ async function command(input, actions = [], observedId = null) {
 
 function describe() {
   if (!started || busy || paused) return;
-  beginOutput();
-  engine.describeRoom();
-  show(output.join('\n\n'));
+  command('look');
 }
 
 function enterOpening() {
@@ -628,7 +627,7 @@ function fullscreen() {
   request?.catch(() => { $('#fullscreen').textContent = '当前窗口不支持全屏'; });
 }
 
-const bindingNames = { up: '向上行走', down: '向下行走', left: '向左行走', right: '向右行走', interact: '互动 / 继续', inventory: '背包', look: '环顾四周', hint: '探索提示', fullscreen: '切换全屏' };
+const bindingNames = { up: '向上行走', down: '向下行走', left: '向左行走', right: '向右行走', interact: '互动 / 继续', inventory: '背包', look: '环顾四周', hint: '探索提示', watch:'查看手表',wait:'等候片刻',fullscreen: '切换全屏' };
 function paintBindings() {
   $('#binding-list').replaceChildren();
   for (const [action, label] of Object.entries(bindingNames)) {
@@ -650,7 +649,7 @@ function paintBindings() {
     row.append(name, button);
     $('#binding-list').append(row);
   }
-  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} 互动 · M 地图 · Esc 暂停设置 · F11 全屏`;
+  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} 互动 · ${keyLabel(preferences.bindings.watch)} 看表 · ${keyLabel(preferences.bindings.wait)} 等待 · M 地图 · Esc 暂停设置 · F11 全屏`;
   canvas.setAttribute('aria-label',`方向键行走，${keyLabel(preferences.bindings.interact)}互动和继续对话，Esc暂停与设置`);
 }
 
@@ -709,9 +708,12 @@ function applyAudio() {
 
 function actionKey(key) {
   const bindings = preferences.bindings;
+  if([bindings.watch,bindings.wait,bindings.look].includes(key)&&(!started||pages.length||busy||director.getState().busy))return;
   if (key === bindings.interact) interact();
   else if (key === bindings.inventory) inventory();
   else if (key === bindings.look) describe();
+  else if (key === bindings.watch) command(engine.state.chapter==='prologue'?'time':'examine watch');
+  else if (key === bindings.wait) command('wait');
   else if (key === bindings.hint) toggleQuest();
   else if (key === bindings.fullscreen) fullscreen();
 }
@@ -835,7 +837,8 @@ window.render_game_to_text = () => JSON.stringify({
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
-  flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, processing:busy,
+  flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, dead:engine.state.dead,processing:busy,
+  storyClock:prologueClock(engine.state),
   inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
   controls: { ...preferences.bindings, pause: 'Escape' },
   settings: { video: { ...preferences.video }, audio: sound.getState(), captureBinding },

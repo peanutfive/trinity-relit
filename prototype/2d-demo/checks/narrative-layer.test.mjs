@@ -80,6 +80,7 @@ test('真实推车路线进入长水湖，导弹显现期间不叠加已经全�
     'n','push pram','push pram','wait','throw ball at tree','take umbrella',
     'push pram','open pram','enter pram','open umbrella'])await g.command(command);
   assert.equal(g.engine.state.room,'long_water');
+  await g.command('wait',{skip:false});await g.command('wait',{skip:false});
   assert.ok(g.engine.state.hasFlag('missile_visible'));
   for(let index=0;index<5&&g.director.getState().currentEvent!=='missile_reveal';index++) {
     g.director.update(g.director.getState().duration);
@@ -89,6 +90,20 @@ test('真实推车路线进入长水湖，导弹显现期间不叠加已经全�
   assert.equal(painted(g).filter(object=>object.kind==='missile').length,1);
   g.director.skip();
   assert.equal(painted(g).filter(object=>object.kind==='missile').length,1);
+});
+
+test('白门演出按真实逃离阶段决定走鹃出场，已随圆木离开的鸟不重复穿门',async()=>{
+  for(const waits of [2,5]){
+    const g=game();
+    for(const command of ['e','take ball','nw','unscrew gnomon','take gnomon','n',
+      'take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby',
+      'n','push pram','push pram','wait','throw ball at tree','take umbrella',
+      'push pram','open pram','enter pram','open umbrella','enter water'])await g.command(command);
+    for(let i=0;i<waits;i++)await g.command('wait');
+    await g.command('enter door');assert.equal(g.engine.state.room,'meadow');
+    assert.equal(g.director.getState().currentEvent,'door_cross');
+    assert.equal(painted(g,{world:false}).filter(o=>o.kind==='roadrunner').length,waits===2?1:0);
+  }
 });
 
 test('喂鸟后的摊主和鸽群交回实体列表；导演draw不在排序结束后补画常驻演员',async()=>{
