@@ -15,10 +15,11 @@ const wilds={
   arborvitaes_n:[825,480,'tree'],arborvitaes_s:[665,550,'tree'],chasms_brink:[570,145,'hill'],waterfall:[240,475,'water'],
   ice_cavern:[120,465,'hill'],under_cliff:[735,170,'hill'],bluff:[840,140,'hill'],cemetery:[915,185,'arch'],
   barrow:[950,270,'hill'],ossuary:[955,350,'arch'],promontory:[370,85,'hill'],cottage:[100,225,'house'],
-  herb_garden:[100,315,'flower'],moor:[135,110,'bog'],the_bend:[760,305,'water'],the_river:[805,375,'water'],
+  herb_garden:[100,315,'flower'],moor:[925,305,'bog'],the_bend:[760,305,'water'],the_river:[805,375,'water'],
   craters_edge:[450,590,'hill'],crater:[345,590,'hill'],
 };
-const authored={prologue:gardens,wabe:wilds};
+const japan={playground:[365,340,'hill'],shelter:[730,340,'house']};
+const authored={prologue:gardens,wabe:wilds,japan};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
 export function illustratedMapNodes(model){

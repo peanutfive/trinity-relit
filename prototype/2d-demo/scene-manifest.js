@@ -1,5 +1,7 @@
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
+import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
+import { JAPAN_ROUTE_LAYOUT } from './japan-route-layout.js';
 import { GameState } from '../js/engine.js';
 import { ITEMS } from '../js/data/items.js';
 import { getHotspots } from './interaction-catalog.js';
@@ -12,7 +14,7 @@ const extraA = './assets/gardens-extra-a.png';
 const extraB = './assets/gardens-extra-b.png';
 const wabeA = './assets/wabe-a.png';
 const wabeB = './assets/wabe-b.png';
-const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS };
+const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS };
 const sceneSpecs = {
   palace_gate: [base,0,3,236,[238,218]],
   broad_walk: [base,1,3,354,[240,250]],
@@ -46,6 +48,17 @@ export const SCENES = Object.fromEntries(Object.entries(sceneSpecs).map(([id,[im
   evidence:{runtimeReferencesChecked:true,originalObjectId:objectIds[id],originalBranchesVerified:false,finalArtApproved:false},
   obstacles:[], objects:[], exits:[],
 }]));
+for(const [id,layout] of Object.entries(JAPAN_ROUTE_LAYOUT))SCENES[id]={
+  ...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
+  background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
+  evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},
+  footprint:{rx:6,ry:3},objects:[],exits:[],
+};
+// One painted entrance can have several original command aliases. Keep every
+// command in the catalog without drawing duplicate doors or auto-entering one.
+Object.assign(SCENES.moor,{interactionExitDirs:['in']});
+Object.assign(SCENES.playground,{interactionExitDirs:['in','out'],exitLabels:{n:'北 · 孩子们',s:'南 · 老师们',e:'东 · 避难所'}});
+Object.assign(SCENES.shelter,{interactionExitDirs:['out'],hiddenExitDirs:['d','in']});
 // Ground meshes traced against the current background panels, in 480×288 space.
 // The first four detailed meshes are complemented by terrain.js below.
 const foot = { rx: 6, ry: 3 };
@@ -149,11 +162,21 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
   const exits=typeof room?.exits==='function'?room.exits(state):room?.exits||{};
   return Object.entries(exits).flatMap(([dir,value])=>{
     const target=typeof value==='string'?value:value?.to;
-    if(!anchors[dir]||!SCENES[target])return [];
+    if(!anchors[dir]||!SCENES[target]||SCENES[roomId].hiddenExitDirs?.includes(dir))return [];
     const [x,y]=SCENES[roomId].exitAnchors?.[dir]||anchors[dir];
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
     const approach=SCENES[roomId].exitApproaches?.[dir];
-    return [{dir,x,y,target,radius:17,label:`${labels[dir]} · ${rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,...(approach?{approach:[...approach]}:{})}];
+    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
+  });
+}
+// Production boundaries remain visible roads, rather than fake traversable
+// exits. They never submit a command, change the graph or advance a turn.
+export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
+  const scene=SCENES[roomId];if(!scene?.showUnmadeExits)return [];
+  const room=rooms[roomId],exits=typeof room.exits==='function'?room.exits(state):room.exits||{};
+  return Object.entries(exits).flatMap(([dir,value])=>{
+    const target=typeof value==='string'?value:value?.to,anchor=scene.exitAnchors?.[dir];
+    return target&&!SCENES[target]&&anchor?[{dir,target,x:anchor[0],y:anchor[1]}]:[];
   });
 }
 applyRemainingTerrain(SCENES);

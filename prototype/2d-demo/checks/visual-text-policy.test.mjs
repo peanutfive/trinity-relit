@@ -27,6 +27,7 @@ test('curated presence removals leave original auditory, transformation and insc
 test('every marked removal still matches actual chapter wording and an actual visible object',async()=>{
  for(const r of VISUAL_PRESENCE_RULES){
   const e=createPrologueSession();if(['meadow','south_bog'].includes(r.rooms[0])){await e.activateChapter('wabe');e.state.chapter='wabe';}
+  if(r.rooms[0]==='shelter'){await e.activateChapter('japan');e.state.chapter='japan';e.state.setFlag('umbrella_given_to_girl');e.state.placeItem('spade','shelter');}
   e.state.room=r.rooms[0];
   if(r.id==='ruby-at-feet'){e.state.setFlag('ruby_visible');e.state.placeItem('ruby','broad_walk');}
   if(r.id==='parked-pram')e.state.setFlag('pram_at_walk');

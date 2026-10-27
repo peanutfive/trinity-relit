@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="864" viewBox="0 0 480 288">
+<rect width="480" height="288" fill="#797b71"/><path d="M0 288 L190 186 L142 0 H340 L288 173 L480 288Z" fill="#b8b3a0"/>
+<path d="M235 170 L240 0 M235 170 L240 288 M235 170 L480 160 M235 170 L50 160 M235 170 L0 30 M235 170 L480 26" stroke="#434746" stroke-width="20" fill="none"/>
+<ellipse cx="226" cy="166" rx="70" ry="44" fill="#c4b69b"/>
+<path d="M418 106 H480 V193 H418Z" fill="#747b76"/><path d="M432 156 H480 V184 H432Z" fill="#b1aa93"/>
+<circle cx="86" cy="160" r="17" fill="none" stroke="#fff"/>
+<g fill="#fff" font-size="9" text-anchor="middle" font-family="sans-serif"><text x="240" y="18">N</text><text x="240" y="275">S</text><text x="444" y="172">E / IN</text><text x="86" y="164">OUT</text></g>
+</svg>

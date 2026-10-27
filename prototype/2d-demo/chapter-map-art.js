@@ -69,6 +69,16 @@ function wildland(id){
     ${Array.from({length:14},(_,i)=>path(`M ${450+i*13} ${326+(i%3)*8} l 4 17`,'none','#697458',1)).join('')}`;
 }
 
+function hillside(){
+  return `${path('M 98 251 Q 145 156 302 151 Q 463 136 536 178 Q 675 119 819 179 Q 936 240 959 385 Q 930 519 790 552 Q 658 587 510 551 Q 316 586 157 498 Q 69 418 98 251 Z','#a9aa7e','#61704f',3)}
+    ${Array.from({length:5},(_,i)=>path(`M ${132+i*14} ${265+i*24} Q 277 ${180+i*29} 452 ${222+i*34} T ${914-i*13} ${303+i*31}`,'none','#7e8863',1.2,'opacity=".5"')).join('')}
+    ${path('M 365 340 L 365 170 M 365 340 L 365 539 M 365 340 L 151 340 M 365 340 L 730 340','none','#5c6151',12,'opacity=".65"')}
+    ${path('M 309 312 Q 360 277 418 319 Q 446 354 404 375 Q 339 398 304 360 Z','#c6b58a','#8a8261',1.5)}
+    ${path('M 683 312 Q 718 270 778 297 L 799 349 L 685 360 Z','#8b9271','#65704f',1.7)}
+    ${path('M 710 351 V 321 Q 734 299 757 321 V 351 Z','#64674f','#4e5b43',1.2)}
+    ${grove(201,220,67,48,23,1945)}${grove(604,245,68,48,25,127)}${grove(827,445,64,53,29,36)}${grove(236,453,61,43,19,471)}
+    <g fill="#92987e" stroke="#737d63" stroke-width=".7" opacity=".55">${Array.from({length:18},(_,i)=>{const x=173+i*40,y=104+(i%4)*9,h=9+i%5*4;return `<path d="M ${x} ${y} v ${-h} h 23 v ${h} Z"/>`;}).join('')}</g>`;
+}
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){
   const safeId=String(id).replace(/[^a-z0-9_-]/gi,'');
@@ -82,7 +92,7 @@ export function terrainMarkup(chapter,id,nodes=[]){
     <radialGradient id="${safeId}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
     <mask id="${safeId}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
   </defs><rect width="1080" height="680" fill="url(#${safeId}-paper)"/>
-  <g class="map-landscape">${chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
+  <g class="map-landscape">${chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
   <rect width="1080" height="680" fill="url(#${safeId}-grain)"/>
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>

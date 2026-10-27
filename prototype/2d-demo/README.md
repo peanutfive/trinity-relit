@@ -1,6 +1,6 @@
 # Trinity · HD-2D 探索版
 
-开发依据：[2D开发计划](DEVELOPMENT_PLAN.md)及[人物空间与探索修订](EXPLORATION_PLAN.md)。当前可游玩肯辛顿花园序章全部11房，并接续Wabe首批8/30房；这是沿现有规则的表现版，原版规则差异按人类决定暂缓修正。制作与证据边界见[序章制作表](PROLOGUE_PRODUCTION.md)及[Wabe制作记录](WABE_PRODUCTION.md)。
+开发依据：[2D开发计划](DEVELOPMENT_PLAN.md)及[人物空间与探索修订](EXPLORATION_PLAN.md)。当前可游玩肯辛顿花园11房、Wabe 10/30房及日本游乐场/避难所2房；这是沿现有规则的表现版，原版规则差异按人类决定暂缓修正。制作与证据边界见[序章制作表](PROLOGUE_PRODUCTION.md)、[Wabe制作记录](WABE_PRODUCTION.md)及[日本章节记录](JAPAN_PRODUCTION.md)。文字版仍由仓库原入口单独提供。
 
 启动仓库开发服务器，打开 `/2d-demo/`。
 

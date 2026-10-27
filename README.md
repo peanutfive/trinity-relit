@@ -4,6 +4,15 @@
 
 **[在浏览器中开始游戏](https://peanutfive.github.io/trinity-relit/)** — 打开即玩，无需安装、无需账号、无需 API Key。
 
+项目维护两个游戏版本：
+
+| 版本 | 玩法与入口 | 开发方向 |
+|---|---|---|
+| 原版式文字版 | `prototype/index.html`；本地 `/`，公开站为此版本 | 以原版规则和叙事还原为目标，继续核对现有差异 |
+| HD-2D 改编版 | `prototype/2d-demo/index.html`；当前开发分支本地 `/2d-demo/` | 当前认可画风、场景探索、F互动、文字叙事与独立存档，按章节推进 |
+
+两版分别保留入口与玩家进度；已核实的故事与规则可复用，2D界面和动画由独立表现层管理。2D后续计划见[开发计划](prototype/2d-demo/DEVELOPMENT_PLAN.md)，当前分支关系见[分支索引](BRANCHES.md)。
+
 ---
 
 ## 为什么是 Trinity

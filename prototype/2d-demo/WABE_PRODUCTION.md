@@ -29,4 +29,8 @@ node prototype/2d-demo/tools/audit-scenes.mjs
 PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node prototype/2d-demo/tools/browser-smoke.mjs
 ```
 
-浏览器脚本依赖本地8080开发服务，截图与导出收据仅存/tmp，不入库。下一批为Wabe藤架/翻转、瀑布与蘑菇门区域；前景遮挡、精细地形碰撞、按区域懒加载图像仍待完善。
+浏览器脚本依赖本地8080开发服务，截图与导出收据仅存/tmp，不入库。前景遮挡、精细地形碰撞、按区域懒加载图像仍待完善。
+
+## 2026-10-27 扩展至10/30房
+
+新增The Bend（弯道）与Moor（荒野），接通原有楼梯底部E和棚架NE；Moor蘑菇门按日晷Mars符号进入日本章，再由白门或纸鸟返回。四张新背景按交付图重新描地面，日本章两房与动作/存档详见[JAPAN_PRODUCTION.md](JAPAN_PRODUCTION.md)。当前共23视觉场景、34默认热点、80已绘制出口。Wabe余20房和其他蘑菇门分支仍待制作；本页上方八房记录保留为首批历史验收，不代表当前场景总数。

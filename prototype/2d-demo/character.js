@@ -89,7 +89,7 @@ export function paintCharacter(c,x,y,color='#bca071',facing='down',phase=0,elder
   const ground=characterGrounding(facing,phase,animation),pose=ground.pose,side=facing==='left'||facing==='right';
   const coat=elder?'#777489':color,light=characterLighting(facing,coat);
   c.save();c.translate(snap(x),snap(y));c.imageSmoothingEnabled=false;
-  groundShadow(c,ground);
+  if(!animation.airborne)groundShadow(c,ground);
   if(!elder&&paintHeroSprite(c,facing,phase,pose,animation)){c.restore();return;}
   if(side){if(facing==='left')c.scale(-1,1);paintSide(c,pose,coat,elder,light);}else paintFront(c,pose,coat,facing==='up',elder,light);
   c.restore();

@@ -5,6 +5,7 @@ import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
 import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
+import {renderJapanSprite,japanArtStatus} from './japan-art.js';
 import { createPrologueSession } from './engine-adapter.js';
 import { getHotspots } from './interaction-catalog.js';
 import { createDiscovery, PAPER_CRAFT_ID } from './discovery.js';
@@ -13,8 +14,8 @@ import { roomArrival } from './arrivals.js';
 import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
-import { isBlocked, findPath, nearestWalkable, approachingExit } from './world.js';
-import { SCENES, LOGICAL_SIZE, sceneExits } from './scene-manifest.js';
+import { isBlocked, findPath, nearestWalkable, approachingExit,leavingBoundaryExit } from './world.js';
+import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
 import { drawScene, drawActor, drawOcclusion, artStatus } from './art.js';
@@ -26,7 +27,7 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -117,10 +118,10 @@ function reset() {
   render();
 }
 
-function updateLabels() {
-  const room = engine.rooms[engine.state.room];
-  $('#room').textContent = room.cn;
-  $('#room-en').textContent = room.name;
+function updateLabels(roomId=engine.state.room) {
+  const room = engine.rooms[roomId];
+  if($('#room').textContent!==room.cn)$('#room').textContent = room.cn;
+  if($('#room-en').textContent!==room.name)$('#room-en').textContent = room.name;
 }
 
 function updateHud() {
@@ -266,7 +267,8 @@ async function command(input, actions = [], observedId = null) {
       previousScene=before;
       const scene = scenes[engine.state.room];
       if (scene) [player.x, player.y] = scene.spawn;
-      lastArrival=roomArrival(navigationScene(),{fromRoom:before.room,direction:input,exits:exits()});
+      const arrivalDirection=before.chapter==='japan'&&engine.state.room==='moor'?'out':input;
+      lastArrival=roomArrival(navigationScene(),{fromRoom:before.room,direction:arrivalDirection,exits:exits()});
       if(lastArrival){player.x=lastArrival.x;player.y=lastArrival.y;player.face=lastArrival.face;}
       stopMovement(); motion.blend = 0; player.walk = 0; exitLock = 0.5;
     }
@@ -278,6 +280,7 @@ async function command(input, actions = [], observedId = null) {
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
     if (engine.state.chapter === 'wabe') $('#objective').textContent = '沿林间小路前行，留意石头、植物与光影中的细节。';
+    if (engine.state.chapter === 'japan') $('#objective').textContent = '留意沙堆、避难所与身旁的人。';
     persistProgress({force:true});
   } finally {
     busy = false;
@@ -385,8 +388,9 @@ function interactWith(object) {
 }
 
 function useHeldItem() {
-  const input=heldItem==='paper_bird'?'examine paper bird':resolveHeldSelf(heldItem,engine.state);
-  focusedItem=heldItem==='paper_bird'?heldItem:null;
+  const paperFlight=heldItem==='paper_bird'&&engine.state.room==='playground';
+  const input=heldItem==='paper_bird'&&!paperFlight?'examine paper bird':resolveHeldSelf(heldItem,engine.state);
+  focusedItem=heldItem==='paper_bird'&&!paperFlight?heldItem:null;
   if(input&&!paused&&!busy)command(input);
 }
 
@@ -417,8 +421,8 @@ function inventory() {
 
 function obstacles() { return scenes[engine.state.room].obstacles; }
 
-function bodyObstacles(){return objects().filter(o=>['woman','umbrella_woman','boy','pram','sundial','door'].includes(o.kind)).map(o=>{
-  const rx=o.kind==='pram'?20:o.kind==='sundial'?16:o.kind==='door'?11:6,ry=o.kind==='pram'?7:o.kind==='sundial'?7:3;
+function bodyObstacles(){return objects().filter(o=>['woman','umbrella_woman','boy','pram','sundial','door','japan_door','japan_girl','mushroom_gate'].includes(o.kind)).map(o=>{
+  const rx=o.kind==='pram'?20:o.kind==='sundial'?16:['door','japan_door'].includes(o.kind)?11:o.kind==='mushroom_gate'?16:o.kind==='japan_girl'?4:6,ry=['pram','sundial'].includes(o.kind)?7:o.kind==='mushroom_gate'?5:o.kind==='japan_girl'?2.5:3;
   return {x:o.x-rx,y:o.y-ry,w:rx*2,h:ry*2};
 });}
 function navigationScene(){const scene=scenes[engine.state.room];return {...scene,obstacles:[...scene.obstacles,...bodyObstacles()]};}
@@ -489,8 +493,12 @@ function update(dt) {
     player.walk = (player.walk + distance / 46 * Math.PI * 2) % (Math.PI * 2);
     motion.action = 'idle';
     for (const exit of exits()) {
-      if (!walkTarget&&!walkPath.length&&!exitLock && approachingExit(exit,{x:oldX,y:oldY},player)) { transition(exit); break; }
+      if (!exit.interactionOnly&&!walkTarget&&!walkPath.length&&!exitLock && approachingExit(exit,{x:oldX,y:oldY},player)) { transition(exit); break; }
     }
+  }
+  if(canWalk&&!motion.moving&&(dx||dy)&&!exitLock&&!walkTarget&&!walkPath.length){
+    const exit=exits().find(exit=>leavingBoundaryExit(exit,player,{x:dx,y:dy}));
+    if(exit)transition(exit);
   }
   updateHud();
 }
@@ -524,7 +532,7 @@ function exitLabel(exit) {
 
 function pointedExitLabel(point) {
   if(reviewRoutes)return null;
-  return exits().find(exit=>{const label=exitLabel(exit);return Math.hypot(exit.x-player.x,exit.y-player.y)<55 && point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
+  return exits().find(exit=>{const label=exitLabel(exit);return !exit.interactionOnly&&Math.hypot(exit.x-player.x,exit.y-player.y)<55 && point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
 }
 
 function render() {
@@ -532,6 +540,7 @@ function render() {
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   const story = director.getState(engine.state);
   const renderRoom = story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room;
+  updateLabels(renderRoom);
   const crossing=renderRoom!==engine.state.room;
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
@@ -551,7 +560,7 @@ function render() {
     if(engine.state.hasFlag('bird_unfolded')){ctx.fillStyle='#59472d';ctx.font='italic 2px Georgia,serif';ctx.textAlign='center';ctx.fillText('Long Water,',0,-6);ctx.fillText("Four O’Clock",0,-3.4);}
     ctx.restore();
   }
-  for (const exit of crossing||reviewRoutes?[]:exits().filter(exit => Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
+  for (const exit of crossing||reviewRoutes?[]:exits().filter(exit => !exit.interactionOnly&&Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
     const {x,y,text:label,width}=exitLabel(exit);
     ctx.font = '8px serif';
     ctx.textAlign = 'center';
@@ -562,6 +571,10 @@ function render() {
     ctx.strokeRect(x - width / 2, y - 9, width, 14);
     ctx.fillStyle = '#efe0b8';
     ctx.fillText(label, x, y);
+  }
+  for(const boundary of crossing||reviewRoutes?[]:sceneBoundaries(engine.state.room,engine.state,engine.rooms).filter(p=>Math.hypot(p.x-player.x,p.y-player.y)<49)){
+    const x=Math.max(62,Math.min(418,boundary.x)),y=Math.max(30,Math.min(270,boundary.y-11));
+    ctx.fillStyle='#19251ee8';ctx.fillRect(x-57,y-10,114,16);ctx.fillStyle='#d1c6a3';ctx.font='7px serif';ctx.textAlign='center';ctx.fillText('前方场景制作中',x,y);
   }
 }
 
@@ -818,10 +831,10 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
-  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), narrative: director.getState(), nearby: nearby()?.label,
+  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, processing:busy,
   inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
   controls: { ...preferences.bindings, pause: 'Escape' },

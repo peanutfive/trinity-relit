@@ -4,6 +4,8 @@ import {createPramPushMotion,samplePramPushMotion} from './pram-motion.js';
 import {idleUmbrellaVisual,umbrellaScene,UMBRELLA_DURATION} from './umbrella-motion.js';
 import { actorLayout } from './actor-layout.js';
 import { drawStoryProp } from './prologue-art.js';
+import {createJapanMotion,sampleJapanMotion} from './japan-motion.js';
+import {JAPAN_POINTS} from './japan-route-layout.js';
 export { drawStoryProp, drawPortrait, setStorySpriteRenderer } from './prologue-art.js';
 
 // A read-only presentation director. The engine has already committed each event.
@@ -109,6 +111,15 @@ export function createNarrativeDirector() {
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
     const gained=flag=>!has(before,flag)&&has(after,flag);
+    const japan=(type,room=after.room)=>{
+      const motion=createJapanMotion(type,before);
+      push(type,{id:`${type}:${after.turns}`,room,motion,duration:motion.duration});
+    };
+    if(before.chapter!=='japan'&&after.chapter==='japan')japan('japan_entry');
+    if(gained('girl_found_playground'))japan('japan_girl_approach','playground');
+    if(gained('umbrella_given_to_girl'))japan('japan_give_umbrella','playground');
+    if(before.room==='shelter'&&has(before,'bird_unfolded')&&!has(after,'bird_unfolded'))japan('japan_refold','shelter');
+    if(before.chapter==='japan'&&after.chapter==='wabe')japan(/^ride\s+bird$/i.test(command)?'japan_paper_flight':'japan_return',/^ride\s+bird$/i.test(command)?'playground':after.room);
     if(gained('seen_bird_woman'))push('birds_arrive');
     if(gained('bag_bought'))push('crumbs_purchase');
     if(gained('birds_fed'))push('feed_birds');
@@ -164,7 +175,8 @@ export function createNarrativeDirector() {
   function skip() { while(active)finish(true); }
   function getState(state=latest||{}) {
     const type=active?.type||null;
-    const hiddenKinds=[];
+    const japanFrame=sampleJapanMotion(active);
+    const hiddenKinds=[...japanFrame.hiddenKinds];
     if(['birds_arrive','feed_birds'].includes(type))hiddenKinds.push('birds','pigeons');
     if(type==='gnomon_unscrew')hiddenKinds.push('gnomon');
     if(type==='missile_reveal')hiddenKinds.push('missile');
@@ -181,6 +193,7 @@ export function createNarrativeDirector() {
     // Return these actors to the caller's shared depth/collision pass; draw()
     // must never paint them above foreground objects after that pass has ended.
     const persistentActors=[];
+    if(state.room==='playground')persistentActors.push({id:'playground:teachers',room:'playground',kind:'japan_teachers',...JAPAN_POINTS.teachers,label:'老师们',visual:true,visualOnly:true,radius:0,actions:[]});
     if(state.room==='broad_walk'&&has(state,'birds_fed')){
       persistentActors.push({id:'broad_walk:woman',room:'broad_walk',kind:'woman',actorId:'bird_food_seller',x:143,y:166,label:'卖鸟食的老妇人',visual:true,visualOnly:true,radius:0,actions:[],visualOptions:{pose:'seated'}});
       if(!['feed_birds','birds_arrive'].includes(type))persistentActors.push({id:'broad_walk:birds',room:'broad_walk',kind:'birds',x:185,y:185,label:'鸽子',visual:true,visualOnly:true,radius:0,actions:[]});
@@ -214,13 +227,15 @@ export function createNarrativeDirector() {
     }
     const pushEvent=[active,...queue].find(event=>event?.type==='pram_push'&&event.room===state.room);
     const pair=type==='pram_push'?samplePramPushMotion(active.motion,active.elapsed):null;
-    const groundActors=pair?[pair.pusher,pair.pram]:[];
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
+    const groundActors=[...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors];
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'pending',visualEnabled:false},door_cross:{status:'partially_verified',visualSequence:'roadrunner_and_short_fade',unverifiedExtrasDisabled:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
     drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
+    const japanFrame=sampleJapanMotion(active);
+    if(japanFrame.fade){c.save();c.fillStyle=`rgba(15,22,23,${japanFrame.fade})`;c.fillRect(0,0,480,288);c.restore();}
   }
   function replayUmbrella(snapshot){
     if(snapshot?.room!=='lancaster_gate')return false;

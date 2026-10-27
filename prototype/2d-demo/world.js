@@ -5,6 +5,16 @@ const navigationCache = new WeakMap();
 const point = value => Array.isArray(value) ? { x: value[0], y: value[1] } : value;
 
 const exitVectors={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1],u:[0,-1],d:[0,1],in:[1,0],out:[-1,0]};
+// A player can reach the screen limit during the short arrival cooldown.
+// Once it expires, continued outward input must still cross that edge, even
+// though collision no longer permits another visible pixel of movement.
+export function leavingBoundaryExit(exit,from,intent){
+  if(exit.interactionOnly||(exit.x>28&&exit.x<452&&exit.y>28&&exit.y<260))return false;
+  const v=exit.approach||exitVectors[exit.dir],length=Math.hypot(intent.x,intent.y);
+  if(!v||length<.001||Math.hypot(from.x-exit.x,from.y-exit.y)>=exit.radius)return false;
+  return (intent.x*v[0]+intent.y*v[1])/(length*Math.hypot(...v))>=.85
+    &&(from.x-exit.x)*v[0]+(from.y-exit.y)*v[1]>=-1;
+}
 export function approachingExit(exit,from,to){
   const dx=to.x-from.x,dy=to.y-from.y;
   const distance=Math.hypot(dx,dy),vector=exit.approach||exitVectors[exit.dir];

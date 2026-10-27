@@ -15,13 +15,23 @@ export const VISUAL_PRESENCE_RULES=Object.freeze([
   rule('meadow-sundial','meadow','sundial','A shaft of golden sunlight falls across a handsome antique sundial, erected at the exact center of the clearing.','一束金色阳光落在一座精美的古董日晷上，它矗立在空地的正中央。'),
   {...rule('boy-dish-presence','inverness_terrace','dish',"There's a dish full of soapy water by his side.",'他身旁放着一碟肥皂水。'),sentence:true},
   rule('bog-log','south_bog','log','A splintered log lies rotting in the mist at your feet.','一根裂开的圆木在你脚下的雾气中腐烂着。'),
+  {...rule('shelter-spade','shelter','spade','A spade is here.','这里有一把铲子。'),sentence:true},
+  rule('shelter-girl','shelter','japan_girl','The girl is here with the umbrella.','女孩在这里，拿着那把雨伞。'),
 ]);
+// Existing chapter wording that discloses a puzzle action, rather than an
+// observation. Hide it in the 2D room introduction; keep event/inspect output.
+export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',room:'shelter',sentences:[
+  'A girl may take your umbrella or paper here.','一位女孩可能会在这里收下你的雨伞或纸。',
+]}]);
 export function filterVisualPresence(text,{room,objects=[],source='event'}={}){
   if(source!=='room'&&source!=='item-annotation')return {text,removed:[]};
   const visible=new Set(objects.filter(o=>o.visual!==false).map(o=>o.kind));
   const matches=VISUAL_PRESENCE_RULES.filter(r=>(r.rooms.includes(room)||(source==='item-annotation'&&r.id==='ball-in-flowers'))&&r.kinds.some(kind=>visible.has(kind)));
   const remove=new Set(matches.flatMap(r=>r.paragraphs)),removed=[];
   const parts=String(text).split(/\n+/).map(p=>p.trim()).filter(Boolean);
+  for(const r of VISUAL_GUIDANCE_RULES.filter(r=>r.room===room))for(let i=0;i<parts.length;i++)for(const sentence of r.sentences)if(parts[i].includes(sentence)){
+    parts[i]=parts[i].replace(sentence,'').trim();if(!removed.includes(r.id))removed.push(r.id);
+  }
   const rewritten=parts.map(p=>{for(const r of matches.filter(r=>r.sentence))for(const sentence of r.paragraphs)if(p.includes(sentence)){p=p.replace(sentence,'').trim();if(!removed.includes(r.id))removed.push(r.id);}return p;}).filter(Boolean);
   const kept=rewritten.filter(p=>{
     if(!remove.has(p))return true;

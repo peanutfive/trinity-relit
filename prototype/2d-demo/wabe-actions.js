@@ -1,10 +1,12 @@
 import { ITEMS } from '../js/data/items.js';
+import {JAPAN_POINTS as P} from './japan-route-layout.js';
 
-// First Wabe slice: these are affordances for the current runtime, not new rules
+// Wabe slices: these are affordances for the current runtime, not new rules
 // or a claim that the existing chapter's topology/text has been independently verified.
 export const WABE_SLICE_ROOMS = Object.freeze([
   'meadow', 'summit', 'south_bog', 'north_bog',
   'bottom_of_stairs', 'vertex', 'forest_clearing', 'trellises',
+  'the_bend', 'moor',
 ]);
 const supported = new Set(WABE_SLICE_ROOMS);
 const action = (label, command) => ({ label, command });
@@ -33,6 +35,13 @@ export function getWabeHotspots(state) {
     'bottom_of_stairs:stairs', 245, 112, '崖壁石阶', 'stairs', undefined,
     [action('查看此处', 'look'), action('登上石阶', 'u')],
   ));
+  if (room === 'moor') {
+    objects.push(object('moor:mushroom-gate', P.gate.x, P.gate.y, '蘑菇门', 'mushroom_gate', undefined,
+      [action('观察此处', 'look'), action('穿过蘑菇门', 'in')]));
+    Object.assign(objects.at(-1), {visualOptions: {open: state.sundialSymbol === 1}, pointerShape: {
+      kind: 'ellipse', x: P.gate.x, y: P.gate.y-29, rx: 28, ry: 32, priority: 1,
+    }});
+  }
   if (room === 'vertex') {
     objects.push(
       object('vertex:sundial', 245, 140, '日晷', 'sundial', 'examine_sundial_vertex',

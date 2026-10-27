@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="864" viewBox="0 0 480 288">
+<rect width="480" height="288" fill="#2e4d51"/>
+<path d="M0 150 H175 Q212 154 232 168 L262 172 Q300 151 352 142 L370 117 L326 94 L286 133 L261 139 L258 0 H225 L224 130 Q160 82 44 0 H0 Q123 97 177 140 L0 130Z" fill="#8b986c"/>
+<path d="M224 154 Q193 202 202 288 H267 Q268 219 255 166Z" fill="#7f8a61"/>
+<g fill="#c6d3ae" font-family="sans-serif" font-size="9" text-anchor="middle"><text x="242" y="18">N</text><text x="30" y="22">NW</text><text x="16" y="151">W</text><circle cx="342" cy="126" r="16" fill="none" stroke="#edd98b"/><text x="342" y="130">prop</text></g>
+</svg>
