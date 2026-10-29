@@ -58,7 +58,8 @@ test('出入口方向与原章一致，来源入口内侧出现且向内走不�
   assert.equal(resolveInteraction(e.state,o,{heldItem:'umbrella'}),dir,'手持物品不锁住出口');
  }
  assert.ok(sceneBoundaries('under_cliff',e.state,e.rooms).some(x=>x.dir==='w'));
- assert.ok(sceneBoundaries('craters_edge',e.state,e.rooms).some(x=>x.dir==='nw'));
+ assert.equal(sceneBoundaries('craters_edge',e.state,e.rooms).some(x=>x.dir==='nw'),false);
+ assert.equal(sceneExits('craters_edge',e.state,e.rooms).find(x=>x.dir==='nw').target,'bluff');
 });
 test('洞口及缓坡短演出使用可走地面，完成/跳过只改变呈现，存档恢复不重演',async()=>{
  const e=await garden(),d=createNarrativeDirector();await e.processInput('ne');

@@ -6,6 +6,7 @@ import { ROOMS, TIMERS } from '../js/data/prologue.js';
 const VISUAL_CHAPTER_LOADERS = Object.freeze({
   wabe: () => import('../js/data/wabe.js'),
   japan: () => import('../js/data/japan.js'),
+  underground: () => import('../js/data/underground.js'),
 });
 
 // The visual entry point has its own room dictionary. Lazy loading must not mutate

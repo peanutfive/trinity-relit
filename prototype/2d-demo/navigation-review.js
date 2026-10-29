@@ -2,6 +2,15 @@
 // This is a production gate, separate from runtime-reference/reachability tests.
 // Never mark a scene approved merely because every text-arrow hotspot is reachable.
 export const NAVIGATION_REVIEW = Object.freeze({
+  bluff:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  cottage:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  cemetery:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  barrow:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  ossuary:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  underground_1:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  underground_2:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+  underground_3:{status:'sample',issues:['T21独立画稿与地面/出入口已制作，已通过隐藏箭头的实际键鼠流程及来源落点验收，原规则差异另记；待玩家最终美术复核。']},
+
   palace_gate:{status:'revise',issues:['NE在北路中段，与N共用直路；NE缺独立可读分岔。','素材南端有开放道路，但没有可用S出口。'],fixed:['门柱只按基座碰撞，后方东路不再被柱身轮廓截断。','北行不被NE出口抢走。']},
   broad_walk:{status:'revise',issues:['NE(246,68)在N直路上，SE(267,246)在S直路上。','E(291,198)停在雕像旁内侧，图中未画出独立通往圆池塘的完整支路。']},
   flower_walk:{status:'revise',issues:['NW(246,92)在N直路上，没有独立西北分岔。','画面南侧延伸道路，但当前运行时没有S出口。'],fixed:['来源入口内侧落点与向出口靠近判断，防止按D向右却触发W返回。']},
@@ -27,6 +36,6 @@ export const NAVIGATION_REVIEW = Object.freeze({
   shelter:{status:'sample',issues:['仅一处左侧出入口，后墙与前景木梁按实图约束；铲子、女孩、物品试用及读档已浏览器实测，尚未作最终美术批准。']},
   under_cliff:{status:'sample',issues:['五条地面路和独立岩洞入口按交付图重描；W为未制作边界，岩洞沿当前适配规则保留，原版该出口偏差单列。']},
   ice_cavern:{status:'sample',issues:['只有左侧一处出入口，冰壁/前景岩石限制脚点，不把描写中的深处通道伪造为可走出口；本房原版映射仍待整体规则修正。']},
-  craters_edge:{status:'sample',issues:['坑壁不可步行跨越，只能沿右侧缓坡F下坑；四条陆路独立描线，NW为未制作断崖边界，最终美术待玩家复核。']},
+  craters_edge:{status:'sample',issues:['坑壁不可步行跨越，只能沿右侧缓坡F下坑；四条陆路独立描线，NW已接入断崖，最终美术待玩家复核。']},
   crater:{status:'sample',issues:['中央盆地和唯一左上返回缓坡接地，金属有独立占位且不能拾取；U由F确认，不靠近边缘自动传送。']},
 });

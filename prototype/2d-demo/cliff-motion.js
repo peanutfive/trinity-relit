@@ -1,12 +1,15 @@
 import {CLIFF_ROUTE_LAYOUT} from './cliff-route-layout.js';
+import {UG_ROUTE_LAYOUT} from './underground-route-layout.js';
 import {findPath} from './world.js';
 const pairs={
+  'cemetery:barrow':'n','barrow:cemetery':'s','barrow:ossuary':'in','ossuary:barrow':'out',
+  'ossuary:underground_1':'in','underground_1:ossuary':'w',
   'under_cliff:ice_cavern':'in','ice_cavern:under_cliff':'out',
   'craters_edge:crater':'d','crater:craters_edge':'u',
 };
 export function createCliffPassage(before,after){
   const dir=pairs[`${before.room}:${after.room}`];if(!dir)return null;
-  const scene=CLIFF_ROUTE_LAYOUT[before.room],p=before.visual?.player||{x:scene.spawn[0],y:scene.spawn[1]};
+  const scene=CLIFF_ROUTE_LAYOUT[before.room]||UG_ROUTE_LAYOUT[before.room],p=before.visual?.player||{x:scene.spawn[0],y:scene.spawn[1]};
   const [x,y]=scene.exitAnchors[dir],path=findPath({...scene,footprint:{rx:6,ry:3}},p,{x,y},{nearest:true});
   if(!path.length)return null;
   const distance=path.slice(1).reduce((sum,to,i)=>sum+Math.hypot(to[0]-path[i][0],to[1]-path[i][1]),0);

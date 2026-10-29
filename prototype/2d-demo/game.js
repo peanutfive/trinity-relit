@@ -7,6 +7,7 @@ import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
 import {prologueClock} from '../js/prologue-time.js';
 import {renderJapanSprite,japanArtStatus} from './japan-art.js';
+import {renderUndergroundSprite,drawUndergroundAtmosphere,undergroundArtStatus} from './underground-art.js';
 import {renderCliffSprite,cliffArtStatus} from './cliff-art.js';
 import { createPrologueSession } from './engine-adapter.js';
 import { getHotspots } from './interaction-catalog.js';
@@ -29,7 +30,7 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -373,6 +374,7 @@ function interact() {
   if (director.getState().busy) return;
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
+  if(heldItem==='lantern'&&['underground_2','underground_3'].includes(engine.state.room)&&!engine.state.hasFlag('lantern_on')&&!['passage','mushroom_gate'].includes(object?.kind)){useHeldItem();return;}
   if (!object) return;
   interactWith(object);
 }
@@ -413,6 +415,11 @@ function inventory() {
     button.textContent = ITEMS[id].cn;
     button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
     $('#choices').append(button);
+  }
+  if(heldItem&&engine.state.has(heldItem)&&!ITEMS[heldItem]?.fixed){
+    const drop=document.createElement('button');drop.textContent='放下手中物品';drop.id='inventory-drop';
+    drop.onclick=()=>{const id=heldItem;closeDialog();command(`drop ${ITEMS[id].aliases?.[0]||id}`);};
+    $('#choices').append(drop);
   }
   $('#next').textContent = `收起 ${keyLabel(preferences.bindings.interact)}`;
   updateHud();
@@ -545,10 +552,11 @@ function render() {
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   drawScene(ctx, renderRoom, clock, preferences.video.effects);
+  drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
   for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
-  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState()) });
+  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => {drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState());if(renderRoom.startsWith('underground_')&&engine.state.has('lantern'))renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);} });
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
   director.draw(ctx, renderRoom, engine.state, clock);
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
@@ -834,7 +842,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,

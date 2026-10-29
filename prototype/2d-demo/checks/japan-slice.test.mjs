@@ -73,7 +73,7 @@ function visualSave(g) {
     knowledge: {observed: [...g.observed], paper: {observed: [], identified: []}}});
 }
 
-test('2D入口仅按需加载Wabe和Japan，不污染文字版房间字典或其他session', async () => {
+test('2D入口按需加载已制作章节，不污染文字版房间字典或其他session', async () => {
   const original = Object.keys(PROLOGUE), a = game(), b = game();
   assert.equal(a.engine.rooms.playground, undefined);
   assert.equal(await a.engine.activateChapter('japan'), true);
@@ -81,7 +81,9 @@ test('2D入口仅按需加载Wabe和Japan，不污染文字版房间字典或其
   assert.equal(a.engine.rooms.shelter, JAPAN.shelter);
   assert.equal(b.engine.rooms.playground, undefined);
   assert.deepEqual(Object.keys(PROLOGUE), original);
-  assert.equal(await a.engine.activateChapter('underground'), false);
+  assert.equal(await a.engine.activateChapter('underground'), true);
+  assert.equal(b.engine.rooms.underground_1,undefined);
+  assert.equal(Object.hasOwn(PROLOGUE,'underground_1'),false);
   assert.equal(await a.engine.activateChapter('__proto__'), false);
   assert.equal(a.engine.rooms.underground, undefined);
   assert.notEqual(VISUAL_SAVE_KEY, 'trinity-relit:save:v1');

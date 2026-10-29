@@ -10,8 +10,13 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
-  if(object.kind==='passage')return actions.find(a=>['e','in','w','out','u','d'].includes(a.command))?.command||null;
+  if(object.kind==='passage')return actions.find(a=>['n','s','e','in','w','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
+  if(object.kind==='ug_barrow_door'){
+    if(heldItem==='key_barrow')return find('put key');
+    return seen?find('in'):find('examine ');
+  }
+  if(object.kind==='ug_hole'&&heldItem==='key_barrow')return find('put key');
   if(heldItem){
     if(object.kind==='japan_girl') {
       if(state.room==='playground'&&heldItem==='umbrella')return find('give umbrella');
@@ -35,6 +40,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
 }
 export function resolveHeldSelf(id,state) {
   if(!id||!state.has(id))return null;
+  if(id==='lantern'&&['underground_2','underground_3'].includes(state.room)&&!state.hasFlag('lantern_on'))return 'turn lantern';
   if(id==='paper_bird'&&state.room==='round_pond')return state.hasFlag('bird_unfolded')?'read paper bird':'open paper bird';
   if(id==='paper_bird'&&state.room==='playground')return 'ride bird';
   if(id==='umbrella'&&['lancaster_gate','lancaster_walk'].includes(state.room))return 'open umbrella';

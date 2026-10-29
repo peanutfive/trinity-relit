@@ -62,6 +62,7 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
   const covered = new Set();
   for (const room of WABE_SLICE_ROOMS) {
     engine.state.room = room;
+    if(room==='barrow')engine.state.placeItem('key_barrow','inventory');
     const before = engine.state.serialize();
     const objects = getHotspots(engine.state);
     assert.deepEqual(engine.state.serialize(), before);
@@ -72,7 +73,7 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
       for (const action of object.actions) {
         const parsed = parser.parse(action.command);
         assert.ok(parsed, action.command);
-        if(parsed.dir==='in')assert.ok(['moor','under_cliff'].includes(room));
+        if(parsed.dir==='in')assert.ok(['moor','under_cliff','barrow','ossuary'].includes(room));
         const event = ROOMS[room].events.find(event => event.match?.verb.includes(parsed.verb) && event.match.noun?.includes(parsed.noun));
         if (event) covered.add(event.id);
       }
@@ -118,7 +119,7 @@ test('真实序章后走完十房、转环七次、拾取放下木片并读档�
   await choose(g, 'd'); assert.equal(state.room, 'bottom_of_stairs');
   await command(g, 'e'); assert.equal(state.room,'the_bend');
   await command(g, 'e'); assert.equal(state.room,'moor');
-  for(const c of ['nw','in','out','e','d','u','s'])await command(g,c);
+  for(const c of ['nw','in','out','e','d','u','nw','e','s','n','in','out','s','s','w','se','s'])await command(g,c);
   assert.equal(state.room,'moor');
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
   await command(g, 'w'); assert.equal(state.room, 'forest_clearing');

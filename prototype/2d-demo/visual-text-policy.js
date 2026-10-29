@@ -3,6 +3,9 @@
 // when their corresponding object is genuinely rendered in this scene.
 const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split('|'),paragraphs:[en,cn]});
 export const VISUAL_PRESENCE_RULES=Object.freeze([
+  rule('underground-radio-presence','underground_2','walkie_talkie','A walkie-talkie is here.','这里有一部对讲机。'),
+  rule('underground-lantern-presence','underground_3','lantern','The lantern is here.','灯笼在这里。'),
+  {...rule('underground-cylinder-guidance','underground_3','ug_cylinder','A metal cylinder is here; the lantern can be taken from it.','这里有一个金属圆筒；可以从里面取出灯笼。'),sentence:true},
   rule('ball-in-flowers','flower_walk','ball','You can see a soccer ball half-hidden among the blossoms.','你可以看到一个足球半隐在花丛中。'),
   rule('ruby-at-feet','broad_walk','ruby','The ruby at your feet is bigger than a walnut, with finely cut facets that sparkle with crimson fire.','你脚边的红宝石比核桃还大，精细切割的刻面闪烁着绯红的火光。'),
   rule('unattended-pram','black_lion_gate','pram','A careless nanny has left her perambulator unattended.','一位粗心的保姆把她的婴儿车留在了无人看管的地方。'),

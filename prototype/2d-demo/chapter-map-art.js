@@ -79,6 +79,13 @@ function hillside(){
     ${grove(201,220,67,48,23,1945)}${grove(604,245,68,48,25,127)}${grove(827,445,64,53,29,36)}${grove(236,453,61,43,19,471)}
     <g fill="#92987e" stroke="#737d63" stroke-width=".7" opacity=".55">${Array.from({length:18},(_,i)=>{const x=173+i*40,y=104+(i%4)*9,h=9+i%5*4;return `<path d="M ${x} ${y} v ${-h} h 23 v ${h} Z"/>`;}).join('')}</g>`;
 }
+function caveChart(){
+  return `${path('M 83 249 Q 119 207 201 224 L 282 229 Q 353 225 383 269 L 445 266 Q 490 213 552 229 L 626 239 Q 673 233 702 271 L 777 264 Q 807 212 899 234 Q 963 250 976 311 L 962 412 Q 934 454 862 450 Q 791 452 759 415 L 699 409 Q 668 456 588 450 L 488 450 Q 447 447 420 414 L 362 416 Q 329 461 248 452 L 146 442 Q 81 427 78 371 Z','#999e80','#5b6656',3)}
+    ${path('M 145 292 Q 207 278 281 304 L 436 335 Q 552 304 638 336 L 785 332 Q 846 293 921 323 L 919 381 Q 850 410 789 376 L 639 382 Q 549 412 437 378 L 284 363 Q 204 389 143 359 Z','#c4bb93','#70765b',1.5)}
+    ${Array.from({length:8},(_,i)=>path(`M ${104+i*116} 250 l 15 -16 l 22 20 m -22 184 l 24 10 l 17 -20`,'none','#7b826b',2)).join('')}
+    ${path('M 186 418 l 12 -16 l 16 21 l 13 -18 l 17 18 M 505 270 q 25 -20 61 0 M 500 278 q 27 -20 66 0 M 827 281 l 19 -13 l 18 15','none','#6a735e',1.2)}
+    <ellipse cx="864" cy="345" rx="13" ry="10" fill="#a9a78a" stroke="#69735c" stroke-width="1.5"/>`;
+}
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){
   const safeId=String(id).replace(/[^a-z0-9_-]/gi,'');
@@ -92,7 +99,7 @@ export function terrainMarkup(chapter,id,nodes=[]){
     <radialGradient id="${safeId}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
     <mask id="${safeId}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
   </defs><rect width="1080" height="680" fill="url(#${safeId}-paper)"/>
-  <g class="map-landscape">${chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
+  <g class="map-landscape">${chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
   <rect width="1080" height="680" fill="url(#${safeId}-grain)"/>
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>

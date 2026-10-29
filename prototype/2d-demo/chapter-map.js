@@ -4,8 +4,9 @@ import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
 
-const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS};
-const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场'};
+import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
+const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS};
+const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场',underground:'地下洞室'};
 const DIRECTIONS={n:'北',ne:'东北',e:'东',se:'东南',s:'南',sw:'西南',w:'西',nw:'西北',u:'上',d:'下',in:'进入',out:'出去'};
 const DIRECTION_ORDER=Object.keys(DIRECTIONS);
 const list=value=>value instanceof Set?[...value]:Array.isArray(value)?[...value]:[];
@@ -103,7 +104,7 @@ export function buildChapterMap({state={},rooms,scenes={},chapter,chapterRooms=D
   const ids=[...discovered].filter(id=>owners[id]===selected).sort(compare),known=new Set(ids),edges=[],warnings=[];
   const nodes=ids.map(id=>{
     const room=definitions[id],visual=own(scenes,id);
-    return {id,chapter:selected,cn:visual?(room?.cn||scenes[id].label||'未知地点'):'未知地点',
+    return {id,chapter:selected,cn:visual?(scenes[id].mapLabel||room?.cn||scenes[id].label||'未知地点'):'未知地点',
       name:visual&&typeof room?.name==='string'?room.name:'',current:id===raw.room,visual,unknownVisual:!visual,exits:[]};
   });
   const byId=new Map(nodes.map(node=>[node.id,node]));

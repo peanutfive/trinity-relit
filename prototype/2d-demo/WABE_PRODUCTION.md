@@ -38,3 +38,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node prototype/2d-demo/
 ## 2026-10-29 扩展至14/30房
 
 接入悬崖下、冰穴、陨石坑边缘和陨石坑，重制楼梯底部八路连接；F洞口/缓坡和观察、短步行转场、地图/存读档可用。当前共27场景、43默认热点、98已绘制出口。实际画面道路、原版差异、五张背景/透明图集与验收见[CLIFF_PRODUCTION.md](CLIFF_PRODUCTION.md)。余16房及其他分支仍待开发，本文历史数字不作为最新收据。
+
+## 2026-10-29 扩展至19/30房与地下章
+
+沿坑缘接通断崖、小屋、墓地、古墓和纳骨堂，跨蘑菇门进入地下三房；当前35场景、57默认热点、114已绘制出口。地下光源/灯笼/对讲机、完整返程和独立地图/续玩见[UNDERGROUND_PRODUCTION.md](UNDERGROUND_PRODUCTION.md)。余11个Wabe房间及其他蘑菇门待续，原版入口与门条件差异保持单列。
