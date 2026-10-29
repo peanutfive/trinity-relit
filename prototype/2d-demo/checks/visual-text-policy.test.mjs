@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {filterVisualPresence,VISUAL_PRESENCE_RULES} from '../visual-text-policy.js';
 import {createPrologueSession} from '../engine-adapter.js';import {getHotspots} from '../interaction-catalog.js';import {ITEMS} from '../../js/data/items.js';
+import {SCENES} from '../scene-manifest.js';
 test('visible football remains in scene but its automatic flower presence is suppressed in both languages',async()=>{
  const e=createPrologueSession();await e.processInput('e');const before=e.state.serialize();
  const original=e.rooms.flower_walk.desc(e.state),objects=getHotspots(e.state);
@@ -26,7 +27,7 @@ test('curated presence removals leave original auditory, transformation and insc
 });
 test('every marked removal still matches actual chapter wording and an actual visible object',async()=>{
  for(const r of VISUAL_PRESENCE_RULES){
-  const e=createPrologueSession();if(['meadow','south_bog'].includes(r.rooms[0])){await e.activateChapter('wabe');e.state.chapter='wabe';}
+  const e=createPrologueSession(),chapter=SCENES[r.rooms[0]].chapter;if(chapter!=='prologue'){await e.activateChapter(chapter);e.state.chapter=chapter;}
   if(r.rooms[0]==='shelter'){await e.activateChapter('japan');e.state.chapter='japan';e.state.setFlag('umbrella_given_to_girl');e.state.placeItem('spade','shelter');}
   e.state.room=r.rooms[0];
   if(r.id==='ruby-at-feet'){e.state.setFlag('ruby_visible');e.state.placeItem('ruby','broad_walk');}

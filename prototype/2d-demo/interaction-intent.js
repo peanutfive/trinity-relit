@@ -10,7 +10,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
-  if(object.kind==='passage')return actions.find(a=>['e','in','w','out'].includes(a.command))?.command||null;
+  if(object.kind==='passage')return actions.find(a=>['e','in','w','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
   if(heldItem){
     if(object.kind==='japan_girl') {

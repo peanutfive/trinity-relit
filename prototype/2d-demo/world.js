@@ -16,6 +16,7 @@ export function leavingBoundaryExit(exit,from,intent){
     &&(from.x-exit.x)*v[0]+(from.y-exit.y)*v[1]>=-1;
 }
 export function approachingExit(exit,from,to){
+  if(exit.interactionOnly)return false;
   const dx=to.x-from.x,dy=to.y-from.y;
   const distance=Math.hypot(dx,dy),vector=exit.approach||exitVectors[exit.dir];
   if(distance<.001||!vector)return false;
@@ -88,7 +89,8 @@ export function isBlocked(scene, x, y) {
 export function isSegmentWalkable(scene, fromValue, toValue) {
   const from = point(fromValue), to = point(toValue);
   if (!from || !to) return false;
-  const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 2));
+  const resolution=scene.pathResolution||2;
+  const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / resolution));
   for (let index = 0; index <= steps; index++) {
     const progress = index / steps;
     if (isBlocked(scene, from.x + (to.x - from.x) * progress, from.y + (to.y - from.y) * progress)) return false;
@@ -97,7 +99,7 @@ export function isSegmentWalkable(scene, fromValue, toValue) {
 }
 
 function gridFor(scene, step) {
-  const signature = JSON.stringify([step, scene.walkablePolygons, scene.blockedPolygons, scene.footprint, scene.obstacles, scene.contactOffsets]);
+  const signature = JSON.stringify([step,scene.pathResolution, scene.walkablePolygons, scene.blockedPolygons, scene.footprint, scene.obstacles, scene.contactOffsets]);
   const cached = navigationCache.get(scene);
   if (cached?.signature === signature) return cached;
   const nodes = [], byKey = new Map();

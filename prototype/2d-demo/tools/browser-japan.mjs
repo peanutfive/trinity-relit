@@ -25,7 +25,7 @@ try{
  await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).japanSprites==='loaded');
  await page.click('#start');await drain();
  const e=createPrologueSession();e.moveTo(e.state.room);for(const c of first)await e.processInput(c);for(let i=0;e.state.sundialSymbol!==1&&i<7;i++)await e.processInput('turn ring');await e.processInput('d');
- await importSave(makeVisualSave(e,{room:e.state.room,x:438,y:232,face:'right',knowledge:{observed:[],paper:{observed:[],identified:[]}}}));
+ await importSave(makeVisualSave(e,{room:e.state.room,x:438,y:178,face:'right',knowledge:{observed:[],paper:{observed:[],identified:[]}}}));
  // First new route runs on normal animation frames before deterministic samples.
  await page.keyboard.down('d');await page.waitForTimeout(750);await page.keyboard.up('d');await page.waitForFunction(()=>JSON.parse(window.render_game_to_text()).room==='the_bend');await drain();await shot('bend');
  await page.evaluate(()=>{const raf=requestAnimationFrame.bind(window);let next;window.requestAnimationFrame=f=>{next=f;return 0;};window.__resume=()=>{window.requestAnimationFrame=raf;if(next)raf(next);};});await page.waitForTimeout(45);

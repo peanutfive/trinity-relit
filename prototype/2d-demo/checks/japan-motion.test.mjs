@@ -73,7 +73,7 @@ test('跨章白门从对应门口内侧入场，方向别名不生成第二扇�
  await e.processInput('out');
  const back=roomArrival(SCENES.moor,{fromRoom:'playground',direction:'out',exits:sceneExits('moor',s,e.rooms)});
  assert.equal(back.entrance,'in');assert.ok(back.x<P.gate.x-25);assert.ok(findPath(SCENES.moor,back,SCENES.moor.spawn).length);
- const before=s.serialize();assert.ok(sceneBoundaries('the_bend',s,e.rooms).length>=3);assert.deepEqual(s.serialize(),before);
+ const before=s.serialize();assert.deepEqual(sceneBoundaries('the_bend',s,e.rooms).map(x=>x.dir).sort(),['nw','s']);assert.deepEqual(s.serialize(),before);
 });
 test('日本章M地图使用独立山丘底稿，首次只标已到地点、不显示谜题物品',async()=>{
  const e=await japan(),model=buildChapterMap({state:e.state,rooms:e.rooms,scenes:SCENES}),terrain=terrainMarkup('japan','japan-test',model.nodes);

@@ -13,10 +13,10 @@ const wilds={
   bottom_of_stairs:[575,305,'stairs'],vertex:[600,210,'sundial'],forest_clearing:[385,495,'tree'],trellises:[575,495,'arch'],
   arboretum:[755,505,'tree'],top_of_arbor:[750,405,'arch'],north_arbor:[860,420,'tree'],south_arbor:[850,585,'tree'],
   arborvitaes_n:[825,480,'tree'],arborvitaes_s:[665,550,'tree'],chasms_brink:[570,145,'hill'],waterfall:[240,475,'water'],
-  ice_cavern:[120,465,'hill'],under_cliff:[735,170,'hill'],bluff:[840,140,'hill'],cemetery:[915,185,'arch'],
+  ice_cavern:[680,105,'hill'],under_cliff:[755,145,'hill'],bluff:[840,140,'hill'],cemetery:[915,185,'arch'],
   barrow:[950,270,'hill'],ossuary:[955,350,'arch'],promontory:[370,85,'hill'],cottage:[100,225,'house'],
   herb_garden:[100,315,'flower'],moor:[925,305,'bog'],the_bend:[760,305,'water'],the_river:[805,375,'water'],
-  craters_edge:[450,590,'hill'],crater:[345,590,'hill'],
+  craters_edge:[875,212,'hill'],crater:[965,252,'hill'],
 };
 const japan={playground:[365,340,'hill'],shelter:[730,340,'house']};
 const authored={prologue:gardens,wabe:wilds,japan};

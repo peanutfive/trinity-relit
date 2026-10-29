@@ -173,7 +173,7 @@ const copyPolygons=polygons=>polygons.map(points=>points.map(point=>[...point]))
 export function applyRemainingTerrain(scenes) {
   const updated=[];
   for(const [id,spec]of Object.entries(terrain)){
-    const scene=scenes[id];if(!scene)continue;
+    const scene=scenes[id];if(!scene||scene.terrain?.status==='art-ground-trace-v2')continue;
     scene.footprint={...foot};scene.spawn=[...spec.spawn];
     scene.walkablePolygons=copyPolygons(spec.walkablePolygons);
     scene.blockedPolygons=copyPolygons(spec.blockedPolygons);

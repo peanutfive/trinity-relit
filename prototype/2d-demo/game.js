@@ -7,6 +7,7 @@ import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
 import {prologueClock} from '../js/prologue-time.js';
 import {renderJapanSprite,japanArtStatus} from './japan-art.js';
+import {renderCliffSprite,cliffArtStatus} from './cliff-art.js';
 import { createPrologueSession } from './engine-adapter.js';
 import { getHotspots } from './interaction-catalog.js';
 import { createDiscovery, PAPER_CRAFT_ID } from './discovery.js';
@@ -28,7 +29,7 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -833,7 +834,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,

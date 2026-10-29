@@ -34,3 +34,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node prototype/2d-demo/
 ## 2026-10-27 扩展至10/30房
 
 新增The Bend（弯道）与Moor（荒野），接通原有楼梯底部E和棚架NE；Moor蘑菇门按日晷Mars符号进入日本章，再由白门或纸鸟返回。四张新背景按交付图重新描地面，日本章两房与动作/存档详见[JAPAN_PRODUCTION.md](JAPAN_PRODUCTION.md)。当前共23视觉场景、34默认热点、80已绘制出口。Wabe余20房和其他蘑菇门分支仍待制作；本页上方八房记录保留为首批历史验收，不代表当前场景总数。
+
+## 2026-10-29 扩展至14/30房
+
+接入悬崖下、冰穴、陨石坑边缘和陨石坑，重制楼梯底部八路连接；F洞口/缓坡和观察、短步行转场、地图/存读档可用。当前共27场景、43默认热点、98已绘制出口。实际画面道路、原版差异、五张背景/透明图集与验收见[CLIFF_PRODUCTION.md](CLIFF_PRODUCTION.md)。余16房及其他分支仍待开发，本文历史数字不作为最新收据。

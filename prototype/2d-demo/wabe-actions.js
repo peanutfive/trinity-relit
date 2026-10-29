@@ -1,5 +1,6 @@
 import { ITEMS } from '../js/data/items.js';
 import {JAPAN_POINTS as P} from './japan-route-layout.js';
+import {CLIFF_ROOMS,getCliffHotspots} from './cliff-actions.js';
 
 // Wabe slices: these are affordances for the current runtime, not new rules
 // or a claim that the existing chapter's topology/text has been independently verified.
@@ -7,6 +8,7 @@ export const WABE_SLICE_ROOMS = Object.freeze([
   'meadow', 'summit', 'south_bog', 'north_bog',
   'bottom_of_stairs', 'vertex', 'forest_clearing', 'trellises',
   'the_bend', 'moor',
+  ...CLIFF_ROOMS,
 ]);
 const supported = new Set(WABE_SLICE_ROOMS);
 const action = (label, command) => ({ label, command });
@@ -16,6 +18,8 @@ function object(id, x, y, label, kind, eventId, actions, itemId) {
 
 function looseItemPosition(id, room, index) {
   if (id === 'splinter' && room === 'south_bog') return [294, 180];
+  const cliffAnchors={under_cliff:[241,192],ice_cavern:[235,205],craters_edge:[225,223],crater:[220,220]};
+  if(cliffAnchors[room]){const [x,y]=cliffAnchors[room];return [x+(index%3-1)*11,y+Math.floor(index/3)*8];}
   return [165 + (index % 5) * 37, 216 + Math.floor(index / 5) * 14];
 }
 
@@ -23,6 +27,7 @@ export function getWabeHotspots(state) {
   const room = state.room;
   if (!supported.has(room)) return [];
   const objects = [];
+  objects.push(...getCliffHotspots(state));
   if (room === 'meadow') objects.push(object(
     'meadow:sundial', 245, 148, '日晷', 'sundial', 'examine_sundial_meadow',
     [action('查看日晷', 'examine sundial')],

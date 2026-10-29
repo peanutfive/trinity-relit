@@ -23,7 +23,7 @@ test('其余十五场景补齐地面；重复调用不改原方向、目标或�
   const scenes=structuredClone(SCENES),keep={};
   for(const id of ['palace_gate','broad_walk','flower_walk','round_pond'])keep[id]=structuredClone(scenes[id]);
   const truth=Object.fromEntries(Object.entries(scenes).map(([id,scene])=>[id,scene.exits.map(({dir,target})=>({dir,target}))]));
-  const result=applyRemainingTerrain(scenes);assert.equal(result.updated.length,15);
+  const result=applyRemainingTerrain(scenes);assert.equal(result.updated.length,14);
   for(const id of REMAINING_TERRAIN_ROOMS){
     assert.ok(scenes[id].walkablePolygons.length>0,id);
     assert.deepEqual(scenes[id].footprint,{rx:6,ry:3});
@@ -57,7 +57,7 @@ test('南北沼泽的积水、落木与树林不可穿，蜿蜒泥路保持通�
 test('石阶可登，平台基座和侧面的崖壁/管道/围墙不作为地面',()=>{
   const scenes=calibratedScenes();
   assert.equal(isBlocked(scenes.bottom_of_stairs,242,100),false);
-  assert.equal(isBlocked(scenes.bottom_of_stairs,348,150),true);
+  assert.equal(isBlocked(scenes.bottom_of_stairs,300,100),true);
   assert.equal(isBlocked(scenes.vertex,242,135),true);
   assert.equal(isBlocked(scenes.vertex,242,245),false);
   assert.equal(isBlocked(scenes.black_lion_gate,350,60),true);

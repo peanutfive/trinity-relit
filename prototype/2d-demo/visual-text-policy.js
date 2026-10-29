@@ -17,11 +17,15 @@ export const VISUAL_PRESENCE_RULES=Object.freeze([
   rule('bog-log','south_bog','log','A splintered log lies rotting in the mist at your feet.','一根裂开的圆木在你脚下的雾气中腐烂着。'),
   {...rule('shelter-spade','shelter','spade','A spade is here.','这里有一把铲子。'),sentence:true},
   rule('shelter-girl','shelter','japan_girl','The girl is here with the umbrella.','女孩在这里，拿着那把雨伞。'),
+  rule('crater-hot-metal','crater','cliff_metal','A lump of hot metal lies here.','一块灼热的金属块躺在这里。'),
+  {...rule('cliff-hive-presence','under_cliff','cliff_hive','A swarm of bees has staked out this formation for itself by building an enormous hive under the arch.','一群蜜蜂在拱形岩壁下筑起了巨大的蜂巢，将这处岩层据为己有。'),sentence:true},
 ]);
 // Existing chapter wording that discloses a puzzle action, rather than an
 // observation. Hide it in the 2D room introduction; keep event/inspect output.
 export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',room:'shelter',sentences:[
   'A girl may take your umbrella or paper here.','一位女孩可能会在这里收下你的雨伞或纸。',
+]},{id:'ice-unmade-passage',room:'ice_cavern',sentences:[
+  'A dark passage leads deeper.','一条黑暗的通道通向更深处。',
 ]}]);
 export function filterVisualPresence(text,{room,objects=[],source='event'}={}){
   if(source!=='room'&&source!=='item-annotation')return {text,removed:[]};

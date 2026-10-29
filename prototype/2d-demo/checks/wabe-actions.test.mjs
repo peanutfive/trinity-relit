@@ -54,7 +54,7 @@ test('统一目录保留序章，未制作章节与房间不暴露可执行传�
   assert.deepEqual(getHotspots(engine.state), []);
 });
 
-test('Wabe 十房目录只读，所有专用事件可由合法命令访问，只有Moor蘑菇门开放in动作', async () => {
+test('Wabe已制作房间目录只读，所有专用事件可由合法命令访问，in只接实际入口', async () => {
   const { engine } = createGame();
   await engine.activateChapter('wabe');
   engine.state.chapter = 'wabe';
@@ -72,7 +72,7 @@ test('Wabe 十房目录只读，所有专用事件可由合法命令访问，只
       for (const action of object.actions) {
         const parsed = parser.parse(action.command);
         assert.ok(parsed, action.command);
-        if(parsed.dir==='in')assert.equal(room,'moor');
+        if(parsed.dir==='in')assert.ok(['moor','under_cliff'].includes(room));
         const event = ROOMS[room].events.find(event => event.match?.verb.includes(parsed.verb) && event.match.noun?.includes(parsed.noun));
         if (event) covered.add(event.id);
       }
@@ -118,6 +118,8 @@ test('真实序章后走完十房、转环七次、拾取放下木片并读档�
   await choose(g, 'd'); assert.equal(state.room, 'bottom_of_stairs');
   await command(g, 'e'); assert.equal(state.room,'the_bend');
   await command(g, 'e'); assert.equal(state.room,'moor');
+  for(const c of ['nw','in','out','e','d','u','s'])await command(g,c);
+  assert.equal(state.room,'moor');
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
   await command(g, 'w'); assert.equal(state.room, 'forest_clearing');
   assert.ok(WABE_SLICE_ROOMS.every(room => state.visited.has(room)));
