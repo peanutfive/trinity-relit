@@ -13,6 +13,8 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
   if(object.kind==='passage')return actions.find(a=>['n','s','e','in','w','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
+  if(object.kind==='stairs')return find('u')||find('d')||find('look');
+  if(object.kind==='door')return seen?find('enter door')||find('s')||find('examine '):find('examine ')||find('look');
   if(object.kind==='ug_barrow_door'){
     if(heldItem==='key_barrow')return find('put key');
     return seen?find('in'):find('examine ');
@@ -29,12 +31,10 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
     if(heldItem==='umbrella'&&object.kind==='pram'&&state.hasFlag('in_pram'))return 'open umbrella';
     return null;
   }
-  if(object.kind==='stairs')return find('u')||find('d')||find('look');
   if(seen){
     if(object.kind==='ring')return find('turn ')||find('examine ');
     if(object.kind==='pram')return find('exit pram')||find('open pram')||find('enter pram')||find('push pram')||find('look');
     if(object.kind==='woman'&&state.room==='lancaster_gate')return find('help ')||find('wait');
-    if(object.kind==='door')return find('enter door')||find('s')||find('examine ');
     if(object.itemId&&!ITEMS[object.itemId]?.fixed)return find('unscrew ')||find('take ')||find('get ')||find('pick ')||find('examine ');
   }
   return find('examine ')||find('read ')||find('look')||find('wait')||'look';

@@ -1,3 +1,5 @@
+import {keyboardInteraction,chapterObjective} from './interaction-context.js';
+import {createNavigationSceneCache} from './navigation-scene.js';
 import {renderArborOrbitSprite,renderOrbitPlayer,arborOrbitArtStatus} from './arbor-orbit-art.js';
 import {filterVisualPresence} from './visual-text-policy.js';
 import {renderNotice,noticeArtStatus} from './notice-art.js';
@@ -35,6 +37,7 @@ setStorySpriteRenderer((ctx,object,state,time)=>renderArborOrbitSprite(ctx,objec
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
+const cachedNavigationScene=createNavigationSceneCache();
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { browserStorage = null; }
 const saveStore = createVisualSaveStore({ storage: browserStorage, scenes });
@@ -140,7 +143,8 @@ function updateHud() {
   $('#replay-umbrella').hidden = !started || engine.state.room!=='lancaster_gate'||!engine.state.hasFlag('umbrella_woman_done');
   const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
-  $('#hint').textContent = near ? `${keyLabel(preferences.bindings.interact)} · ${heldItem?'使用手中物品':observedObjects.has(near.id)?near.label:'观察'}` : '';
+  const decision=started&&!reading&&!hintOpen&&!paused&&!director.getState().busy?keyboardInteraction(engine.state,near,{heldItem,observed:observedObjects}):null;
+  $('#hint').textContent=decision?`${keyLabel(preferences.bindings.interact)} · ${decision.hint}`:'';
   $('#hand-kit').hidden = !heldItem || !started || paused || reading;
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
@@ -287,8 +291,7 @@ async function command(input, actions = [], observedId = null) {
     if(landing){player.x=landing.x;player.y=landing.y;player.face=landing.face;stopMovement();}
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
-    if (engine.state.chapter === 'wabe') $('#objective').textContent = '沿林间小路前行，留意石头、植物与光影中的细节。';
-    if (engine.state.chapter === 'japan') $('#objective').textContent = '留意沙堆、避难所与身旁的人。';
+    $('#objective').textContent=chapterObjective(engine.state.chapter);
     persistProgress({force:true});
   } catch(error){
     if(error.name!=='SceneArtError')throw error;
@@ -353,7 +356,7 @@ async function restoreProgress(input) {
     closeQuest(); closeDialog(); setPaused(false);
     $('#overlay').hidden = true;
     updateLabels();
-    $('#objective').textContent = engine.state.chapter === 'wabe' ? '探索林地、沼泽与石阶，看看日晷上的符号环。' : '在花园中探索，寻找物品与通向白门的路。';
+    $('#objective').textContent=chapterObjective(engine.state.chapter);
     beginOutput(); engine.describeRoom(); show(output.join('\n\n'));
     persistProgress({force:true}); sound.setPaused(false); sound.unlock().catch(()=>{});
   } catch (error) {
@@ -385,10 +388,10 @@ function interact() {
   if (director.getState().busy) return;
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
-  if(heldItem==='axe'&&engine.state.room==='orbit_satellite'&&object?.kind!=='passage'){useHeldItem();return;}
-  if(heldItem==='lantern'&&['underground_2','underground_3'].includes(engine.state.room)&&!engine.state.hasFlag('lantern_on')&&!['passage','mushroom_gate'].includes(object?.kind)){useHeldItem();return;}
-  if (!object) return;
-  interactWith(object);
+  const decision=keyboardInteraction(engine.state,object,{heldItem,observed:observedObjects});
+  if(!decision)return;
+  if(decision.type==='self'){useHeldItem();return;}
+  interactWith(decision.target);
 }
 
 function interactWith(object) {
@@ -444,7 +447,7 @@ function bodyObstacles(){return objects().filter(o=>['woman','umbrella_woman','b
   const rx=o.kind==='pram'?20:o.kind==='sundial'?16:['door','japan_door'].includes(o.kind)?11:o.kind==='mushroom_gate'?16:o.kind==='japan_girl'?4:6,ry=['pram','sundial'].includes(o.kind)?7:o.kind==='mushroom_gate'?5:o.kind==='japan_girl'?2.5:3;
   return {x:o.x-rx,y:o.y-ry,w:rx*2,h:ry*2};
 });}
-function navigationScene(){const scene=scenes[engine.state.room];return {...scene,obstacles:[...scene.obstacles,...bodyObstacles()]};}
+function navigationScene(){return cachedNavigationScene(scenes[engine.state.room],bodyObstacles());}
 function solid(x, y) { return isBlocked(navigationScene(), x, y); }
 function normalizePlayerLocation(){
   if(engine.state.hasFlag('in_pram')||!solid(player.x,player.y))return;
@@ -671,7 +674,7 @@ function paintBindings() {
     row.append(name, button);
     $('#binding-list').append(row);
   }
-  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} 互动 · ${keyLabel(preferences.bindings.watch)} 看表 · ${keyLabel(preferences.bindings.wait)} 等待 · M 地图 · Esc 暂停设置 · F11 全屏`;
+  $('.keys').textContent = `方向键 / ${['up', 'left', 'down', 'right'].map(key => keyLabel(preferences.bindings[key])).join('')} 行走 · ${keyLabel(preferences.bindings.interact)} 互动 · ${keyLabel(preferences.bindings.watch)} 看表 · ${keyLabel(preferences.bindings.wait)} 等待 · M 地图 · Esc 暂停设置 · ${keyLabel(preferences.bindings.fullscreen)} 全屏`;
   canvas.setAttribute('aria-label',`方向键行走，${keyLabel(preferences.bindings.interact)}互动和继续对话，Esc暂停与设置`);
 }
 
