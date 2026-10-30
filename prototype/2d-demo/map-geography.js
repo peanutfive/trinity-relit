@@ -11,8 +11,8 @@ const gardens={
 const wilds={
   meadow:[200,315,'sundial'],summit:[200,156,'hill'],south_bog:[385,345,'bog'],north_bog:[385,180,'bog'],
   bottom_of_stairs:[575,305,'stairs'],vertex:[600,210,'sundial'],forest_clearing:[385,495,'tree'],trellises:[575,495,'arch'],
-  arboretum:[755,505,'tree'],top_of_arbor:[750,405,'arch'],north_arbor:[860,420,'tree'],south_arbor:[850,585,'tree'],
-  arborvitaes_n:[825,480,'tree'],arborvitaes_s:[665,550,'tree'],chasms_brink:[570,145,'hill'],waterfall:[240,475,'water'],
+  arboretum:[720,610,'tree'],top_of_arbor:[735,425,'arch'],north_arbor:[865,430,'tree'],south_arbor:[865,625,'tree'],
+  arborvitaes_n:[825,525,'tree'],arborvitaes_s:[555,610,'tree'],chasms_brink:[570,145,'hill'],waterfall:[240,475,'water'],
   ice_cavern:[680,105,'hill'],under_cliff:[755,145,'hill'],bluff:[840,140,'hill'],cemetery:[955,395,'arch'],
   barrow:[955,475,'hill'],ossuary:[955,560,'arch'],promontory:[370,85,'hill'],cottage:[940,110,'house'],
   herb_garden:[1035,110,'flower'],moor:[925,305,'bog'],the_bend:[760,305,'water'],the_river:[805,375,'water'],
@@ -20,7 +20,8 @@ const wilds={
 };
 const japan={playground:[365,340,'hill'],shelter:[730,340,'house']};
 const underground={underground_1:[220,340,'arch'],underground_2:[540,340,'place'],underground_3:[860,340,'house']};
-const authored={prologue:gardens,wabe:wilds,japan,underground};
+const orbit={orbit_satellite:[380,282,'satellite'],orbit_space:[720,205,'orbit']};
+const authored={prologue:gardens,wabe:wilds,japan,underground,orbit};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
 export function illustratedMapNodes(model){
@@ -61,6 +62,12 @@ const gardenCurves={
   'broad_walk|inverness_terrace':'M 186 322 Q 278 256 342 194 Q 400 143 463 115',
 };
 export function chartRoadPath(from,to,chapter){
+  if(chapter==='orbit'){
+    // Two authored floating viewpoints, not compass-aligned ground locations.
+    // Reversed aliases share a single arc; the model retains their directions.
+    const [left,right]=[from,to].sort((a,b)=>a.x-b.x);
+    return `M ${left.x} ${left.y} C ${left.x+90} ${left.y-95} ${right.x-100} ${right.y-60} ${right.x} ${right.y}`;
+  }
   if(chapter==='prologue'){
     const curve=gardenCurves[[from.id,to.id].sort().join('|')];if(curve)return curve;
   }

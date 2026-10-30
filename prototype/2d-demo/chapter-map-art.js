@@ -86,9 +86,44 @@ function caveChart(){
     ${path('M 186 418 l 12 -16 l 16 21 l 13 -18 l 17 18 M 505 270 q 25 -20 61 0 M 500 278 q 27 -20 66 0 M 827 281 l 19 -13 l 18 15','none','#6a735e',1.2)}
     <ellipse cx="864" cy="345" rx="13" ry="10" fill="#a9a78a" stroke="#69735c" stroke-width="1.5"/>`;
 }
+function orbitChart(id,nodes){
+  const rand=random(124425);
+  const stars=Array.from({length:116},(_,index)=>{
+    const x=45+rand()*990,y=38+rand()*610,r=index%13===0?1.7:.45+rand()*.7;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#d9d6ba" opacity="${(.24+rand()*.42).toFixed(2)}"/>`;
+  }).join('');
+  const clear=nodes.filter(node=>Number.isFinite(node.x)&&Number.isFinite(node.y)).map(node=>`<ellipse cx="${node.x}" cy="${node.y}" rx="170" ry="140" fill="url(#${id}-clear)"/>`).join('');
+  return `<defs>
+    <radialGradient id="${id}-space" cx=".47" cy=".7" r=".85"><stop stop-color="#34474a"/><stop offset="1" stop-color="#14232a"/></radialGradient>
+    <linearGradient id="${id}-earth" x2=".15" y2="1"><stop stop-color="#91a6a0"/><stop offset=".24" stop-color="#547a76"/><stop offset="1" stop-color="#304e55"/></linearGradient>
+    <linearGradient id="${id}-limb" x2="1" y2="0"><stop stop-color="#8a727b"/><stop offset=".5" stop-color="#bc9387"/><stop offset="1" stop-color="#6b738c"/></linearGradient>
+    <radialGradient id="${id}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
+    <clipPath id="${id}-planet"><circle cx="540" cy="940" r="550"/></clipPath>
+    <mask id="${id}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
+    <pattern id="${id}-fibres" width="180" height="160" patternUnits="userSpaceOnUse">${paperFibres()}</pattern>
+  </defs>
+  <rect width="1080" height="680" fill="url(#${id}-space)"/>
+  <g class="map-landscape map-orbit-chart">
+    <g class="map-stars">${stars}</g>
+    <path d="M 83 610 A 583 583 0 0 1 997 610" fill="none" stroke="#607774" stroke-width="1" opacity=".28"/>
+    <circle cx="540" cy="940" r="550" fill="url(#${id}-earth)" stroke="url(#${id}-limb)" stroke-width="7"/>
+    <g clip-path="url(#${id}-planet)">
+      ${path('M 172 543 L 255 505 L 303 521 L 351 466 L 410 478 L 454 423 L 519 407 L 563 439 L 632 418 L 665 460 L 729 468 L 758 518 L 833 520 L 889 577 L 842 606 L 775 581 L 732 602 L 668 563 L 609 589 L 548 551 L 488 571 L 429 537 L 373 565 L 320 544 L 277 582 L 212 569 Z','#b8c4b2','#8da69a',1.4,'opacity=".84"')}
+      ${path('M 252 547 Q 395 425 535 439 Q 685 449 804 548 M 311 577 Q 441 475 555 485 Q 690 489 756 571 M 200 610 Q 427 571 524 609 T 894 635','none','#e1ddbf',2,'opacity=".39"')}
+      ${Array.from({length:6},(_,i)=>path(`M ${250+i*88} ${507+(i%2)*22} l 18 9 l 28 -8 m -5 14 l 17 5`,'none','#d8dcc4',1,'opacity=".5"')).join('')}
+      ${path('M 132 661 Q 355 565 541 593 Q 760 607 947 658','none','#90a79c',1.3,'opacity=".4"')}
+    </g>
+    <path d="M 195 511 A 550 550 0 0 1 885 511" fill="none" stroke="#c5b8a1" stroke-width="1" opacity=".45"/>
+  </g>
+  <rect class="map-mist" width="1080" height="680" fill="#13252b" opacity=".26" mask="url(#${id}-mist)"/>
+  <rect width="1080" height="680" fill="url(#${id}-fibres)" opacity=".46" pointer-events="none"/>
+  <path d="M 45 613 v 12 h 100 v -12 M 95 619 v 6" fill="none" stroke="#b2baa2" opacity=".55"/>
+  <text x="45" y="644" font-size="11" fill="#c3c6ae" opacity=".8">轨道示意 · 非等距</text>`;
+}
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){
   const safeId=String(id).replace(/[^a-z0-9_-]/gi,'');
+  if(chapter==='orbit')return orbitChart(safeId,nodes);
   const clear=nodes.filter(node=>Number.isFinite(node.x)&&Number.isFinite(node.y)).map(node=>`<ellipse cx="${node.x}" cy="${node.y}" rx="140" ry="112" fill="url(#${safeId}-clear)"/>`).join('');
   return `<defs>
     <radialGradient id="${safeId}-paper"><stop stop-color="#c5c6a1"/><stop offset=".75" stop-color="#b3b58e"/><stop offset="1" stop-color="#a5a984"/></radialGradient>
@@ -122,6 +157,8 @@ const icons={
   stairs:'M -9 8 H -4 V 3 H 1 V -2 H 6 V -7 H 10',
   arch:'M -8 8 V -1 a 8 8 0 0 1 16 0 V 8 M -5 8 V -1 a 5 5 0 0 1 10 0 V 8',
   house:'M -10 -1 L 0 -9 L 10 -1 M -7 -2 V 8 H 7 V -2 M -2 8 V 2 H 2 V 8',
+  satellite:'M -5 -6 Q 0 -9 5 -6 V 6 Q 0 9 -5 6 Z M -5 -5 Q 0 -2 5 -5 M -5 4 Q 0 7 5 4 M 0 -8 V -12 M 5 -2 L 10 -6 M -5 0 L -10 4',
+  orbit:'M -10 4 C -12 -2 8 -9 10 -4 C 13 2 -8 9 -10 4 M -3 -2 a 4 4 0 1 0 6 4 a 4 4 0 1 0 -6 -4',
   place:'M 0 -7 L 7 0 L 0 7 L -7 0 Z',
 };
 export function mapIconPath(kind){return icons[kind]||icons.place;}

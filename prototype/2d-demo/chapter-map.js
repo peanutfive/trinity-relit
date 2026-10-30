@@ -3,10 +3,11 @@ import { terrainMarkup, mapIconPath } from './chapter-map-art.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
+import { ROOMS as ORBIT_ROOMS } from '../js/data/orbit.js';
 
 import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
-const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS};
-const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场',underground:'地下洞室'};
+const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS,orbit:ORBIT_ROOMS};
+const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场',underground:'地下洞室',orbit:'地球轨道'};
 const DIRECTIONS={n:'北',ne:'东北',e:'东',se:'东南',s:'南',sw:'西南',w:'西',nw:'西北',u:'上',d:'下',in:'进入',out:'出去'};
 const DIRECTION_ORDER=Object.keys(DIRECTIONS);
 const list=value=>value instanceof Set?[...value]:Array.isArray(value)?[...value]:[];
@@ -132,6 +133,8 @@ const VIEW_STYLE=`
 .chapter-map *{box-sizing:border-box}.chapter-map button,.chapter-map select{font:inherit;color:inherit;border:1px solid #a38d5b88;background:#26392c;border-radius:0;min-height:32px;padding:4px 10px;cursor:pointer}.chapter-map button:hover,.chapter-map button:focus-visible,.chapter-map select:focus-visible{outline:1px solid #e2c58c;outline-offset:2px;background:#3a4932}.chapter-map-heading{display:flex;align-items:center;gap:14px;padding:11px 20px 10px;border-bottom:1px solid #9a895457;min-width:0;background:linear-gradient(90deg,#21352a,#18291f)}.chapter-map h2{margin:0;font-size:17px;letter-spacing:.12em;font-weight:500;white-space:nowrap}.chapter-map .chapter-map-chapter{font-size:13px;max-width:130px}.chapter-map .chapter-map-chapter:disabled{opacity:1;appearance:none;border:0;padding-left:0;background:transparent}.chapter-map-status{font-size:11px;color:#bdb692;margin-left:auto;white-space:nowrap}.chapter-map-close{font-size:12px!important}.chapter-map-viewport{position:relative;min-width:0;min-height:0;overflow:hidden;background:#a7ab87;touch-action:none;cursor:grab}.chapter-map-viewport[data-dragging=true]{cursor:grabbing}.chapter-map-viewport:focus-visible{outline:2px solid #e2c58c;outline-offset:-3px}.chapter-map svg{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}.chapter-map .map-chart{transform-box:view-box;transform-origin:0 0}.chapter-map .map-roads{pointer-events:none}.chapter-map .map-road-border{fill:none;stroke:#687553;stroke-width:10;opacity:.62;stroke-linecap:round;stroke-linejoin:round}.chapter-map .map-road{fill:none;stroke:#ddd0a1;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}.chapter-map .map-road[data-active=true]{stroke:#f4e1a2;stroke-width:7}.chapter-map .map-connection{fill:none;stroke:#435d4d;stroke-width:2;stroke-dasharray:4 6;opacity:0;pointer-events:none}.chapter-map .map-connection[data-active=true]{opacity:.9}.chapter-map .map-node{cursor:pointer;outline:none}.chapter-map .map-node .map-marker{fill:#344d38;stroke:#e6dcaf;stroke-width:1.3}.chapter-map .map-node .map-symbol{fill:none;stroke:#ece3ba;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.chapter-map .map-node:hover .map-marker,.chapter-map .map-node:focus-visible .map-marker,.chapter-map .map-node[aria-pressed=true] .map-marker{fill:#526846;stroke:#fff0bc;stroke-width:2.5}.chapter-map .map-node .map-label{font-size:15px;fill:#263d2c;stroke:#c3c4a0;stroke-width:5;paint-order:stroke;stroke-linejoin:round;text-anchor:middle;pointer-events:none}.chapter-map .map-node[data-current=true] .map-label{font-weight:bold}.chapter-map .map-current-ring{fill:none;stroke:#f9e7a9;stroke-width:2}.chapter-map .map-player{fill:#ffe8a2;stroke:#47553b;stroke-width:1.2}.chapter-map .map-current-halo{fill:none;stroke:#5a7351;stroke-width:1;opacity:.55}.chapter-map .map-unknown{stroke-dasharray:2 3}.chapter-map-tools{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:1px;box-shadow:0 2px 10px #1f352433}.chapter-map-tools button{background:#23392de8;min-width:34px;height:32px;font:16px Georgia,serif;border-color:#8a916f}.chapter-map-tools .map-recenter{font-size:11px;padding:3px 10px}.chapter-map-legend{position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;font-size:11px;color:#46583c;pointer-events:none}.chapter-map-legend span:first-child::before{content:'◆';color:#40583a;margin-right:5px}.chapter-map-legend span:last-child::before{content:'➤';color:#746439;margin:0 5px 0 6px}.chapter-map-detail{display:flex;align-items:center;gap:18px;min-height:51px;padding:8px 20px;background:linear-gradient(90deg,#21352a,#18291f);border-top:1px solid #9a895457;min-width:0}.chapter-map-detail h3{font-size:14px;font-weight:500;margin:0;white-space:nowrap;color:#f0dfb0}.chapter-map-detail small{font-size:10px;color:#afa989;font-weight:normal;display:block;line-height:1.4}.chapter-map-detail p{font-size:11px;color:#bdb99b;margin:0;line-height:1.5}.chapter-map-detail .map-route-summary{display:flex;gap:5px 13px;flex-wrap:wrap;align-items:center;font-size:11px;color:#bdb99b}.chapter-map .map-note{font-size:10px;color:#d6c48f;margin-left:auto;max-width:220px}.chapter-map .map-touch-hint{position:absolute;right:17px;top:14px;color:#526244;font-size:10px;pointer-events:none}
 @media(max-width:700px){.chapter-map-heading{padding:8px 12px;gap:10px}.chapter-map h2{font-size:15px}.chapter-map-status{display:none}.chapter-map-close{margin-left:auto}.chapter-map-detail{padding:7px 12px;gap:12px;min-height:45px}.chapter-map-detail h3{font-size:12px}.chapter-map-detail .map-route-summary{font-size:10px;gap:3px 9px}.chapter-map .map-note{font-size:9px;max-width:150px}.chapter-map-legend{left:12px;top:10px;font-size:10px}.chapter-map .map-touch-hint{display:none}.chapter-map-tools{right:10px;bottom:10px}}
 @media(max-height:450px){.chapter-map-heading{padding:5px 12px}.chapter-map-heading button,.chapter-map-heading select{min-height:27px}.chapter-map h2{font-size:14px}.chapter-map-detail{min-height:37px;padding:5px 12px}.chapter-map-detail small{display:none}.chapter-map-legend{top:8px}.chapter-map-tools{bottom:8px}}
+@media(max-width:500px){.chapter-map-detail{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;min-height:40px;padding:5px 12px}.chapter-map-detail h3{font-size:11px}.chapter-map-detail small,.chapter-map .map-note{display:none}.chapter-map-detail .map-route-summary{font-size:10px}}
+.chapter-map[data-chapter=orbit] .chapter-map-viewport{background:#18272e}.chapter-map[data-chapter=orbit] .map-connection{stroke:#c6bb95;stroke-width:1.6;stroke-dasharray:3 8}.chapter-map[data-chapter=orbit] .map-label{fill:#eee1bc;stroke:#233237;stroke-width:5}.chapter-map[data-chapter=orbit] .map-marker{fill:#2a4146;stroke:#b9c3ad}.chapter-map[data-chapter=orbit] .map-current-halo{stroke:#a2b5a4}.chapter-map[data-chapter=orbit] .chapter-map-legend,.chapter-map[data-chapter=orbit] .map-touch-hint{color:#b5bea9}.chapter-map[data-chapter=orbit] .chapter-map-legend span:first-child::before{color:#c9cfb3}.chapter-map[data-chapter=orbit] .chapter-map-legend span:last-child::before{color:#e0c58a}
 `;
 let viewSerial=0;
 
@@ -177,21 +180,34 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     const ratio=next/zoom;pan={x:point.x-540-(point.x-540-pan.x)*ratio,y:point.y-340-(point.y-340-pan.y)*ratio};zoom=next;transform();
   }
   function reset(){overview=true;zoom=1;pan={x:0,y:0};fitFrame();}
-  function locate(){const node=nodes.find(entry=>entry.current)||nodes.find(entry=>entry.id===selected);if(!node)return;overview=false;fitFrame();zoom=Math.max(frameWidth<1080?1:1.5,zoom);pan={x:(540-node.x)*zoom,y:(340-node.y)*zoom};transform();}
+  function locate(){
+    const node=nodes.find(entry=>entry.current)||nodes.find(entry=>entry.id===selected);if(!node)return;
+    overview=false;fitFrame();
+    // The game keeps its landscape frame on a phone. Its short map viewport
+    // therefore needs a readable local view even when its aspect ratio is wide.
+    const readable=viewport.clientWidth<700?Math.min(3,Math.max(1.5,680/(Math.max(1,viewport.clientHeight)*1.5))):frameWidth<1080?1:1.5;
+    zoom=Math.max(readable,zoom);pan={x:(540-node.x)*zoom,y:(340-node.y)*zoom};transform();
+  }
   function select(id,{focus=false}={}){
     const node=nodes.find(entry=>entry.id===id);if(!node)return false;selected=id;
     for(const group of svg.querySelectorAll('[data-room-id]')){const active=group.getAttribute('data-room-id')===id;group.setAttribute('aria-pressed',String(active));if(active&&focus)group.focus();}
     for(const edge of svg.querySelectorAll('[data-from]'))edge.setAttribute('data-active',String(edge.getAttribute('data-from')===id||edge.getAttribute('data-to')===id));
     const name=el('h3',node.cn+(node.current?' · 你在这里':''));if(node.name)name.append(el('small',node.name));detail.replaceChildren(name);
     const summary=el('div');summary.className='map-route-summary';
-    if(node.exits.length){for(const exit of node.exits)summary.append(el('span',`${exit.label} · ${exit.cn}`));}
+    if(node.exits.length){
+      // Keep every legal direction in the read-only model; the orbit's many
+      // aliases share one destination and need not repeat its name 11 times.
+      const groups=model.chapter==='orbit'?Object.values(node.exits.reduce((all,exit)=>{(all[exit.to]??=[]).push(exit);return all;},{})):node.exits.map(exit=>[exit]);
+      for(const group of groups){const item=el('span',`${group.length>=8?'漂行':group.map(exit=>exit.label).join(' / ')} · ${group[0].cn}`);if(group.length>1)item.title=group.map(exit=>exit.label).join(' / ');summary.append(item);}
+    }
     else summary.append(el('span','沿途探索后，路线会逐渐记下。'));
     detail.append(summary);
     const atypical=model.edges.some(edge=>edge.from===id&&chartConnection(edge,nodes,model.chapter,model.edges)?.schematic);
-    if(atypical){const note=el('p','虚线为方位变化或高低连接，请以出口方向为准。');note.className='map-note';detail.append(note);}
+    if(atypical){const note=el('p',model.chapter==='orbit'?'虚线记录漂行关系，不表示距离。':'虚线为方位变化或高低连接，请以出口方向为准。');note.className='map-note';detail.append(note);}
     onSelect({id,chapter:model.chapter});return true;
   }
   function paint(){
+    root.dataset.chapter=model.chapter||'';
     chapterSelect.replaceChildren();for(const chapter of model.chapters){const option=el('option',chapter.label);option.value=chapter.id;chapterSelect.append(option);}
     chapterSelect.value=model.chapter||'';chapterSelect.disabled=!source||model.chapters.length<2;
     status.textContent=`已探索 ${model.nodes.length} 处`;nodes=illustratedMapNodes(model);
@@ -202,7 +218,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
       const {from,to,road}=connection,key=[from.id,to.id].sort(compare).join('|');
       const path=from===to?`M ${from.x+8} ${from.y-8} c 45 -45 -45 -45 -16 0`:chartRoadPath(from,to,model.chapter);
       if(road){if(seen.has(key))continue;seen.add(key);roads.append(svgEl('path',{d:path,class:'map-road-border'}),svgEl('path',{d:path,class:'map-road','data-from':from.id,'data-to':to.id}));}
-      else connections.append(svgEl('path',{d:path,class:'map-connection','data-edge-id':edge.id,'data-from':from.id,'data-to':to.id}));
+      else {if(model.chapter==='orbit'){if(seen.has(key))continue;seen.add(key);}connections.append(svgEl('path',{d:path,class:'map-connection','data-edge-id':edge.id,'data-from':from.id,'data-to':to.id}));}
     }
     chart.append(roads,connections);
     for(const node of nodes){
@@ -219,7 +235,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     if(id)select(id);else detail.replaceChildren(el('p','这里还没有探索记录。'));transform();
   }
   function update(input){model=data(input);paint();return model;}
-  function open(input){previousFocus=root.hidden?doc.activeElement:previousFocus;overview=false;zoom=1;pan={x:0,y:0};selected=null;update(input);root.hidden=false;fitFrame();if(frameWidth<1080)locate();closeButton.focus();return model;}
+  function open(input){previousFocus=root.hidden?doc.activeElement:previousFocus;overview=false;zoom=1;pan={x:0,y:0};selected=null;update(input);root.hidden=false;fitFrame();if(frameWidth<1080||viewport.clientWidth<700)locate();closeButton.focus();return model;}
   function close(reason='close'){if(root.hidden)return false;root.hidden=true;drag=null;viewport.dataset.dragging='false';if(previousFocus?.isConnected)previousFocus.focus?.();onClose({reason});return true;}
   function point(event){const value=svg.createSVGPoint();value.x=event.clientX;value.y=event.clientY;return value.matrixTransform(svg.getScreenCTM().inverse());}
   closeButton.addEventListener('click',()=>close('button'));zoomIn.addEventListener('click',()=>scale(zoom+.25));zoomOut.addEventListener('click',()=>scale(zoom-.25));resetButton.addEventListener('click',reset);locateButton.addEventListener('click',locate);
@@ -233,7 +249,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     if(event.key==='Tab'){const items=[chapterSelect,closeButton,viewport,zoomOut,zoomIn,resetButton,locateButton,...svg.querySelectorAll('[data-room-id]')].filter(item=>!item.disabled);const at=items.indexOf(doc.activeElement),next=(at+(event.shiftKey?-1:1)+items.length)%items.length;event.preventDefault();items[next].focus();}
   });
   chapterSelect.addEventListener('change',()=>{if(source){const next={...source,chapter:chapterSelect.value};model=buildChapterMap(next);source=next;selected=null;reset();paint();}});
-  const Resize=doc.defaultView?.ResizeObserver;const observer=Resize?new Resize(()=>{if(!root.hidden)fitFrame();}):null;observer?.observe(viewport);
+  const Resize=doc.defaultView?.ResizeObserver;const observer=Resize?new Resize(()=>{if(!root.hidden){fitFrame();if(!overview&&viewport.clientWidth<700)locate();}}):null;observer?.observe(viewport);
   return {element:root,open,update,close,select,isOpen:()=>!root.hidden,
     getState:()=>({open:!root.hidden,chapter:model?.chapter||null,selected,nodes:model?.nodes.length||0,zoom:Math.round(zoom*100)/100,pan:{x:Math.round(pan.x),y:Math.round(pan.y)}}),
     destroy(){observer?.disconnect();root.remove();model=null;source=null;}};

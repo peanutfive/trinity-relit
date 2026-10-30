@@ -19,11 +19,11 @@ function defaultHotspots(room) {
   return applyTerrainHotspotAdjustments(room,getHotspots(state));
 }
 
-test('其余十五场景补齐地面；重复调用不改原方向、目标或四个精校场景',()=>{
+test('旧兼容场景补齐地面，新重绘地面不被覆盖；重复调用不改原方向、目标或四个精校场景',()=>{
   const scenes=structuredClone(SCENES),keep={};
   for(const id of ['palace_gate','broad_walk','flower_walk','round_pond'])keep[id]=structuredClone(scenes[id]);
   const truth=Object.fromEntries(Object.entries(scenes).map(([id,scene])=>[id,scene.exits.map(({dir,target})=>({dir,target}))]));
-  const result=applyRemainingTerrain(scenes);assert.equal(result.updated.length,14);
+  const result=applyRemainingTerrain(scenes);assert.equal(result.updated.length,10);
   for(const id of REMAINING_TERRAIN_ROOMS){
     assert.ok(scenes[id].walkablePolygons.length>0,id);
     assert.deepEqual(scenes[id].footprint,{rx:6,ry:3});
@@ -48,9 +48,9 @@ test('长水湖禁止穿越湖面，涉水房只开放下方可见的浅水河�
 
 test('南北沼泽的积水、落木与树林不可穿，蜿蜒泥路保持通行',()=>{
   const scenes=calibratedScenes();
-  for(const point of [[115,135],[395,236],[355,128]])assert.equal(isBlocked(scenes.south_bog,...point),true,`south_bog ${point}`);
+  for(const point of [[115,100],[395,220],[355,128]])assert.equal(isBlocked(scenes.south_bog,...point),true,`south_bog ${point}`);
   assert.equal(isBlocked(scenes.south_bog,249,172),false);
-  for(const point of [[125,200],[370,180]])assert.equal(isBlocked(scenes.north_bog,...point),true,`north_bog ${point}`);
+  for(const point of [[125,180],[370,180]])assert.equal(isBlocked(scenes.north_bog,...point),true,`north_bog ${point}`);
   assert.equal(isBlocked(scenes.north_bog,240,180),false);
 });
 

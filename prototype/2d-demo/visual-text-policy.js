@@ -27,6 +27,8 @@ export const VISUAL_PRESENCE_RULES=Object.freeze([
 // observation. Hide it in the 2D room introduction; keep event/inspect output.
 export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',room:'shelter',sentences:[
   'A girl may take your umbrella or paper here.','一位女孩可能会在这里收下你的雨伞或纸。',
+]},{id:'orbit-clue-guidance',room:'orbit_satellite',sentences:[
+  "You arrived inside the soap bubble; remember the magpie's clue about the crescent moon.",'你是乘肥皂泡来的；记得喜鹊关于新月之光的提示。',
 ]},{id:'ice-unmade-passage',room:'ice_cavern',sentences:[
   'A dark passage leads deeper.','一条黑暗的通道通向更深处。',
 ]}]);

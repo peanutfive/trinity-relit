@@ -1,3 +1,6 @@
+import {ROOMS as ORBIT_ROOMS} from '../js/data/orbit.js';
+import {ARBOR_ROUTE_LAYOUT} from './arbor-route-layout.js';
+import {ORBIT_ROUTE_LAYOUT} from './orbit-route-layout.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
@@ -17,7 +20,7 @@ const extraA = './assets/gardens-extra-a.png';
 const extraB = './assets/gardens-extra-b.png';
 const wabeA = './assets/wabe-a.png';
 const wabeB = './assets/wabe-b.png';
-const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS };
+const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS };
 const sceneSpecs = {
   palace_gate: [base,0,3,236,[238,218]],
   broad_walk: [base,1,3,354,[240,250]],
@@ -186,7 +189,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},

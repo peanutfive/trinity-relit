@@ -149,7 +149,7 @@ export const TERRAIN_HOTSPOT_ADJUSTMENTS = Object.freeze({
     'vertex:fixed-gnomon':{pointerShape:{kind:'polygon',points:[[232,110],[263,141],[232,138]],priority:3}},
   },
 });
-const looseAnchors={the_wabe:[242,208],black_lion_gate:[231,194],inverness_terrace:[205,239],lancaster_gate:[234,221],lancaster_walk:[236,237],long_water:[159,230],wading:[180,238],meadow:[239,222],summit:[249,235],south_bog:[305,251],north_bog:[248,243],bottom_of_stairs:[240,254],vertex:[241,208],forest_clearing:[240,223],trellises:[240,245]};
+const looseAnchors={the_wabe:[242,208],black_lion_gate:[231,194],inverness_terrace:[205,239],lancaster_gate:[234,221],lancaster_walk:[236,237],long_water:[159,230],wading:[180,238],meadow:[239,222],summit:[249,235],south_bog:[240,184],north_bog:[240,180],bottom_of_stairs:[240,254],vertex:[241,208],forest_clearing:[240,156],trellises:[240,245]};
 
 // Use this in the interaction catalog after generating the original affordances.
 // Only visual position/range changes: event IDs, item IDs and commands stay intact.

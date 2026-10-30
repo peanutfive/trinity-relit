@@ -5,6 +5,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(!object)return null;
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
+  if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='water_edge')return find('enter water');
   // Doorways are navigation: carrying a prop must not lock the player inside.
   if(object.kind==='mushroom_gate')return seen
@@ -40,6 +41,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
 }
 export function resolveHeldSelf(id,state) {
   if(!id||!state.has(id))return null;
+  if(id==='axe'&&state.room==='orbit_satellite')return 'break bubble with axe';
   if(id==='lantern'&&['underground_2','underground_3'].includes(state.room)&&!state.hasFlag('lantern_on'))return 'turn lantern';
   if(id==='paper_bird'&&state.room==='round_pond')return state.hasFlag('bird_unfolded')?'read paper bird':'open paper bird';
   if(id==='paper_bird'&&state.room==='playground')return 'ride bird';

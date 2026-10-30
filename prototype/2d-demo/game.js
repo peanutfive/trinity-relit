@@ -1,3 +1,4 @@
+import {renderArborOrbitSprite,renderOrbitPlayer,arborOrbitArtStatus} from './arbor-orbit-art.js';
 import {filterVisualPresence} from './visual-text-policy.js';
 import {renderNotice,noticeArtStatus} from './notice-art.js';
 import { nearbyTarget, pointerTarget, withinReach } from './interaction-targets.js';
@@ -21,7 +22,7 @@ import { isBlocked, findPath, nearestWalkable, approachingExit,leavingBoundaryEx
 import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
-import { drawScene, drawActor, drawOcclusion, artStatus } from './art.js';
+import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt } from './art.js';
 import { ITEMS } from '../js/data/items.js';
 
 const $ = selector => document.querySelector(selector);
@@ -30,7 +31,7 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -53,6 +54,7 @@ let walkPath = [];
 let walkTarget = null;
 let walkExit = null;
 let previousScene = null;
+let enteringArtRoom=null;
 let lastArrival = null;
 let busy = false;
 let lastCommand = null;
@@ -268,6 +270,9 @@ async function command(input, actions = [], observedId = null) {
     if(heldItem&&!engine.state.has(heldItem))heldItem=null;
     if (before.room !== engine.state.room) {
       previousScene=before;
+      enteringArtRoom=before.room;
+      await ensureSceneArt(engine.state.room);
+      enteringArtRoom=null;
       const scene = scenes[engine.state.room];
       if (scene) [player.x, player.y] = scene.spawn;
       const arrivalDirection=before.chapter==='japan'&&engine.state.room==='moor'?'out':input;
@@ -285,7 +290,11 @@ async function command(input, actions = [], observedId = null) {
     if (engine.state.chapter === 'wabe') $('#objective').textContent = '沿林间小路前行，留意石头、植物与光影中的细节。';
     if (engine.state.chapter === 'japan') $('#objective').textContent = '留意沙堆、避难所与身旁的人。';
     persistProgress({force:true});
+  } catch(error){
+    if(error.name!=='SceneArtError')throw error;
+    show(error.message||'画面未能载入，请刷新后继续。');
   } finally {
+    enteringArtRoom=null;
     busy = false;
     updateHud();
     render();
@@ -327,10 +336,12 @@ async function restoreProgress(input) {
   if (busy) return;
   busy = true;
   try {
+    const previous=gameSnapshot();previousScene=previous;enteringArtRoom=previous.room;
     const restored = await saveStore.restore(engine, input);
     if (!restored.ok) throw restored.error;
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
+    await ensureSceneArt(engine.state.room);enteringArtRoom=null;
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
     previousScene=null;
     lastArrival=null;
@@ -348,7 +359,7 @@ async function restoreProgress(input) {
   } catch (error) {
     const message='无法读取这份存档：'+error.message;
     $('#save-message').textContent=message; $('#title-save-message').textContent=message;
-  } finally { busy=false; paintSaveState(); updateHud(); render(); }
+  } finally { enteringArtRoom=null; busy=false; paintSaveState(); updateHud(); render(); }
 }
 
 function loadSavedProgress() {
@@ -360,7 +371,7 @@ function objects() {
   const listed=discovery.mapHotspots(engine.state,getHotspots(engine.state));
   const ids=new Set(listed.map(object=>object.id));
   const persistent=director.getState(engine.state).persistentActors.filter(object=>object.room===engine.state.room&&!ids.has(object.id));
-  return [...listed,...persistent].map(object=>object.id==='palace_gate:self'?{...object,visual:false}:object);
+  return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:object);
 }
 function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
 
@@ -374,6 +385,7 @@ function interact() {
   if (director.getState().busy) return;
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
+  if(heldItem==='axe'&&engine.state.room==='orbit_satellite'&&object?.kind!=='passage'){useHeldItem();return;}
   if(heldItem==='lantern'&&['underground_2','underground_3'].includes(engine.state.room)&&!engine.state.hasFlag('lantern_on')&&!['passage','mushroom_gate'].includes(object?.kind)){useHeldItem();return;}
   if (!object) return;
   interactWith(object);
@@ -416,7 +428,7 @@ function inventory() {
     button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
     $('#choices').append(button);
   }
-  if(heldItem&&engine.state.has(heldItem)&&!ITEMS[heldItem]?.fixed){
+  if(heldItem&&engine.state.has(heldItem)&&!ITEMS[heldItem]?.fixed&&!(heldItem==='soap_bubble'&&engine.state.chapter==='orbit')){
     const drop=document.createElement('button');drop.textContent='放下手中物品';drop.id='inventory-drop';
     drop.onclick=()=>{const id=heldItem;closeDialog();command(`drop ${ITEMS[id].aliases?.[0]||id}`);};
     $('#choices').append(drop);
@@ -511,6 +523,7 @@ function update(dt) {
 }
 
 function animationState() {
+  if(engine.state.chapter==='orbit')return {moving:motion.moving,blend:0,time:preferences.video.effects?clock:0,action:motion.moving?'float':'idle',actionProgress:0,airborne:true};
   return {
     moving: motion.moving, blend: motion.blend, time: preferences.video.effects ? clock : 0,
     action: motion.action !== 'idle' ? motion.action : motion.moving ? 'walk' : 'idle',
@@ -546,17 +559,17 @@ function render() {
   const scale = preferences.video.resolution;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   const story = director.getState(engine.state);
-  const renderRoom = story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room;
+  const renderRoom = enteringArtRoom || (story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room);
   updateLabels(renderRoom);
   const crossing=renderRoom!==engine.state.room;
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
-  drawScene(ctx, renderRoom, clock, preferences.video.effects);
+  drawScene(ctx, renderRoom, clock, preferences.video.effects,renderState);
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
   for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
-  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => {drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState());if(renderRoom.startsWith('underground_')&&engine.state.has('lantern'))renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);} });
+  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => {if(renderState.chapter==='orbit')renderOrbitPlayer(ctx,player,preferences.video.effects?clock:0);else drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState());if(renderRoom.startsWith('underground_')&&engine.state.has('lantern'))renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);} });
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
   director.draw(ctx, renderRoom, engine.state, clock);
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
@@ -842,13 +855,13 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), backgrounds:requestedSceneArt(), arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, dead:engine.state.dead,processing:busy,
   storyClock:prologueClock(engine.state),
-  inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol,
+  inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol, flipped:engine.state.flipped,
   controls: { ...preferences.bindings, pause: 'Escape' },
   settings: { video: { ...preferences.video }, audio: sound.getState(), captureBinding },
   hint: !$('#quest').hidden ? $('#objective').textContent : null,

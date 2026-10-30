@@ -73,7 +73,7 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
       for (const action of object.actions) {
         const parsed = parser.parse(action.command);
         assert.ok(parsed, action.command);
-        if(parsed.dir==='in')assert.ok(['moor','under_cliff','barrow','ossuary'].includes(room));
+        if(parsed.dir==='in')assert.ok(['moor','under_cliff','barrow','ossuary','waterfall'].includes(room));
         const event = ROOMS[room].events.find(event => event.match?.verb.includes(parsed.verb) && event.match.noun?.includes(parsed.noun));
         if (event) covered.add(event.id);
       }
@@ -122,6 +122,7 @@ test('真实序章后走完十房、转环七次、拾取放下木片并读档�
   for(const c of ['nw','in','out','e','d','u','nw','e','s','n','in','out','s','s','w','se','s'])await command(g,c);
   assert.equal(state.room,'moor');
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
+  for(const c of ['u','take axe','n','s','s','n','d','se','w','w','ne','nw','w','ne','sw','e','se'])await command(g,c);
   await command(g, 'w'); assert.equal(state.room, 'forest_clearing');
   assert.ok(WABE_SLICE_ROOMS.every(room => state.visited.has(room)));
   assert.equal(state.score, 15);

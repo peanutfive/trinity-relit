@@ -25,7 +25,7 @@ export function withinReach(player, object, inset = 0) {
 
 export function nearbyTarget(objects, player) {
   const [fx, fy] = directions[player.face] || directions.down;
-  return objects.filter(object => withinReach(player, object)).map(object => {
+  return objects.filter(object => !object.pointerOnly && withinReach(player, object)).map(object => {
     const dx = object.x - player.x, dy = object.y - player.y, distance = Math.hypot(dx, dy);
     const alignment = distance > .001 ? (dx * fx + dy * fy) / distance : 1;
     return { object, distance, alignment, score: distance + (1 - alignment) * 12 };

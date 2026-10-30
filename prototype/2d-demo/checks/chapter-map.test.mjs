@@ -121,13 +121,13 @@ test('真实序章状态与序列化副本构建同一图，打开地图不推�
 
 test('默认章节归属覆盖已访问但未绘制的Wabe房间，不把原序章房间混入异境图',async()=>{
   const engine=createPrologueSession();await engine.activateChapter('wabe');
-  engine.state.chapter='wabe';engine.state.room='top_of_arbor';
-  engine.state.visited=new Set(['palace_gate','trellises','top_of_arbor']);
+  engine.state.chapter='wabe';engine.state.room='promontory';
+  engine.state.visited=new Set(['palace_gate','north_bog','promontory']);
   const before=engine.state.serialize(),map=buildChapterMap({state:engine.state,rooms:engine.rooms,scenes:SCENES});
   assert.equal(map.chapter,'wabe');
-  assert.deepEqual(map.nodes.map(node=>node.id),['top_of_arbor','trellises']);
-  assert.equal(map.nodes.find(node=>node.id==='top_of_arbor').cn,'未知地点');
-  assert.equal(map.edges.some(edge=>edge.from==='top_of_arbor'&&edge.direction==='d'&&edge.to==='trellises'),true);
+  assert.deepEqual(map.nodes.map(node=>node.id),['north_bog','promontory']);
+  assert.equal(map.nodes.find(node=>node.id==='promontory').cn,'未知地点');
+  assert.equal(map.edges.some(edge=>edge.from==='promontory'&&edge.direction==='s'&&edge.to==='north_bog'),true);
   assert.deepEqual(engine.state.serialize(),before);
 });
 

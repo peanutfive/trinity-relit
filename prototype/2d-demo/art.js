@@ -1,23 +1,31 @@
 import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
 // The atlas has three independent landscape paintings, stacked vertically.
-const backgrounds = new Map();
-for(const scene of Object.values(SCENES)){
-  if(!backgrounds.has(scene.background.image)){
-    const image=new Image();image.src=new URL(scene.background.image,import.meta.url).href;
-    backgrounds.set(scene.background.image,image);
-  }
+const backgrounds = new Map(), pending = new Map();
+// Background plates are large. Load the current room only; retain its source
+// scene during a crossing until the destination painting is decoded.
+export function ensureSceneArt(room){
+  const src=SCENES[room]?.background?.image;if(!src)return Promise.reject(new Error('场景画面尚未制作。'));
+  if(pending.has(src))return pending.get(src);
+  const image=new Image();backgrounds.set(src,image);
+  const promise=new Promise((resolve,reject)=>{
+    image.onload=()=>resolve(image);
+    image.onerror=()=>{pending.delete(src);backgrounds.delete(src);reject(Object.assign(new Error('场景画面加载失败，请刷新后重试。'),{name:'SceneArtError'}));};
+    image.src=new URL(src,import.meta.url).href;
+  });pending.set(src,promise);return promise;
 }
+export function requestedSceneArt(){return [...backgrounds.keys()];}
 const dust = Array.from({length:22},(_,i)=>({x:(i*79+31)%480,y:(i*47+19)%288,phase:i*2.1}));
 function box(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);}
-export function drawScene(c,room,time,effects=true){
+export function drawScene(c,room,time,effects=true,state={}){
   c.imageSmoothingEnabled=true;
   const background=SCENES[room]?.background;const atlas=backgrounds.get(background?.image);
-  if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);}
+  if(!atlas)ensureSceneArt(room).catch(()=>{});
+  if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();if(room==='arboretum'&&state.flipped){c.translate(480,0);c.scale(-1,1);}c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   // Very restrained atmospheric movement; keep the interactive ground crisp.
   c.save();c.globalCompositeOperation='screen';
-  for(const p of effects ? dust : []){const x=p.x+Math.sin(time*.17+p.phase)*4,y=(p.y-time*1.7+2880)%288;c.fillStyle=`rgba(255,225,159,${.14+.15*(1+Math.sin(time+p.phase))/2})`;c.beginPath();c.arc(x,y,.4+.25*Math.sin(p.phase),0,Math.PI*2);c.fill();}
+  for(const p of effects && SCENES[room]?.chapter!=='orbit' ? dust : []){const x=p.x+Math.sin(time*.17+p.phase)*4,y=(p.y-time*1.7+2880)%288;c.fillStyle=`rgba(255,225,159,${.14+.15*(1+Math.sin(time+p.phase))/2})`;c.beginPath();c.arc(x,y,.4+.25*Math.sin(p.phase),0,Math.PI*2);c.fill();}
   c.restore();
   const shade=c.createRadialGradient(242,130,85,240,140,285);shade.addColorStop(0,'#14252100');shade.addColorStop(.7,'#14252108');shade.addColorStop(1,'#07191563');c.fillStyle=shade;c.fillRect(0,0,480,288);
 }

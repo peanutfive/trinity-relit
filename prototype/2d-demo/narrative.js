@@ -1,3 +1,4 @@
+import {createOrbitPassage,sampleOrbitPassage} from './orbit-motion.js';
 import {PIGEON_FLOCK} from './pigeon-motion.js';
 import {INVERNESS_ACTORS} from './inverness-layout.js';
 import {createPramPushMotion,samplePramPushMotion} from './pram-motion.js';
@@ -98,6 +99,7 @@ export function createNarrativeDirector() {
     if(!latest)windChanged=has(before,'wind_changed');
     latest=after;lastRoom=after.room;if(before.room!==after.room)idleSeconds=0;
     const cliffMotion=createCliffPassage(before,after);
+    const orbitMotion=createOrbitPassage(before,after,command);
     const cycleChanged=count(after,'boy_cycle')!==count(before,'boy_cycle');
     const cycleId=`bubble_cycle:${count(after,'boy_cycle')}`;
     // A newer turn supersedes a short ambient gesture. It must not leave the
@@ -112,6 +114,7 @@ export function createNarrativeDirector() {
     }
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
+    if(orbitMotion)push(orbitMotion.type,{id:`${orbitMotion.type}:${after.turns}`,room:before.room,motion:orbitMotion,duration:orbitMotion.duration});
     if(cliffMotion)push('cliff_passage',{id:`cliff_passage:${after.turns}`,room:before.room,motion:cliffMotion,duration:cliffMotion.duration});
     const gained=flag=>!has(before,flag)&&has(after,flag);
     const japan=(type,room=after.room)=>{
@@ -231,17 +234,18 @@ export function createNarrativeDirector() {
     const pushEvent=[active,...queue].find(event=>event?.type==='pram_push'&&event.room===state.room);
     const pair=type==='pram_push'?samplePramPushMotion(active.motion,active.elapsed):null;
     const cliffFrame=type==='cliff_passage'?sampleCliffPassage(active.motion,active.elapsed):null;
-    const groundActors=[...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors,...(cliffFrame?[cliffFrame.actor]:[])];
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
+    const orbitFrame=['orbit_drift','orbit_return'].includes(type)?sampleOrbitPassage(active.motion,active.elapsed):null;
+    const groundActors=[...(orbitFrame?[orbitFrame.actor]:[]),...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors,...(cliffFrame?[cliffFrame.actor]:[])];
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
-    drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
+    if(!room.startsWith('orbit_'))drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
     const japanFrame=sampleJapanMotion(active);
     if(japanFrame.fade){c.save();c.fillStyle=`rgba(15,22,23,${japanFrame.fade})`;c.fillRect(0,0,480,288);c.restore();}
-    if(active.type==='cliff_passage'){
-      const frame=sampleCliffPassage(active.motion,active.elapsed);
+    if(['cliff_passage','orbit_drift','orbit_return'].includes(active.type)){
+      const frame=active.type==='cliff_passage'?sampleCliffPassage(active.motion,active.elapsed):sampleOrbitPassage(active.motion,active.elapsed);
       c.save();c.fillStyle=`rgba(18,27,25,${frame.fade})`;c.fillRect(0,0,480,288);c.restore();
     }
   }

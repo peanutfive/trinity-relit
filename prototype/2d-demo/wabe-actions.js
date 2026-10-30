@@ -1,3 +1,4 @@
+import {ARBOR_WABE_ROOMS,getArborHotspots,getArborInventoryActions} from './arbor-actions.js';
 import {UG_WABE_ROOMS,getUndergroundHotspots,getUndergroundInventoryActions} from './underground-actions.js';
 import { ITEMS } from '../js/data/items.js';
 import {JAPAN_POINTS as P} from './japan-route-layout.js';
@@ -9,7 +10,7 @@ export const WABE_SLICE_ROOMS = Object.freeze([
   'meadow', 'summit', 'south_bog', 'north_bog',
   'bottom_of_stairs', 'vertex', 'forest_clearing', 'trellises',
   'the_bend', 'moor',
-  ...CLIFF_ROOMS,...UG_WABE_ROOMS,
+  ...CLIFF_ROOMS,...UG_WABE_ROOMS,...ARBOR_WABE_ROOMS.filter(id=>id!=='trellises'),
 ]);
 const supported = new Set(WABE_SLICE_ROOMS);
 const action = (label, command) => ({ label, command });
@@ -18,7 +19,7 @@ function object(id, x, y, label, kind, eventId, actions, itemId) {
 }
 
 function looseItemPosition(id, room, index) {
-  if (id === 'splinter' && room === 'south_bog') return [294, 180];
+  if (id === 'splinter' && room === 'south_bog') return [294, 165];
   const cliffAnchors={under_cliff:[241,192],ice_cavern:[235,205],craters_edge:[225,223],crater:[220,220]};
   if(cliffAnchors[room]){const [x,y]=cliffAnchors[room];return [x+(index%3-1)*11,y+Math.floor(index/3)*8];}
   return [165 + (index % 5) * 37, 216 + Math.floor(index / 5) * 14];
@@ -26,6 +27,7 @@ function looseItemPosition(id, room, index) {
 
 export function getWabeHotspots(state) {
   const room = state.room;
+  if(ARBOR_WABE_ROOMS.includes(room))return getArborHotspots(state);
   if(UG_WABE_ROOMS.includes(room))return getUndergroundHotspots(state);
   if (!supported.has(room)) return [];
   const objects = [];
@@ -35,7 +37,7 @@ export function getWabeHotspots(state) {
     [action('查看日晷', 'examine sundial')],
   ));
   if (room === 'south_bog') objects.push(object(
-    'south_bog:log', 312, 177, '腐烂的圆木', 'log', 'examine_log',
+    'south_bog:log', 315, 151, '腐烂的圆木', 'log', 'examine_log',
     [action('查看圆木', 'examine log')],
   ));
   if (room === 'bottom_of_stairs') objects.push(object(
@@ -80,6 +82,7 @@ export function getWabeHotspots(state) {
 }
 
 export function getWabeInventoryActions(id, state) {
+  if(ARBOR_WABE_ROOMS.includes(state.room))return getArborInventoryActions(id,state);
   if(UG_WABE_ROOMS.includes(state.room))return getUndergroundInventoryActions(id,state);
   if (!supported.has(state.room) || !ITEMS[id] || !state.has(id)) return [];
   const item = ITEMS[id];
