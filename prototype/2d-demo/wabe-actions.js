@@ -1,4 +1,5 @@
 import {ARBOR_WABE_ROOMS,getArborHotspots,getArborInventoryActions} from './arbor-actions.js';
+import {COMPLETION_WABE_ROOMS,getCompletionHotspots,getCompletionInventoryActions} from './wabe-completion-actions.js';
 import {UG_WABE_ROOMS,getUndergroundHotspots,getUndergroundInventoryActions} from './underground-actions.js';
 import { ITEMS } from '../js/data/items.js';
 import {JAPAN_POINTS as P} from './japan-route-layout.js';
@@ -10,7 +11,7 @@ export const WABE_SLICE_ROOMS = Object.freeze([
   'meadow', 'summit', 'south_bog', 'north_bog',
   'bottom_of_stairs', 'vertex', 'forest_clearing', 'trellises',
   'the_bend', 'moor',
-  ...CLIFF_ROOMS,...UG_WABE_ROOMS,...ARBOR_WABE_ROOMS.filter(id=>id!=='trellises'),
+  ...CLIFF_ROOMS,...UG_WABE_ROOMS,...ARBOR_WABE_ROOMS.filter(id=>id!=='trellises'),...COMPLETION_WABE_ROOMS,
 ]);
 const supported = new Set(WABE_SLICE_ROOMS);
 const action = (label, command) => ({ label, command });
@@ -27,6 +28,7 @@ function looseItemPosition(id, room, index) {
 
 export function getWabeHotspots(state) {
   const room = state.room;
+  if(COMPLETION_WABE_ROOMS.includes(room))return getCompletionHotspots(state);
   if(ARBOR_WABE_ROOMS.includes(room))return getArborHotspots(state);
   if(UG_WABE_ROOMS.includes(room))return getUndergroundHotspots(state);
   if (!supported.has(room)) return [];
@@ -82,6 +84,7 @@ export function getWabeHotspots(state) {
 }
 
 export function getWabeInventoryActions(id, state) {
+  if(COMPLETION_WABE_ROOMS.includes(state.room))return getCompletionInventoryActions(id,state);
   if(ARBOR_WABE_ROOMS.includes(state.room))return getArborInventoryActions(id,state);
   if(UG_WABE_ROOMS.includes(state.room))return getUndergroundInventoryActions(id,state);
   if (!supported.has(state.room) || !ITEMS[id] || !state.has(id)) return [];

@@ -1,0 +1,11 @@
+Generation tool: built-in image_gen; transparent_background=true. Raw RGBA output preserved; measured individual regions are sampled in renderer.
+
+Use case: stylized-concept
+Asset type: 3 separate raw RGBA props in one atlas for a painterly miniature HD-2D adventure, matching reference images.
+Input images: hero-sprites.png gives natural painterly form and upper-left warm golden light/cool green shade; arbor-north-v1.png gives moss and ochre forest palette. References are style only.
+Primary request: Exactly THREE separate objects in a horizontal row on a wide transparent canvas, each entirely inside one equal-width cell with clear empty gutters. No overlap.
+Left cell: a broad shallow ivory-grey earthenware dish filled to the brim with soapy water. Slightly elevated three-quarter top-down game view, a low ellipse with dull blue-green water and a few small pearly foam edges. A giant child's dish, to appear the size of a small paddling pool beside a normal human. Entire oval and rim visible, no handles, no pedestal, no spoon, no bubble wand, no people. Low side wall, width about three times height in screen view.
+Middle cell: a small realistic cluster of ivory garlic bulbs with dry beige roots and short papery stems, individually readable at tiny RPG ground-item scale. No basket, no grass patch, no vegetable foliage.
+Right cell: a single tall giant forest toadstool as a dimensional cutout, broad ochre-brown flattened cap, pale wrinkled stalk, moss at foot, the cap has subtle irregular pale flecks. Near its base a naturally outlined narrow door-shaped slit in the stalk, CLOSED and dark, no bright glow or symbols. Entire cap and foot visible, slightly elevated three-quarter camera, matching painted forest. Not a cartoon red-spotted mushroom; no cute face.
+Style: fine painterly oil miniature with crisp clustered pixel-like detail, tactile ceramics/skin/mushroom texture, natural dimensional form, warm upper-left sunlight and restrained cool olive shadows, muted cream/ochre/moss/slate palette. No black outlines, no anime, no vector icons, no glossy plastic.
+Background genuinely transparent alpha. No ground plane, no backdrop gradient, no smoke halos, no oversized shadow blobs, no checkerboard baked into art. No text, labels, frames, watermark or other objects.

@@ -57,7 +57,8 @@ test('出入口方向与原章一致，来源入口内侧出现且向内走不�
   const o=getHotspots({...e.state,room:id,inRoom:e.state.inRoom.bind(e.state),roomItems:()=>[]}).find(o=>o.kind==='passage');
   assert.equal(resolveInteraction(e.state,o,{heldItem:'umbrella'}),dir,'手持物品不锁住出口');
  }
- assert.ok(sceneBoundaries('under_cliff',e.state,e.rooms).some(x=>x.dir==='w'));
+ assert.equal(sceneBoundaries('under_cliff',e.state,e.rooms).some(x=>x.dir==='w'),false);
+ assert.equal(sceneExits('under_cliff',e.state,e.rooms).find(x=>x.dir==='w').target,'chasms_brink');
  assert.equal(sceneBoundaries('craters_edge',e.state,e.rooms).some(x=>x.dir==='nw'),false);
  assert.equal(sceneExits('craters_edge',e.state,e.rooms).find(x=>x.dir==='nw').target,'bluff');
 });

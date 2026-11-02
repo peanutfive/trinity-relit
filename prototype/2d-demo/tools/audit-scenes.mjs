@@ -12,15 +12,19 @@ const modules = await Promise.all(chapters.map(id => import(`../../js/data/${id}
 const rooms = Object.assign({}, ...modules.map(module => module.ROOMS));
 const ids = modules.flatMap(module => Object.keys(module.ROOMS));
 assert.equal(new Set(ids).size, ids.length, '运行时房间 ID 重复');
+const reachability=new WeakMap();
 function reachable(scene) {
+  if(reachability.has(scene))return reachability.get(scene);
   const seen = new Set(), queue = [scene.spawn];
   const key = (x,y) => `${Math.round(x)},${Math.round(y)}`;
   seen.add(key(...scene.spawn));
-  for (let i=0;i<queue.length;i++) for (const [dx,dy] of [[6,0],[-6,0],[0,6],[0,-6]]) {
+  // Six-pixel offsets skip the real narrow aisles between the herb beds. Use
+  // the controller's four-pixel density without changing foot/segment checks.
+  for (let i=0;i<queue.length;i++) for (const [dx,dy] of [[4,0],[-4,0],[0,4],[0,-4]]) {
     const [x,y]=queue[i], nx=x+dx,ny=y+dy,id=key(nx,ny);
     if (!seen.has(id) && !blocked(scene,nx,ny) && isSegmentWalkable(scene,[x,y],[nx,ny])) { seen.add(id);queue.push([nx,ny]); }
   }
-  return queue;
+  reachability.set(scene,queue);return queue;
 }
 const objectIds = new Set();
 for (const [id,scene] of Object.entries(SCENES)) {

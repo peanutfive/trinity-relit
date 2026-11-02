@@ -48,6 +48,9 @@ test('统一目录保留序章，未制作章节与房间不暴露可执行传�
   engine.state.chapter = 'wabe';
   engine.state.room = 'chasms_brink';
   engine.state.sundialSymbol = 4;
+  assert.ok(getHotspots(engine.state).some(object=>object.eventId==='examine_oak'));
+  assert.ok(getHotspots(engine.state).every(object=>object.actions.every(action=>action.command!=='in')));
+  engine.state.room = 'mesa';
   assert.deepEqual(getHotspots(engine.state), []);
   assert.deepEqual(getInventoryActions('umbrella', engine.state), []);
   engine.state.chapter = 'pacific';
@@ -87,7 +90,7 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
   assert.deepEqual([...covered].sort(), WABE_SLICE_ROOMS.flatMap(room => ROOMS[room].events.map(event => event.id)).sort());
 });
 
-test('真实序章后走完十房、转环七次、拾取放下木片并读档继续', async () => {
+test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放下木片并读档继续', async () => {
   const g = createGame();
   await finishPrologue(g);
   const state = g.engine.state;
@@ -124,6 +127,8 @@ test('真实序章后走完十房、转环七次、拾取放下木片并读档�
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
   for(const c of ['u','take axe','n','s','s','n','d','se','w','w','ne','nw','w','ne','sw','e','se'])await command(g,c);
   await command(g, 'w'); assert.equal(state.room, 'forest_clearing');
+  for(const c of ['n','n','n','se','ne','e','e','w','w','sw','se','s','w','w'])await command(g,c);
+  assert.equal(state.room,'forest_clearing');
   assert.ok(WABE_SLICE_ROOMS.every(room => state.visited.has(room)));
   assert.equal(state.score, 15);
   await choose(g, 'drop splinter');

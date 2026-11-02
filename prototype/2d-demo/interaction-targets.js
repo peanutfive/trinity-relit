@@ -45,9 +45,10 @@ export function pointerTarget(objects, point, { padding = 0 } = {}) {
       // A dish/headphone/loose prop may overlap its owner or a larger landmark.
       priority = object.itemId || ['headphones', 'dish'].includes(object.kind) ? 2 : 0;
     }
-    const distance = shape.kind === 'polygon' ? (pointInPolygon(point.x, point.y, shape.points) ? 0 : Infinity)
+    const polygons=shape.kind==='polygons'?shape.polygons:shape.kind==='polygon'?[shape.points]:null;
+    const distance = polygons ? (polygons.some(polygon=>pointInPolygon(point.x,point.y,polygon))?0:Infinity)
       : ((point.x - shape.x) / (shape.rx + padding)) ** 2 + ((point.y - shape.y) / (shape.ry + padding)) ** 2;
-    if (distance > 1) continue;
+    if (!Number.isFinite(distance) || distance > 1) continue;
     if (shape.kind === 'annulus' && ((point.x - shape.x) / Math.max(.01, shape.innerRx - padding)) ** 2
       + ((point.y - shape.y) / Math.max(.01, shape.innerRy - padding)) ** 2 < 1) continue;
     hits.push({ object, priority, distance });

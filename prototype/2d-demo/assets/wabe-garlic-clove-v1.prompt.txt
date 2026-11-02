@@ -1,0 +1,15 @@
+Generation tool: built-in image_gen; transparent_background=true. Raw RGBA output is preserved; transparent RGB halo is not flattened into the alpha channel.
+
+INITIAL SINGLE-CLOVE GENERATION
+Use case: stylized-concept
+Asset type: a single collectible object cutout for an HD-2D adventure inventory and ground sprite.
+Input image: wabe-completion-props-v1.png is only a painterly texture and lighting reference.
+Primary request: exactly ONE single CLOVE of fresh garlic, not a whole garlic head and not several bulbs. An individual slightly curved ivory teardrop clove with a tiny dry tan root end and a little translucent papery skin peeling along one edge, subtle warm-cream ridges and cool grey-green shadow. It lies on its side in a slightly elevated three-quarter game view, complete tip and base visible. It should look naturally small and fresh.
+Style: delicately textured painterly miniature with crisp clustered pixel-like details, dimensional natural form, warm golden upper-left sunlight and muted cool olive shade. Match the tactile still-life style of the reference, no cartoon, no hard outline, no glossy plastic.
+Composition: one clove centered with generous clear transparent space around all sides, no other objects.
+Background genuinely transparent alpha, no dish, no mushroom, no garlic bulbs, no garlic bunch, no herb leaves, no ground patch, no shadow halo, no text, no border, no labels or watermark.
+
+TARGETED TRANSPARENCY REVISION (final image)
+Use case: background-extraction
+Edit target: attached single garlic clove.
+Remove ONLY the surrounding golden smoky halo/glow and all background shadow. Preserve the garlic clove itself exactly, its shape, papery edges, color, lighting, and position. Background must be fully transparent right up to the clove silhouette with only natural antialiased edge pixels. No glow, no mist, no cast shadow, no gradient, no backdrop. One fresh garlic clove on transparent alpha only.

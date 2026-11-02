@@ -1,0 +1,14 @@
+Generation tool: built-in image_gen; transparent_background=true. Raw RGBA output is preserved.
+
+Use case: stylized-concept
+Asset type: production RGBA animation atlas for an HD-2D narrative adventure.
+Input images: reference 1 boy-poses-v2.png gives ONLY costume identity (muted slate blue jacket, cream shirt, brown trousers, worn dark shoes, wired charcoal headphones, brown hair); reference 2 arbor-north-v1.png gives warm golden forest sunlight and cool moss-green painterly shading; reference 3 hero-sprites.png gives natural miniature human anatomy. These are style references, not edit targets.
+Primary request: a NEW same-identity giant seated boy in exactly FOUR isolated action poses, each full body. He is the forty-foot giant from the story but has normal realistic adolescent anatomy and a modest-size natural face, not a large-headed cartoon. Slightly elevated three-quarter game camera, facing toward screen right. Seated directly on the ground with knees bent and feet extended to the right. His feet, hips, torso, clothing silhouette and headphones occupy EXACTLY the same position and scale in every frame. Only the right forearm, hand, wand and subtle head/cheeks change. Right side of his body must remain open so a separately drawn soap dish can sit beside the lowered wand.
+Composition: exactly a 2-by-2 grid of equal 1024x768 cells on a 2048x1536 canvas, with generous transparent gutters. Each boy roughly from local x=140 to x=850, head y=95, feet ground baseline y=680. Every cell contains one entire boy, same baseline and camera, no cropping.
+Top left: REST, seated listening through headphones; bubble wand held loosely near knee.
+Top right: DIP, same seated body; right hand lowered to screen-right ground beside him, bubble wand ring pointed downward to dip into a separate dish which is NOT drawn.
+Bottom left: LIFT, same seated body; right hand brings bubble wand halfway up toward his mouth.
+Bottom right: BLOW, same seated body; wand ring at lips, cheeks gently puffed, blowing gently toward screen right.
+Do not draw the dish in any cell. Do not draw floating bubbles; the game animates those separately. Wand is dull warm wood with a small circular ring, no bright red plastic.
+Style: delicately textured painterly miniature with crisp clustered pixel-like details, dimensional naturalistic cloth and hands, small restrained eyes, gentle soft edges, no black outline. Muted ochre/slate/cream/olive palette. Warm upper-left light, cool green shadows. No anime, no chibi, no glossy plastic, no huge eyes or tiny limbs.
+Background: genuinely transparent alpha, no ground patch, no gradient, no smoky halo, no shadow baked behind the sprite. No text, symbols, labels, grid lines, border, watermark, additional people or objects.

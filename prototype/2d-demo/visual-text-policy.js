@@ -3,6 +3,14 @@
 // when their corresponding object is genuinely rendered in this scene.
 const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split('|'),paragraphs:[en,cn]});
 export const VISUAL_PRESENCE_RULES=Object.freeze([
+  rule('chasm-legacy-presence','chasms_brink','completion_oak|completion_toadstool',
+    "An oak tree stands at the chasm's brink. A giant toadstool towers like a golf tee from the depths of the chasm. Only thirty feet separate you from its flattened summit.",
+    '一棵橡树矗立在深渊边缘。一株巨大的毒菌如同高尔夫球座般从深渊深处耸起。你与它平坦的顶部之间只隔着三十英尺。'),
+  {...rule('giant-boy-presence','promontory','completion_boy',
+    "A boy sits nearby, listening to a pair of headphones and idly blowing soap bubbles. There's a dish full of soapy water by his side.",
+    '一个男孩坐在附近，戴着耳机听音乐，百无聊赖地吹着肥皂泡。他身旁放着一碟肥皂水。'),sentence:true},
+  rule('herb-mushroom-presence','herb_garden','completion_mushroom',
+    'Another giant toadstool grows here.','这里还生长着另一株巨大的毒菌。'),
   rule('underground-radio-presence','underground_2','walkie_talkie','A walkie-talkie is here.','这里有一部对讲机。'),
   rule('underground-lantern-presence','underground_3','lantern','The lantern is here.','灯笼在这里。'),
   {...rule('underground-cylinder-guidance','underground_3','ug_cylinder','A metal cylinder is here; the lantern can be taken from it.','这里有一个金属圆筒；可以从里面取出灯笼。'),sentence:true},

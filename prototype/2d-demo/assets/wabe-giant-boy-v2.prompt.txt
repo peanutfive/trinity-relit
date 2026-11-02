@@ -1,0 +1,16 @@
+Generation tool: built-in image_gen; transparent_background=true. Raw RGBA output preserved, source rectangles measured individually rather than assuming tool followed equal cell sizes.
+Source identity/style: wabe-giant-boy-v1.png and its saved prompt.
+
+ROW LAYOUT REVISION
+Use case: precise-object-edit
+Edit target: the attached transparent four-pose giant boy atlas. Keep exactly the same character identity, realistic painterly style, costume, natural anatomy, upper-left warm light, four actions and alpha transparency.
+Change ONLY the sheet layout and spacing: arrange all FOUR complete poses in ONE horizontal row on a very wide 3072x1024 canvas, four equal 768px-wide cells. Do NOT use a two-row grid. Every complete figure must stay strictly inside its own cell with at least 60px transparent margin on every side. Shrink all four figures uniformly as necessary to fit. All four boy shoe ground lines must be at local y=800, all heads near y=150. The entire soles and wand ring must be visible with clear padding, never touch or overlap an adjacent cell. No head or foot may intrude into another cell.
+Left to right: REST wand near knee; DIP wand lowered toward the ground at the left side; LIFT wand halfway toward lips; BLOW wand held at lips and subtly puffed cheeks.
+Do not add dishes or bubbles. Preserve normal-sized facial anatomy and same seated body/feet position between poses. Genuinely transparent background, no mist, no gradient, no text, no labels, no grid, no extra objects.
+
+TARGETED GUTTER REVISION (final image)
+Use case: precise-object-edit
+Edit target: attached transparent single-row four-pose boy atlas.
+Keep every identity, pose, costume, lighting, texture, transparent alpha and 4-column horizontal row.
+Correct the missing gutters and cropped rightmost shoe. Scale EACH whole figure down to 70 percent of its current size and place it at the CENTER of its own quarter-width column. Do not scale the whole image as a group. Clear transparent padding of at least 70px must surround every side of each complete figure, with no overlap. Complete soles and toes, including the far-right shoe, must fit within the canvas with transparent space after them. All four feet ground baselines must remain aligned. The left-to-right order stays REST, DIP, LIFT, BLOW.
+Do not add anything. No dishes or bubbles, no shadows, no ground, no text, no grid. Genuine transparent background.

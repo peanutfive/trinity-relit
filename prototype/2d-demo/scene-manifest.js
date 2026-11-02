@@ -1,6 +1,7 @@
 import {ROOMS as ORBIT_ROOMS} from '../js/data/orbit.js';
 import {ARBOR_ROUTE_LAYOUT} from './arbor-route-layout.js';
 import {ORBIT_ROUTE_LAYOUT} from './orbit-route-layout.js';
+import {WABE_COMPLETION_LAYOUT} from './wabe-completion-layout.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
@@ -189,7 +190,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},

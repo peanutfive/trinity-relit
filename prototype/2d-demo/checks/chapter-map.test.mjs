@@ -123,10 +123,17 @@ test('默认章节归属覆盖已访问但未绘制的Wabe房间，不把原序�
   const engine=createPrologueSession();await engine.activateChapter('wabe');
   engine.state.chapter='wabe';engine.state.room='promontory';
   engine.state.visited=new Set(['palace_gate','north_bog','promontory']);
-  const before=engine.state.serialize(),map=buildChapterMap({state:engine.state,rooms:engine.rooms,scenes:SCENES});
+  // The real promontory is now drawn. Explicitly omit its visual fixture to
+  // retain the unknown-room/default-chapter protection as production expands.
+  const incompleteScenes=Object.fromEntries(Object.entries(SCENES).filter(([id])=>id!=='promontory'));
+  const before=engine.state.serialize(),map=buildChapterMap({state:engine.state,rooms:engine.rooms,scenes:incompleteScenes});
   assert.equal(map.chapter,'wabe');
   assert.deepEqual(map.nodes.map(node=>node.id),['north_bog','promontory']);
   assert.equal(map.nodes.find(node=>node.id==='promontory').cn,'未知地点');
+  assert.equal(map.nodes.find(node=>node.id==='promontory').name,'');
+  assert.equal(map.nodes.find(node=>node.id==='promontory').unknownVisual,true);
+  assert.equal(JSON.stringify(map).includes('岬角'),false);
+  assert.equal(JSON.stringify(map).includes('Promontory'),false);
   assert.equal(map.edges.some(edge=>edge.from==='promontory'&&edge.direction==='s'&&edge.to==='north_bog'),true);
   assert.deepEqual(engine.state.serialize(),before);
 });

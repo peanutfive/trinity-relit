@@ -36,6 +36,17 @@ test('small item pointer boundaries follow the sprite, while touch gets limited 
   assert.equal(pointerTarget([ball], { x: 319, y: 134 }, { padding: 8 }), ball);
 });
 
+test('separate plant patches share one object without making the walking gaps clickable', () => {
+  const herbs=prop('herbs',100,130,{pointerShape:{kind:'polygons',priority:1,
+    polygons:[[[50,50],[90,50],[90,80],[50,80]],[[120,50],[160,50],[160,80],[120,80]]]}});
+  const dropped=prop('dropped',105,70,{pointerShape:{kind:'ellipse',x:105,y:70,rx:4,ry:4,priority:2}});
+  for(const point of [{x:65,y:65},{x:140,y:65}])assert.equal(pointerTarget([herbs,dropped],point),herbs);
+  assert.equal(pointerTarget([herbs,dropped],{x:105,y:70}),dropped);
+  assert.equal(pointerTarget([herbs],{x:105,y:70}),undefined);
+  assert.equal(pointerTarget([herbs],{x:50,y:95}),undefined);
+  assert.equal(pointerTarget([prop('malformed',105,70,{pointerShape:{kind:'unknown'}})],{x:105,y:70}),undefined);
+});
+
 test('clicking a visible dish or headphones takes precedence over the overlapping boy body', () => {
   const boy = prop('boy', 300, 145, { kind: 'boy' });
   const dish = prop('dish', 293.5, 143.5, { kind: 'dish' });
