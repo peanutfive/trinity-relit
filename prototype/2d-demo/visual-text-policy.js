@@ -39,6 +39,17 @@ export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',ro
   "You arrived inside the soap bubble; remember the magpie's clue about the crescent moon.",'你是乘肥皂泡来的；记得喜鹊关于新月之光的提示。',
 ]},{id:'ice-unmade-passage',room:'ice_cavern',sentences:[
   'A dark passage leads deeper.','一条黑暗的通道通向更深处。',
+ ]},{id:'pacific-box-answer',room:'bottom_scaffold',sentences:[
+  'A box is here; open it and push the switch—you have seven minutes. Then push the button.',
+  '这里有一个箱子；打开它并按下开关——你有七分钟。然后按下按钮。',
+  'The box is open. A switch and a button are inside.','箱子开着。里面有一个开关和一个按钮。',
+  'The switch is on. You have seven minutes before you must push the button.','开关已按下。你必须在七分钟内按下按钮。',
+ ]},{id:'pacific-unsupported-dolphin-answer',room:'west_beach',sentences:[
+  'A fin or dolphin may follow you. Coconuts and an islet are visible. Point at the coconut when the tide is right; the dolphin may toss it to your feet.',
+  '一只鳍或海豚可能会跟着你。可见椰子和一座小岛。潮水合适时指向椰子；海豚可能会把它抛到你脚边。',
+ ]},{id:'pacific-mesa-location-debt',room:'mesa',sentences:[
+  'You are on a mesa—a small island in the middle of an ocean. A scaffold rises to the south; the white door behind you leads back to the Wabe.',
+  '你在台地上——大洋中的一座小岛。南面矗立着脚手架；身后的白门通向 Wabe。',
 ]}]);
 export function filterVisualPresence(text,{room,objects=[],source='event'}={}){
   if(source!=='room'&&source!=='item-annotation')return {text,removed:[]};

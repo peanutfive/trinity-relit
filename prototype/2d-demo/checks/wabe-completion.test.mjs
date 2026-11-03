@@ -234,9 +234,8 @@ test('交付画中的毒菌、药床和巨人鞋沿与命中及占位一致，�
   assert.equal(isBlocked(SCENES.herb_garden,365,185),false,'观察点在树干前的真实土路上');
 });
 
-test('未制作的Pacific、Tundra和Islet只保留开放边界，闭门不画自出口或可玩门船', async () => {
+test('未制作的Tundra和Islet只保留开放边界，闭门不画自出口或可玩门船', async () => {
   const cases = [
-    {symbol: 4, room: 'chasms_brink', target: 'mesa', route: ['d', 'w', 'ne']},
     {symbol: 5, room: 'herb_garden', target: 'tundra_1', route: ['d', 'ne', 'e', 'nw', 'e', 'e']},
     {symbol: 6, room: 'the_river', target: 'islet', route: ['d', 'se']},
   ];

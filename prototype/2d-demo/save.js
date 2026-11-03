@@ -1,12 +1,13 @@
 import { SAVE_VERSION as ENGINE_SAVE_VERSION } from '../js/engine.js';
 import { TIMERS as PROLOGUE_TIMERS,restorePrologueTime } from '../js/data/prologue.js';
+import { TIMERS as PACIFIC_TIMERS } from '../js/data/pacific.js';
 import { SCENES, LOGICAL_SIZE } from './scene-manifest.js';
 import { isBlocked as worldIsBlocked } from './world.js';
 
 // This key is intentionally unrelated to the text game's trinity-relit:save:v1.
 export const VISUAL_SAVE_VERSION = 1;
 export const VISUAL_SAVE_KEY = `trinity-relit:hd2d:save:v${VISUAL_SAVE_VERSION}`;
-const SUPPORTED_TIMERS = new Set(Object.keys(PROLOGUE_TIMERS));
+const SUPPORTED_TIMERS = new Set([...Object.keys(PROLOGUE_TIMERS),...Object.keys(PACIFIC_TIMERS)]);
 const FACES = new Set(['up', 'down', 'left', 'right']);
 const own = (value, key) => Object.hasOwn(value, key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value)

@@ -120,6 +120,28 @@ function orbitChart(id,nodes){
   <path d="M 45 613 v 12 h 100 v -12 M 95 619 v 6" fill="none" stroke="#b2baa2" opacity=".55"/>
   <text x="45" y="644" font-size="11" fill="#c3c6ae" opacity=".8">轨道示意 · 非等距</text>`;
 }
+function pacificChart(id){
+  const shore='M 532 72 Q 592 48 649 70 L 676 65 Q 704 67 717 90 L 755 102 L 775 131 Q 833 141 857 188 L 875 203 L 870 227 Q 926 265 923 308 L 937 332 L 923 363 Q 928 411 900 433 L 894 462 L 856 479 Q 843 517 803 524 L 779 547 L 745 545 Q 694 586 650 584 L 625 600 L 593 590 Q 540 609 502 581 L 471 585 L 439 560 Q 385 548 368 508 L 341 499 L 332 463 Q 294 444 296 411 L 278 389 L 288 357 Q 269 318 293 285 L 288 258 L 314 237 Q 317 193 351 177 L 368 151 L 397 149 Q 425 113 466 108 L 484 85 L 513 88 Z';
+  return `<g class="map-pacific-chart">
+    <rect width="1080" height="680" fill="url(#${id}-water)"/>
+    ${path(shore,'#b9b492','#718771',16)}
+    ${path(shore,'#d3c39b','#e0d0a6',4)}
+    ${path('M 509 150 Q 615 115 717 176 Q 808 214 841 305 Q 864 397 787 467 Q 709 533 598 535 Q 469 532 400 448 Q 331 366 382 270 Q 411 189 509 150 Z','#a3aa7d','#8d9972',2)}
+    ${path('M 527 196 L 684 196 L 720 221 L 720 414 L 682 443 L 502 443 L 477 415 L 477 232 Z','#a7a486','#647462',2)}
+    ${path('M 502 235 H 684 V 413 H 502 Z','#c5bd97','#6a7962',1.5)}
+    ${path('M 504 314 H 682 M 544 235 V 412 M 638 235 V 412 M 507 239 L 676 407 M 676 239 L 507 407','none','#7f886b',1,'opacity=".5"')}
+    ${Array.from({length:14},(_,i)=>path(`M ${510+i*12} 240 V 407`,'none','#8f9476',.6,'opacity=".45"')).join('')}
+    ${path('M 521 208 h 145 l 28 18 M 486 246 v 155 l 20 25 M 707 246 v 155 l -20 25','none','#ddd0a4',1.6,'opacity=".65"')}
+    ${path('M 532 211 v 16 h 23 v -16 M 649 211 v 16 h 22 v -16 M 515 421 v 9 h 36 v -9 M 649 421 v 9 h 36 v -9','none','#697a60',1.1)}
+    ${path('M 600 265 V 370 M 593 276 H 607 M 593 286 H 607 M 593 296 H 607 M 593 306 H 607 M 593 316 H 607 M 593 326 H 607 M 593 336 H 607 M 593 346 H 607','none','#65785f',1.4)}
+    ${path('M 52 154 L 93 125 L 166 130 L 202 159 L 184 192 L 115 205 L 65 186 Z','#979e7e','#64745d',2)}
+    ${path('M 65 187 L 71 225 L 116 245 L 181 221 L 184 192 M 93 201 L 96 233 M 151 199 L 147 232','none','#64745d',1.4)}
+    ${path('M 235 98 Q 210 188 231 265 M 245 91 Q 220 180 241 258','none','#b5c0a2',1,'opacity=".55"')}
+    ${path('M 416 151 l -14 16 l 20 -6 l 13 -15 Z M 818 216 l 13 17 l 14 1 l -17 -24 Z M 887 383 l -3 23 l -16 12 l 4 -24 Z M 744 543 l 19 -13 l 12 4 l -19 14 Z M 397 496 l -18 -23 l 6 -14 l 19 29 Z M 331 273 l 14 -17 l -2 24 l -15 15 Z','#a2a380','#6c7e64',1)}
+    ${path('M 457 123 l -10 11 m 24 -5 l -10 10 m 26 -12 l -9 10 M 812 177 l 10 12 m -1 4 l 11 14 M 917 313 l -9 10 m 7 6 l -10 10 M 807 505 l -12 6 m -5 6 l -12 4 M 559 583 l -9 -7 m -8 7 l -11 -7 M 320 418 l 7 12 m -2 -29 l 6 12','none','#7d8b6b',.8)}
+    ${Array.from({length:20},(_,i)=>{const x=35+(i*137)%1000,y=40+(i*83)%590;return path(`M ${x} ${y} q 14 -5 28 0 t 28 0`,'none','#c5d0b4',.7,'opacity=".2"');}).join('')}
+  </g>`;
+}
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){
   const safeId=String(id).replace(/[^a-z0-9_-]/gi,'');
@@ -134,7 +156,7 @@ export function terrainMarkup(chapter,id,nodes=[]){
     <radialGradient id="${safeId}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
     <mask id="${safeId}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
   </defs><rect width="1080" height="680" fill="url(#${safeId}-paper)"/>
-  <g class="map-landscape">${chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
+  <g class="map-landscape">${chapter==='pacific'?pacificChart(safeId):chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
   <rect width="1080" height="680" fill="url(#${safeId}-grain)"/>
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>

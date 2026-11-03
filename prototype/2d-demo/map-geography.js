@@ -21,7 +21,10 @@ const wilds={
 const japan={playground:[365,340,'hill'],shelter:[730,340,'house']};
 const underground={underground_1:[220,340,'arch'],underground_2:[540,340,'place'],underground_3:[860,340,'house']};
 const orbit={orbit_satellite:[380,282,'satellite'],orbit_space:[720,205,'orbit']};
-const authored={prologue:gardens,wabe:wilds,japan,underground,orbit};
+// The mesa is a separate Wabe viewpoint in the current chapter adapter. Keep
+// it off the island; the two scaffold levels are stacked, never a flat road.
+const pacific={mesa:[140,170,'hill'],scaffold:[600,245,'house'],bottom_scaffold:[600,390,'stairs'],north_beach:[600,100,'water'],south_beach:[600,560,'water'],west_beach:[330,350,'water'],east_beach:[870,350,'water']};
+const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
 export function illustratedMapNodes(model){

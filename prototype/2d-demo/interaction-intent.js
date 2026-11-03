@@ -7,11 +7,14 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   const seen=observed.has(object.id);
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='water_edge')return find('enter water');
+  if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
+  if(object.kind==='pacific_box')return seen?find('open box')||find('look'):find('look');
+  if(['pacific_switch','pacific_button'].includes(object.kind))return find('push ')||find('look');
   // Doorways are navigation: carrying a prop must not lock the player inside.
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
-  if(object.kind==='passage')return actions.find(a=>['n','s','e','in','w','out','u','d'].includes(a.command))?.command||null;
+  if(object.kind==='passage')return actions.find(a=>['n','ne','e','se','s','sw','w','nw','in','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
   if(object.kind==='stairs')return find('u')||find('d')||find('look');
   if(object.kind==='door')return seen?find('enter door')||find('s')||find('examine '):find('examine ')||find('look');

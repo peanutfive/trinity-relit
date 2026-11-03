@@ -2,7 +2,14 @@
 // This is a production gate, separate from runtime-reference/reachability tests.
 // Never mark a scene approved merely because every text-arrow hotspot is reachable.
 export const NAVIGATION_REVIEW = Object.freeze({
-  chasms_brink:{status:'sample',issues:['T24独立画稿，按交付画重描六条普通岸路；对岸岩台无假桥，跨章仍为制作边界。完整实走收据见WABE_COMPLETION_PRODUCTION，待玩家最终美术复核。']},
+  mesa:{status:'sample',issues:['T25独立石台；白门与返回深渊交互分离，当前跨章归属与原版差异另列PACIFIC_SOURCE_AUDIT，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  scaffold:{status:'sample',issues:['T25工棚上层；储罐白门、向下楼梯和四侧外门均需F确认，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  bottom_scaffold:{status:'sample',issues:['T25管道底层；箱体站位、梯口和滑门按交付图校准，当前按钮机制差异另列，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  north_beach:{status:'sample',issues:['T25独立岸线图；海水禁行，进棚入口需F，沿岸连接已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  west_beach:{status:'sample',issues:['T25独立岸线图；海水禁行，不伪造海豚取物机制，沿岸连接已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  east_beach:{status:'sample',issues:['T25独立岸线图；椰子独立物件，沿岸连接已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  south_beach:{status:'sample',issues:['T25独立岸线图；上层与底部门分开，不自动穿门换层，沿岸连接已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
+  chasms_brink:{status:'sample',issues:['T24独立画稿，按交付画重描六条普通岸路；对岸岩台无假桥，T25按当前规则F过渡至台地。完整实走收据见WABE_COMPLETION_PRODUCTION，待玩家最终美术复核。']},
   promontory:{status:'sample',issues:['T24独立双路岬角，原文巨人独立脚点、肥皂水碟与路口分开；完整实走收据见WABE_COMPLETION_PRODUCTION，待玩家最终美术复核。']},
   herb_garden:{status:'sample',issues:['T24交付画西门实际y160，按真实菜畦描禁行区，不以初稿坐标通行；冻原入口未制。完整实走收据见WABE_COMPLETION_PRODUCTION，待玩家最终美术复核。']},
   the_river:{status:'sample',issues:['T24独立三路岸边，北路实际x273、西路y146，水面/石岸不通行；渡船原规则未补。完整实走收据见WABE_COMPLETION_PRODUCTION，待玩家最终美术复核。']},

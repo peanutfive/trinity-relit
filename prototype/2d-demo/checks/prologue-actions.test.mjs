@@ -141,7 +141,7 @@ test('独立会话不污染章模块，预加载和读档恢复计时器协议�
   await second.deserialize(save);
   assert.equal(second.state.timer.perTurn, TIMERS.doomsday);
   const before = second.state.serialize();
-  await assert.rejects(second.deserialize({ ...save, state: { ...save.state, chapter: 'pacific', room: 'lagoon' } }), /加载失败/);
+  await assert.rejects(second.deserialize({ ...save, state: { ...save.state, chapter: 'tundra', room: 'lagoon' } }), /加载失败/);
   assert.deepEqual(second.state.serialize(), before, '不支持的章节读档不能破坏当前状态');
 });
 

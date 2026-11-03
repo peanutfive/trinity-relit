@@ -21,13 +21,13 @@ export function getCompletionHotspots(state) {
     prop('chasms_brink:oak', P.oak, '橡树', 'completion_oak',
       [action('观察橡树', 'examine oak')],
       {baked:true,eventId:'examine_oak',pointerShape:ellipse(100,72,21,30)}),
-    prop('chasms_brink:toadstool', P.chasmMushroom, '岩台上的毒菌', 'completion_toadstool',
-      [action('观察毒菌', 'examine toadstool')],
-      {baked:true,eventId:'examine_toadstool_cb',pointerOnly:true,
+    prop('chasms_brink:toadstool', P.chasmMushroom, '岩台上的毒菌', state.sundialSymbol===4?'pacific_gate':'completion_toadstool',
+      [action('观察毒菌', 'examine toadstool'),...(state.sundialSymbol===4?[action('进入','in')]:[])],
+      {baked:true,eventId:'examine_toadstool_cb',pointerOnly:state.sundialSymbol!==4,
         pointerShape:ellipse(276,29,12,8,3)}),
     prop('chasms_brink:chasm', P.chasmMushroom, '深渊', 'completion_chasm',
       [action('观察深渊', 'examine chasm')],
-      {baked:true,eventId:'examine_chasm',pointerShape:ellipse(283,102,22,17)}),
+      {baked:true,eventId:'examine_chasm',pointerOnly:state.sundialSymbol===4,pointerShape:ellipse(283,102,22,17)}),
   );
   if (state.room === 'promontory') {
     const boyAt = drawPoint(P.boy), dishAt = drawPoint(P.dish), headphonesAt = drawPoint(P.headphones);

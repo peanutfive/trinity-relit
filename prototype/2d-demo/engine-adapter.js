@@ -8,6 +8,7 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
   japan: () => import('../js/data/japan.js'),
   underground: () => import('../js/data/underground.js'),
   orbit: () => import('../js/data/orbit.js'),
+  pacific: () => import('../js/data/pacific.js'),
 });
 
 // The visual entry point has its own room dictionary. Lazy loading must not mutate

@@ -2,6 +2,8 @@ import {ROOMS as ORBIT_ROOMS} from '../js/data/orbit.js';
 import {ARBOR_ROUTE_LAYOUT} from './arbor-route-layout.js';
 import {ORBIT_ROUTE_LAYOUT} from './orbit-route-layout.js';
 import {WABE_COMPLETION_LAYOUT} from './wabe-completion-layout.js';
+import {PACIFIC_LAYOUT} from './pacific-layout.js';
+import {ROOMS as PACIFIC_ROOMS} from '../js/data/pacific.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
@@ -21,7 +23,7 @@ const extraA = './assets/gardens-extra-a.png';
 const extraB = './assets/gardens-extra-b.png';
 const wabeA = './assets/wabe-a.png';
 const wabeB = './assets/wabe-b.png';
-const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS };
+const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS,...PACIFIC_ROOMS };
 const sceneSpecs = {
   palace_gate: [base,0,3,236,[238,218]],
   broad_walk: [base,1,3,354,[240,250]],
@@ -172,7 +174,7 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
   const exits=typeof room?.exits==='function'?room.exits(state):room?.exits||{};
   return Object.entries(exits).flatMap(([dir,value])=>{
     const target=typeof value==='string'?value:value?.to;
-    if(!anchors[dir]||!SCENES[target]||SCENES[roomId].hiddenExitDirs?.includes(dir))return [];
+    if(target===roomId&&SCENES[roomId].omitSelfExitDirs?.includes(dir)||!anchors[dir]||!SCENES[target]||SCENES[roomId].hiddenExitDirs?.includes(dir))return [];
     const [x,y]=SCENES[roomId].exitAnchors?.[dir]||anchors[dir];
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
     const approach=SCENES[roomId].exitApproaches?.[dir];
@@ -190,7 +192,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},

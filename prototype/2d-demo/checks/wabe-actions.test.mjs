@@ -46,14 +46,14 @@ test('统一目录保留序章，未制作章节与房间不暴露可执行传�
   assert.deepEqual(getHotspots(engine.state), getPrologueHotspots(engine.state));
   await engine.activateChapter('wabe');
   engine.state.chapter = 'wabe';
-  engine.state.room = 'chasms_brink';
-  engine.state.sundialSymbol = 4;
-  assert.ok(getHotspots(engine.state).some(object=>object.eventId==='examine_oak'));
+  engine.state.room = 'herb_garden';
+  engine.state.sundialSymbol = 5;
+  assert.ok(getHotspots(engine.state).some(object=>object.eventId==='examine_herbs'));
   assert.ok(getHotspots(engine.state).every(object=>object.actions.every(action=>action.command!=='in')));
-  engine.state.room = 'mesa';
+  engine.state.room = 'tundra_1';
   assert.deepEqual(getHotspots(engine.state), []);
   assert.deepEqual(getInventoryActions('umbrella', engine.state), []);
-  engine.state.chapter = 'pacific';
+  engine.state.chapter = 'tundra';
   assert.deepEqual(getHotspots(engine.state), []);
 });
 

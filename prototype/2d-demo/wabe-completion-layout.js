@@ -5,7 +5,7 @@ export const WABE_COMPLETION_LAYOUT={
   chasms_brink:{chapter:'wabe',objectId:306,image:'./assets/wabe-chasm-v2.png',spawn:[240,185],
     walkablePolygons:[strip([[40,0],[60,62],[85,100],[110,125],[160,150]],33),strip([[430,0],[408,60],[384,105],[344,143],[300,169]],34),strip([[0,150],[100,155],[240,175],[360,164],[480,150]],36),strip([[20,288],[80,248],[133,211],[175,187]],38),strip([[440,288],[390,246],[340,210],[300,185]],38),[[108,137],[170,132],[240,139],[287,130],[353,135],[364,173],[325,196],[270,207],[211,201],[155,190],[99,166]]],
     exitAnchors:{nw:[44,16],ne:[426,16],w:[16,150],e:[464,152],sw:[39,275],se:[425,275],in:[260,148]},exitApproaches:{nw:[-.3,-1],ne:[.3,-1],w:[-1,0],e:[1,-.1],sw:[-1,.65],se:[.9,1],in:[0,-1]},
-    hiddenExitDirs:['in'],interactionExitDirs:['in'],showUnmadeExits:true},
+    hiddenExitDirs:[],omitSelfExitDirs:['in'],interactionExitDirs:['in'],showUnmadeExits:true},
   promontory:{chapter:'wabe',objectId:370,image:'./assets/wabe-promontory-v1.png',spawn:[290,188],
     walkablePolygons:[[[136,78],[198,65],[267,70],[322,90],[349,120],[373,169],[357,192],[323,207],[282,203],[258,220],[254,253],[253,288],[211,288],[213,241],[210,216],[168,199],[122,188],[86,164],[85,137],[102,109]],strip([[320,193],[370,214],[422,244],[480,273]],35)],
     obstacles:[{x:151,y:160,w:68,h:23},{x:219,y:165,w:37,h:16},{x:111,y:173,w:43,h:12}],
