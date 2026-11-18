@@ -239,7 +239,8 @@ export function createNarrativeDirector() {
     return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
-    if(!room.startsWith('orbit_'))drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
+    const tundra=room.startsWith('tundra_')||['under_platform','platform','cliff_edge'].includes(room);
+    if(!room.startsWith('orbit_')&&!tundra)drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
     const japanFrame=sampleJapanMotion(active);

@@ -8,6 +8,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
+  if(object.kind==='tundra_gate')return seen?find('in'):find('look');
   if(object.kind==='pacific_box')return seen?find('open box')||find('look'):find('look');
   if(['pacific_switch','pacific_button'].includes(object.kind))return find('push ')||find('look');
   // Doorways are navigation: carrying a prop must not lock the player inside.

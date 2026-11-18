@@ -65,10 +65,8 @@ export function getCompletionHotspots(state) {
         [[231,153],[249,151],[268,159],[263,178],[218,175]],
         [[289,156],[309,155],[336,162],[341,183],[279,182]],
       ]}}),
-    // The unfinished tundra branch remains a scene boundary. No IN command is
-    // attached to the pictured mushroom, even when the original symbol is set.
-    prop('herb_garden:mushroom', P.mushroom, '毒菌', 'completion_mushroom',
-      [action('观察此处', 'look')],
+    prop('herb_garden:mushroom', P.mushroom, '毒菌', state.sundialSymbol===5?'tundra_gate':'completion_mushroom',
+      [action('观察此处', 'look'),...(state.sundialSymbol===5?[action('进入','in')]:[])],
       {depthY:drawPoint(P.mushroom).y,visualOptions:{drawAt:drawPoint(P.mushroom)},pointerShape:ellipse(365,120,29,38)}),
   );
   if (state.room === 'the_river') objects.push(prop(

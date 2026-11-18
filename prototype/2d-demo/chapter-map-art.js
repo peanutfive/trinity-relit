@@ -120,6 +120,23 @@ function orbitChart(id,nodes){
   <path d="M 45 613 v 12 h 100 v -12 M 95 619 v 6" fill="none" stroke="#b2baa2" opacity=".55"/>
   <text x="45" y="644" font-size="11" fill="#c3c6ae" opacity=".8">轨道示意 · 非等距</text>`;
 }
+function tundraChart(id){
+  const rand=random(18856);
+  const cracks=Array.from({length:86},()=>{const x=75+rand()*720,y=215+rand()*390,l=5+rand()*16;return path(`M ${x.toFixed(1)} ${y.toFixed(1)} l ${l.toFixed(1)} -3 l 5 4 m -5 -4 l 2 -6`,'none','#849283',.6,'opacity=".28"');}).join('');
+  return `<g class="map-tundra-chart">
+    ${path('M 52 216 L 86 153 L 127 166 L 181 90 L 236 129 L 287 101 L 332 127 L 383 75 L 435 115 L 479 91 L 524 133 L 572 84 L 621 130 L 677 104 L 722 145 L 787 122 L 818 186 L 832 617 L 61 619 Z','#a6b0a0','#728574',2)}
+    ${path('M 78 226 L 130 186 L 178 143 L 215 178 L 277 155 L 325 183 L 383 125 L 427 163 L 481 143 L 525 181 L 572 139 L 616 175 L 678 153 L 717 191 L 776 174 L 804 229','none','#d5d5ba',3)}
+    ${path('M 79 258 Q 201 229 315 251 T 564 244 T 797 263 L 811 602 Q 663 589 539 609 Q 340 585 77 609 Z','#b8b9a0','#9ba68f',1)}
+    ${cracks}
+    ${path('M 423 308 l 41 -2 l 16 16 l -3 63 l -46 3 l -17 -15 Z','#939f90','#657e70',1.5)}
+    ${path('M 434 314 v 64 M 448 312 v 66 M 463 312 v 64 M 418 337 h 59 M 418 360 h 59 M 421 384 L 307 471','none','#6d8374',1.2)}
+    ${path('M 870 94 L 924 67 L 1026 75 L 1050 117 L 1034 210 L 1024 251 L 1011 414 L 896 419 L 882 274 Z','#a4afa0','#6b8375',2)}
+    ${path('M 890 121 l 29 -20 l 26 8 l 32 -16 l 47 13 M 900 139 l 25 -15 l 20 9 l 34 -14 l 43 12','none','#d5d6c0',1.5)}
+    ${path('M 921 270 L 1007 270 L 1017 304 V 399 L 934 401 L 921 372 Z','#8b9c91','#5b756b',1.5)}
+    ${path('M 933 282 H 1003 M 933 294 H 1006 M 934 304 H 1008 M 935 317 H 1010 M 936 333 H 1010 M 935 352 H 1010 M 935 374 H 1010 M 943 276 V 395 M 968 273 V 397 M 993 275 V 397','none','#c1c7b0',.7)}
+    ${path('M 873 69 Q 921 39 969 50 T 1055 59 M 864 54 Q 914 21 974 34 T 1055 42','none','#73988b',1,'opacity=".55"')}
+  </g>`;
+}
 function pacificChart(id){
   const shore='M 532 72 Q 592 48 649 70 L 676 65 Q 704 67 717 90 L 755 102 L 775 131 Q 833 141 857 188 L 875 203 L 870 227 Q 926 265 923 308 L 937 332 L 923 363 Q 928 411 900 433 L 894 462 L 856 479 Q 843 517 803 524 L 779 547 L 745 545 Q 694 586 650 584 L 625 600 L 593 590 Q 540 609 502 581 L 471 585 L 439 560 Q 385 548 368 508 L 341 499 L 332 463 Q 294 444 296 411 L 278 389 L 288 357 Q 269 318 293 285 L 288 258 L 314 237 Q 317 193 351 177 L 368 151 L 397 149 Q 425 113 466 108 L 484 85 L 513 88 Z';
   return `<g class="map-pacific-chart">
@@ -156,7 +173,7 @@ export function terrainMarkup(chapter,id,nodes=[]){
     <radialGradient id="${safeId}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
     <mask id="${safeId}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
   </defs><rect width="1080" height="680" fill="url(#${safeId}-paper)"/>
-  <g class="map-landscape">${chapter==='pacific'?pacificChart(safeId):chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
+  <g class="map-landscape">${chapter==='tundra'?tundraChart(safeId):chapter==='pacific'?pacificChart(safeId):chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
   <rect width="1080" height="680" fill="url(#${safeId}-grain)"/>
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>

@@ -1,0 +1,14 @@
+# Tundra field 4 v1
+
+Mode: built-in image_gen. Existing Wabe image is a style reference only. The final raw generated PNG is copied unmodified into assets.
+
+```text
+Use case: stylized-concept. Asset type: finished background raster for an existing 2D exploration RPG. One SINGLE landscape image, exact 5:3 ratio, logical world 480 by 288. Supplied reference is STYLE ONLY: rich painterly HD-2D with intricate material texture, believable realistic proportions, warm ochre rim light, cool blue-green shadows and layered atmosphere, elevated three-quarter gameplay camera looking down onto readable ground. No pixel-square art, no chibi, no cartoon black outlines, no photograph, no UI, no text, numbers, symbols, arrows, border or labels. No people, animals, movable props, guards, signs or buildings. No snow maze. This is the barren Arctic Russian Tundra from Trinity: exposed brown-gray cracked permanent-frost earth, gritty frost, sparse low withered grass, thin pale frost dust and cold wind, distant gray mountains. No thick snow fields, no tall snow walls, no forest, no lush plants, no artificial paved roads. The playable ground must be visually legible as lower frost-dusted, broad wind-scoured shallow channels between impassable jagged bedrock shelves and steep frozen earth shoulders; at every requested exit the continuous broad ground channel continues all the way out of the frame. Shelves rise 1–2 metres and have clearly steep edges, but are rock and earth, not snow fortifications. Background is a game floor plane across the ENTIRE image with no sky occupying the upper route endpoints; far mountains can appear as tiny raised silhouettes confined to blocked corner pockets. Routes have no markings. Central flat walkable clearing centered (240,165), roughly radius65x45; every route should be at least 36 logical px wide (about 120 physical px on a 1620px picture) so human-sized actor feet can traverse. No isolated ground pockets, no decorative fake paths, no additional exits beyond the exact route list.
+
+Scene 4: THREE paths: SOUTH (240,288), SOUTHWEST (35,288), WEST (0,158). Keep S/SW/W entirely distinct, separated by rock ribs. The north half and east edge are a continuous steep gray rocky frozen-earth shelf, with no track to the top or right. This locality is a quiet bare nook in the northeast sector of the tundra, raised gray talus behind it. No door.
+```
+
+Original object ID: 254. Gameplay routes follow the current read-only chapter module; original/current rule differences are documented separately.
+
+Initial raw generated file: `/Users/klarachen/.codex/generated_images/01a1eca0-4278-7293-ab0a-0ac11a6d5d78/exec-19b15f6d-4536-43de-94a2-df54f34656dc.png`.
+Project copy: `assets/tundra-field-4-v1.png` (unmodified selected PNG).

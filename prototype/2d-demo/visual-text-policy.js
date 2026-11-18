@@ -3,13 +3,15 @@
 // when their corresponding object is genuinely rendered in this scene.
 const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split('|'),paragraphs:[en,cn]});
 export const VISUAL_PRESENCE_RULES=Object.freeze([
+  {...rule('tundra-fissure-presence','cliff_edge','tundra_fissure','A fissure is here.','这里有一道裂缝。'),sentence:true},
+  rule('tundra-hidden-mouse-presence','cliff_edge','tundra_fissure','A lemming is in the fissure.','裂缝里有一只旅鼠。'),
   rule('chasm-legacy-presence','chasms_brink','completion_oak|completion_toadstool',
     "An oak tree stands at the chasm's brink. A giant toadstool towers like a golf tee from the depths of the chasm. Only thirty feet separate you from its flattened summit.",
     '一棵橡树矗立在深渊边缘。一株巨大的毒菌如同高尔夫球座般从深渊深处耸起。你与它平坦的顶部之间只隔着三十英尺。'),
   {...rule('giant-boy-presence','promontory','completion_boy',
     "A boy sits nearby, listening to a pair of headphones and idly blowing soap bubbles. There's a dish full of soapy water by his side.",
     '一个男孩坐在附近，戴着耳机听音乐，百无聊赖地吹着肥皂泡。他身旁放着一碟肥皂水。'),sentence:true},
-  rule('herb-mushroom-presence','herb_garden','completion_mushroom',
+  rule('herb-mushroom-presence','herb_garden','completion_mushroom|tundra_gate',
     'Another giant toadstool grows here.','这里还生长着另一株巨大的毒菌。'),
   rule('underground-radio-presence','underground_2','walkie_talkie','A walkie-talkie is here.','这里有一部对讲机。'),
   rule('underground-lantern-presence','underground_3','lantern','The lantern is here.','灯笼在这里。'),
@@ -50,6 +52,12 @@ export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',ro
  ]},{id:'pacific-mesa-location-debt',room:'mesa',sentences:[
   'You are on a mesa—a small island in the middle of an ocean. A scaffold rises to the south; the white door behind you leads back to the Wabe.',
   '你在台地上——大洋中的一座小岛。南面矗立着脚手架；身后的白门通向 Wabe。',
+ ]},{id:'tundra-entry-answer',room:'tundra_1',sentences:[
+  'When the sundial pointed to Libra, the white door brought you here.','当日晷指向天秤座时，白门将你带到了这里。',
+ ]},{id:'tundra-ice-wall-debt',room:'tundra_6',sentences:[
+  'The frozen earth slopes north to meet a gray wall of ice.','冰冻的大地向北倾斜，与一道灰色的冰墙相接。',
+ ]},{id:'tundra-enclosure-debt',room:'platform',sentences:[
+  'A metal enclosure holds the Soviet nuclear device.','一个金属围栏里放着苏联核装置。',
 ]}]);
 export function filterVisualPresence(text,{room,objects=[],source='event'}={}){
   if(source!=='room'&&source!=='item-annotation')return {text,removed:[]};

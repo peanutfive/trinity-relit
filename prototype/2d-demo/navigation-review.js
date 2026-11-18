@@ -2,6 +2,17 @@
 // This is a production gate, separate from runtime-reference/reachability tests.
 // Never mark a scene approved merely because every text-arrow hotspot is reachable.
 export const NAVIGATION_REVIEW = Object.freeze({
+  tundra_1:{status:'sample',issues:['T26裸冻土独立三路与白门；原版入口归属另列审计，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_2:{status:'sample',issues:['T26独立五路，按最终画面风蚀通行带描地面，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_3:{status:'sample',issues:['T26独立五路，保留北/东北不同开口，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_4:{status:'sample',issues:['T26东北区三路与远山，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_5:{status:'sample',issues:['T26北区五路，低岩边界与路口分别描边，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_6:{status:'sample',issues:['T26西北灰山墙与三路，原章冰墙文字偏差另记，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_7:{status:'sample',issues:['T26东南区三路，不用文本箭头补造路径，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  tundra_8:{status:'sample',issues:['T26南区五路，沿画面通行口连接，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  under_platform:{status:'sample',issues:['T26八方路与钢制装置下竖梯；上方钢壳不可当可行地面，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  platform:{status:'sample',issues:['T26高处窄平台，梯口与当前悬崖连接需F确认，原规则差异另列，已通过45出口实际键盘/F样本，待玩家美术复核。']},
+  cliff_edge:{status:'sample',issues:['T26北冰洋高崖与裂缝，旅鼠观察知识独立于物品位置，已通过45出口实际键盘/F样本，待玩家美术复核。']},
   mesa:{status:'sample',issues:['T25独立石台；白门与返回深渊交互分离，当前跨章归属与原版差异另列PACIFIC_SOURCE_AUDIT，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
   scaffold:{status:'sample',issues:['T25工棚上层；储罐白门、向下楼梯和四侧外门均需F确认，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},
   bottom_scaffold:{status:'sample',issues:['T25管道底层；箱体站位、梯口和滑门按交付图校准，当前按钮机制差异另列，已完成24条实际门口/海岸路线验收，待玩家最终美术复核。']},

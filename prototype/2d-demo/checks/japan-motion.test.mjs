@@ -80,8 +80,8 @@ test('跨章白门从对应门口内侧入场，方向别名不生成第二扇�
  for(const c of ['d','ne','e','nw','e','e'])await e.processInput(c);
  assert.equal(s.room,'herb_garden');assert.equal(s.dead,false);
  const before=s.serialize();
- assert.deepEqual(sceneBoundaries('herb_garden',s,e.rooms).map(x=>[x.dir,x.target]),[['in','tundra_1']]);
- assert.equal(sceneExits('herb_garden',s,e.rooms).some(x=>x.dir==='in'),false);
+ assert.deepEqual(sceneBoundaries('herb_garden',s,e.rooms),[]);
+ assert.equal(sceneExits('herb_garden',s,e.rooms).find(x=>x.dir==='in')?.target,'tundra_1');
  assert.deepEqual(s.serialize(),before);
 });
 test('日本章M地图使用独立山丘底稿，首次只标已到地点、不显示谜题物品',async()=>{

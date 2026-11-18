@@ -25,7 +25,8 @@ export function drawScene(c,room,time,effects=true,state={}){
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   // Very restrained atmospheric movement; keep the interactive ground crisp.
   c.save();c.globalCompositeOperation='screen';
-  for(const p of effects && SCENES[room]?.chapter!=='orbit' ? dust : []){const x=p.x+Math.sin(time*.17+p.phase)*4,y=(p.y-time*1.7+2880)%288;c.fillStyle=`rgba(255,225,159,${.14+.15*(1+Math.sin(time+p.phase))/2})`;c.beginPath();c.arc(x,y,.4+.25*Math.sin(p.phase),0,Math.PI*2);c.fill();}
+  const polar=SCENES[room]?.chapter==='tundra';
+  for(const p of effects && SCENES[room]?.chapter!=='orbit' ? dust : []){const x=polar?(p.x+time*8+4800)%480:p.x+Math.sin(time*.17+p.phase)*4,y=polar?(p.y+Math.sin(time*.2+p.phase)*2+2880)%288:(p.y-time*1.7+2880)%288;c.fillStyle=`rgba(${polar?'210,224,225':'255,225,159'},${.14+.15*(1+Math.sin(time+p.phase))/2})`;c.beginPath();c.arc(x,y,.4+.25*Math.sin(p.phase),0,Math.PI*2);c.fill();}
   c.restore();
   const shade=c.createRadialGradient(242,130,85,240,140,285);shade.addColorStop(0,'#14252100');shade.addColorStop(.7,'#14252108');shade.addColorStop(1,'#07191563');c.fillStyle=shade;c.fillRect(0,0,480,288);
 }

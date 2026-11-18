@@ -144,7 +144,7 @@ export function renderCompletionSprite(c,object,state,time=0) {
   if (object.kind === 'completion_dish') {
     shadow(c,p.x,p.y,21,3,.17); return stamp(c,'dish',p.x,p.y,47);
   }
-  if (object.kind === 'completion_mushroom') {
+  if (['completion_mushroom','tundra_gate'].includes(object.kind)) {
     shadow(c,p.x,p.y,20,4,.15); return stamp(c,'mushroom',p.x,p.y,77);
   }
   if (object.kind === 'garlic') {

@@ -1,6 +1,7 @@
 import {getOrbitHotspots,getOrbitInventoryActions} from './orbit-actions.js';
 import {getPacificHotspots,getPacificInventoryActions} from './pacific-actions.js';
 import {getPacificPassages} from './pacific-passages.js';
+import {getTundraHotspots,getTundraInventoryActions} from './tundra-actions.js';
 import { getHotspots as getPrologueHotspots, getInventoryActions as getPrologueInventoryActions } from './prologue-actions.js';
 import { getWabeHotspots, getWabeInventoryActions } from './wabe-actions.js';
 import { getJapanHotspots, getJapanInventoryActions } from './japan-actions.js';
@@ -8,12 +9,13 @@ import {getUndergroundHotspots,getUndergroundInventoryActions} from './undergrou
 import { applyTerrainHotspotAdjustments } from './terrain.js';
 
 // A visual action catalog only. State mutation remains inside engine commands.
-export function getHotspots(state) {
+export function getHotspots(state,options={}) {
   const objects=state.chapter==='wabe'?getWabeHotspots(state)
     :state.chapter==='japan'?getJapanHotspots(state)
       :state.chapter==='underground'?getUndergroundHotspots(state)
       :state.chapter==='orbit'?getOrbitHotspots(state)
       :state.chapter==='pacific'?[...getPacificHotspots(state),...getPacificPassages(state)]
+      :state.chapter==='tundra'?getTundraHotspots(state,options)
       :state.chapter==='prologue'?getPrologueHotspots(state):[];
   return applyTerrainHotspotAdjustments(state.room,objects);
 }
@@ -24,6 +26,7 @@ export function getInventoryActions(id, state) {
   if (state.chapter === 'japan') return getJapanInventoryActions(id, state);
   if(state.chapter==='orbit')return getOrbitInventoryActions(id,state);
   if(state.chapter==='pacific')return getPacificInventoryActions(id,state);
+  if(state.chapter==='tundra')return getTundraInventoryActions(id,state);
   if (state.chapter === 'prologue') return getPrologueInventoryActions(id, state);
   return [];
 }
