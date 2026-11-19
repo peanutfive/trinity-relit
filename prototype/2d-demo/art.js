@@ -2,15 +2,16 @@ import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
+const sceneArtError = message => Object.assign(new Error(message), { name: 'SceneArtError' });
 // Background plates are large. Load the current room only; retain its source
 // scene during a crossing until the destination painting is decoded.
 export function ensureSceneArt(room){
-  const src=SCENES[room]?.background?.image;if(!src)return Promise.reject(new Error('场景画面尚未制作。'));
+  const src=SCENES[room]?.background?.image;if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
   if(pending.has(src))return pending.get(src);
   const image=new Image();backgrounds.set(src,image);
   const promise=new Promise((resolve,reject)=>{
     image.onload=()=>resolve(image);
-    image.onerror=()=>{pending.delete(src);backgrounds.delete(src);reject(Object.assign(new Error('场景画面加载失败，请刷新后重试。'),{name:'SceneArtError'}));};
+    image.onerror=()=>{pending.delete(src);backgrounds.delete(src);reject(sceneArtError('场景画面加载失败，请重试。'));};
     image.src=new URL(src,import.meta.url).href;
   });pending.set(src,promise);return promise;
 }

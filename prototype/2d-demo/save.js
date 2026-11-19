@@ -153,13 +153,14 @@ export async function restoreVisualSave(engine, input, options = {}) {
   // Existing engine preflight validates lazy chapter/timer registration without
   // replacing active progress. deserialize is itself atomic and never onEnters.
   if (typeof engine.validateSave === 'function') await engine.validateSave(prepared.save.engine);
+  if (options.prepareRoom) await options.prepareRoom(prepared.save.visual.room);
   await engine.deserialize(prepared.save.engine);
   restorePrologueTime(engine.state);
   return { ...prepared, visual: { ...prepared.save.visual } };
 }
 
-export function createVisualSaveStore({ storage, scenes = SCENES, isBlocked = worldIsBlocked } = {}) {
-  const options = { scenes, isBlocked };
+export function createVisualSaveStore({ storage, scenes = SCENES, isBlocked = worldIsBlocked, prepareRoom } = {}) {
+  const options = { scenes, isBlocked, prepareRoom };
   const unavailable = () => new Error('此设备当前无法读写本地存档。');
   function read() {
     try {

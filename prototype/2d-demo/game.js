@@ -16,6 +16,7 @@ import {renderJapanSprite,japanArtStatus} from './japan-art.js';
 import {renderUndergroundSprite,drawUndergroundAtmosphere,undergroundArtStatus} from './underground-art.js';
 import {renderCliffSprite,cliffArtStatus} from './cliff-art.js';
 import { createPrologueSession } from './engine-adapter.js';
+import { GameState } from '../js/engine.js';
 import { getHotspots } from './interaction-catalog.js';
 import { createDiscovery, PAPER_CRAFT_ID } from './discovery.js';
 import { resolveInteraction, resolveHeldSelf } from './interaction-intent.js';
@@ -43,7 +44,7 @@ const scenes = SCENES;
 const cachedNavigationScene=createNavigationSceneCache();
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { browserStorage = null; }
-const saveStore = createVisualSaveStore({ storage: browserStorage, scenes });
+const saveStore = createVisualSaveStore({ storage: browserStorage, scenes, prepareRoom: ensureSceneArt });
 
 let engine;
 let director = createNarrativeDirector();
@@ -60,9 +61,9 @@ let walkPath = [];
 let walkTarget = null;
 let walkExit = null;
 let previousScene = null;
-let enteringArtRoom=null;
 let lastArrival = null;
 let busy = false;
+let applyingCommand = false;
 let lastCommand = null;
 let language = 'cn';
 let pages = [];
@@ -136,6 +137,7 @@ function updateLabels(roomId=engine.state.room) {
 }
 
 function updateHud() {
+  if (applyingCommand) return;
   const reading = pages.length > 0;
   const hintOpen = !$('#quest').hidden;
   $('.game-shell').classList.toggle('is-reading', reading);
@@ -143,6 +145,7 @@ function updateHud() {
   $('.game-shell').classList.toggle('is-paused', paused);
   $('#menu-bag').disabled = !started || busy;
   $('#menu-help').disabled = !started || busy;
+  $('#menu-map').disabled = !started || busy;
   $('#replay-umbrella').hidden = !started || engine.state.room!=='lancaster_gate'||!engine.state.hasFlag('umbrella_woman_done');
   const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
@@ -267,20 +270,31 @@ async function command(input, actions = [], observedId = null) {
   lastCommand=input;
   busy = true;
   const before = gameSnapshot();
+  const timerCallback = engine.state.timer?.perTurn;
   beginOutput();
   updateHud();
   try {
+    // A command can move the engine before the current animation frame ends.
+    applyingCommand = true;
     await engine.processInput(input);
+    const destination = engine.state;
+    const moved = before.room !== destination.room;
+    if (moved) {
+      // Keep the source room and live timer available while its destination loads.
+      const source = GameState.deserialize(before);
+      if (source.timer) source.timer.perTurn = timerCallback;
+      engine.state = source;
+      applyingCommand = false;
+      await ensureSceneArt(destination.room);
+      engine.state = destination;
+      previousScene = before;
+    }
     if(['inventory','pocket','worn'].includes(before.itemLoc.lemming)&&engine.state.inRoom('lemming'))observedObjects.add('tundra:item:lemming');
     const revelation=discovery.inspect(engine.state,{command:input,success:!engine.state.dead});
     if(revelation.text)output.push(revelation.text);
     if(observedId&&!engine.state.dead)observedObjects.add(observedId);
     if(heldItem&&!engine.state.has(heldItem))heldItem=null;
-    if (before.room !== engine.state.room) {
-      previousScene=before;
-      enteringArtRoom=before.room;
-      await ensureSceneArt(engine.state.room);
-      enteringArtRoom=null;
+    if (moved) {
       const scene = scenes[engine.state.room];
       if (scene) [player.x, player.y] = scene.spawn;
       const arrivalDirection=before.chapter==='japan'&&engine.state.room==='moor'?'out':input;
@@ -299,9 +313,10 @@ async function command(input, actions = [], observedId = null) {
     persistProgress({force:true});
   } catch(error){
     if(error.name!=='SceneArtError')throw error;
+    beginOutput();
     show(error.message||'画面未能载入，请刷新后继续。');
   } finally {
-    enteringArtRoom=null;
+    applyingCommand = false;
     busy = false;
     updateHud();
     render();
@@ -342,13 +357,12 @@ function paintSaveState() {
 async function restoreProgress(input) {
   if (busy) return;
   busy = true;
+  updateHud();
   try {
-    const previous=gameSnapshot();previousScene=previous;enteringArtRoom=previous.room;
     const restored = await saveStore.restore(engine, input);
     if (!restored.ok) throw restored.error;
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
-    await ensureSceneArt(engine.state.room);enteringArtRoom=null;
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
     previousScene=null;
     lastArrival=null;
@@ -366,7 +380,7 @@ async function restoreProgress(input) {
   } catch (error) {
     const message='无法读取这份存档：'+error.message;
     $('#save-message').textContent=message; $('#title-save-message').textContent=message;
-  } finally { enteringArtRoom=null; busy=false; paintSaveState(); updateHud(); render(); }
+  } finally { busy=false; paintSaveState(); updateHud(); render(); }
 }
 
 function loadSavedProgress() {
@@ -474,7 +488,7 @@ async function transition(exit) {
 }
 
 function update(dt) {
-  if (paused || chapterMap.isOpen()) return;
+  if (paused || chapterMap.isOpen() || applyingCommand) return;
   clock += dt;
   director.update(dt);
   exitLock = Math.max(0, exitLock - dt);
@@ -563,10 +577,11 @@ function pointedExitLabel(point) {
 }
 
 function render() {
+  if (applyingCommand) return;
   const scale = preferences.video.resolution;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   const story = director.getState(engine.state);
-  const renderRoom = enteringArtRoom || (story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room);
+  const renderRoom = story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room;
   updateLabels(renderRoom);
   const crossing=renderRoom!==engine.state.room;
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
@@ -762,7 +777,7 @@ window.addEventListener('keydown', event => {
     $('#binding-message').textContent = '新键位已保存。';
     return;
   }
-  if ((key === 'm' && !paused && started) || (key === 'Escape' && chapterMap.isOpen())) {
+  if ((key === 'm' && !paused && started && !busy) || (key === 'Escape' && chapterMap.isOpen())) {
     event.preventDefault();if(event.repeat)return;
     if(chapterMap.isOpen())chapterMap.close('key');else{stopMovement();sound.setPaused(true);chapterMap.open({state:engine.state,rooms:engine.rooms,scenes});}return;
   }
