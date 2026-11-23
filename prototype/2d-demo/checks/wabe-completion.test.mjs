@@ -166,7 +166,7 @@ test('巨人三个细部仅观察，重复F不送泡、不新增巨碟或攀爬�
     !/^(take .*bubble|enter dish|climb |give )/.test(action.command))));
 });
 
-test('橡树、深渊和河岸主动观察可达既有事件，观察不创造桥、渡船或额外出口', async () => {
+test('橡树、深渊和河岸主动观察可达既有事件，关闭条件下不生成额外入口', async () => {
   const game = await brink(), {engine} = game;
   const stateBefore = snapshot(engine).state;
   for (const command of ['examine oak', 'examine chasm', 'examine toadstool']) {
@@ -234,32 +234,27 @@ test('交付画中的毒菌、药床和巨人鞋沿与命中及占位一致，�
   assert.equal(isBlocked(SCENES.herb_garden,365,185),false,'观察点在树干前的真实土路上');
 });
 
-test('未制作的Islet只保留开放边界，闭门不画自出口或可玩门船', async () => {
-  const cases = [
-    {symbol: 6, room: 'the_river', target: 'islet', route: ['d', 'se']},
-  ];
-  for (const entry of cases) {
+test('河岸渡口只在开启的符号下显示，观察和看地图保持进度', async () => {
+  for (const open of [false, true]) {
     const game = await meadow(), {engine} = game;
     await run(game, ['e', 'u']);
-    await setSymbol(game, entry.symbol);
-    await run(game, entry.route);
-    assert.equal(engine.state.room, entry.room);
+    await setSymbol(game, open ? 6 : 2);
+    await run(game, ['d', 'se']);
+    assert.equal(engine.state.room, 'the_river');
     const before = snapshot(engine);
-    for (let count = 0; count < 3; count++) {
-      assert.equal(sceneExits(entry.room, engine.state, engine.rooms).some(exit => exit.dir === 'in'), false);
-      assert.deepEqual(sceneBoundaries(entry.room, engine.state, engine.rooms).filter(exit => exit.dir === 'in')
-        .map(exit => exit.target), [entry.target]);
-      const objects = getHotspots(engine.state);
-      assert.ok(objects.every(object => object.actions.every(action => action.command !== 'in')));
-      assert.equal(objects.some(object => /ferry|charon|oarsman/.test(object.kind)), false);
-      buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});
+    const exits = sceneExits('the_river', engine.state, engine.rooms).filter(exit => exit.dir === 'in');
+    assert.deepEqual(exits.map(({target, interactionOnly}) => ({target, interactionOnly})),
+      open ? [{target: 'islet', interactionOnly: true}] : []);
+    assert.equal(sceneBoundaries('the_river', engine.state, engine.rooms).some(exit => exit.dir === 'in'), false);
+    const boats = getHotspots(engine.state).filter(object => object.kind === 'islet_ferry');
+    assert.equal(boats.length, Number(open));
+    if (open) {
+      assert.equal(resolveInteraction(engine.state, boats[0]), 'examine river');
+      assert.equal(resolveInteraction(engine.state, boats[0], {observed: new Set([boats[0].id])}), 'in');
     }
-    assert.deepEqual(snapshot(engine), before, '看边界不调用transitionChapter或设置门已使用flag');
-  }
-  const {engine} = await brink(); // Current default is Pluto, with all three doors closed.
-  for (const {room} of cases) {
-    assert.equal(sceneExits(room, engine.state, engine.rooms).some(exit => exit.dir === 'in'), false);
-    assert.equal(sceneBoundaries(room, engine.state, engine.rooms).some(exit => exit.dir === 'in'), false);
+    const map = buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});
+    assert.ok(map.nodes.every(node => node.id !== 'islet'));
+    assert.deepEqual(snapshot(engine), before);
   }
 });
 

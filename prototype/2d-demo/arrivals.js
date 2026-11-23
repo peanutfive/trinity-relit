@@ -17,6 +17,11 @@ function atDistance(path,distance){
 // rectangular grid. For one-way links choose the incoming visual edge only;
 // this never creates a return exit or changes the original map.
 export function roomArrival(scene,{fromRoom,direction,exits=[]}={}){
+  const landingPoint = scene.sourceArrivals?.[fromRoom];
+  if (landingPoint && !isBlocked(scene, landingPoint.x, landingPoint.y)) {
+    const matched = exits.some(exit => exit.target === fromRoom && exit.dir === landingPoint.entrance);
+    return { ...landingPoint, fromRoom, matched };
+  }
   if(!opposite[direction])return null; // Narrative transport keeps its authored landing.
   const returns=exits.filter(exit=>exit.target===fromRoom);
   const entrance=returns.find(exit=>exit.dir===opposite[direction])||returns[0];

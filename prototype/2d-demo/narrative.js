@@ -240,7 +240,7 @@ export function createNarrativeDirector() {
   }
   function draw(c,room,state=latest||{},clock=0) {
     const tundra=room.startsWith('tundra_')||['under_platform','platform','cliff_edge'].includes(room);
-    if(!room.startsWith('orbit_')&&!tundra)drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
+    if(!room.startsWith('orbit_')&&!tundra&&state.chapter!=='islet'&&state.chapter!=='desert')drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
     const japanFrame=sampleJapanMotion(active);

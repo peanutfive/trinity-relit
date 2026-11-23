@@ -1,0 +1,16 @@
+# Islet ferry sprites — original generated RGBA atlas
+
+Mode: built-in `image_gen`; new `stylized-concept` game asset. No source pixels edited. All four rowing poses belong to one sprite atlas.
+
+Original-source appearance was checked read-only: a quite large ancient wooden dory; its oarsman stands at the stern, hunched beneath a face-concealing hood and cloak. No skeleton, glowing eyes, supernatural aura, modern equipment or passenger shades are included. Existing chapter rules remain unchanged.
+
+## Actual generation prompt
+
+```text
+Use case: stylized-concept.
+Asset type: one production transparent RGBA sprite atlas for a richly painted 2D adventure game.
+Primary request: FOUR full-body rowing poses of the SAME ancient open wooden river dory with the SAME hooded oarsman at its stern. Four evenly spaced isolated slots in ONE horizontal row; do not crop any hull, oar, hands, hood or cloak. Entire canvas background genuinely transparent with clean alpha, no checkerboard, no ground, no water backdrop, no floor, no labels, no border, no text, no cast shadow baked behind the sprites.
+Subject: a substantial low open wooden dory of ancient design, weathered dark brown planks and simple benches. Bow points LEFT and stern RIGHT. Elevated three-quarter game camera about 30 degrees downward; consistent camera, scale, hull, anchor and lighting in all FOUR slots. The oarsman stands at the stern at the RIGHT third of the boat, stooped but firm, holding a single long plain wooden oar in both hands. His face and exact body form are hidden beneath a soft dark charcoal-gray hood and long cloak. He is a living-looking cloaked silhouette, NOT a skeleton, no skull, no visible luminous eyes, no ghosts or aura. Natural realistic human proportions, never chibi. Empty left/front bench and clear open interior; NO passengers or other people.
+Four poses LEFT TO RIGHT: 1 resting at the catch with blade close to the right waterline; 2 controlled pulling power stroke; 3 end of stroke with wooden blade swept slightly backward; 4 recovery with blade lifted clear. The oar changes angle and his arms/shoulders shift modestly, but the hull itself is identical and its lower waterline sits at exactly the same height and x alignment within every slot. No dramatic rocking, splashes, foam or spray. The blade remains modestly near the boat so every complete silhouette fits comfortably with substantial transparent gutters.
+Style/medium: finely detailed cinematic painterly HD-2D fantasy-adventure art, matching an elevated warm golden woodland and cold dark river, realistic linen folds, aged wood grain, softly painted edge pixels, warm muted gold rim light from upper left and cool blue-green shadow from right. Not pixel art, not vector, not anime, not a photographic cutout or 3D-render toy. At gameplay scale the boat hull will be about 86 pixels long while the hooded man is about 35 pixels tall; preserve this natural proportion and make the warm wood silhouette legible on dark river water. Keep empty seat space on the LEFT half for a separately rendered protagonist. No sail, mast, flag, lantern, coins, treasure, weapons, signs, modern motor or decorative figurehead. A wide approximately 3:1 canvas containing all four complete poses, not separate illustrations. Plain transparent padding above and below each full sprite.
+```

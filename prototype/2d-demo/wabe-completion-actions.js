@@ -72,7 +72,7 @@ export function getCompletionHotspots(state) {
   if (state.room === 'the_river') objects.push(prop(
     'the_river:water', P.river, '河流', 'completion_river',
     [action('观察河流', 'examine river')],
-    {baked:true,eventId:'examine_river',radius:45,pointerShape:ellipse(385,172,45,21)},
+    {baked:true,eventId:'examine_river',radius:45,pointerOnly:state.sundialSymbol===6,pointerShape:ellipse(385,172,45,21)},
   ));
 
   const [baseX, baseY] = COMPLETION_LOOSE_ANCHORS[state.room];

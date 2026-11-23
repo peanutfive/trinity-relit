@@ -47,13 +47,13 @@ test('统一目录保留序章，未制作章节与房间不暴露可执行传�
   await engine.activateChapter('wabe');
   engine.state.chapter = 'wabe';
   engine.state.room = 'the_river';
-  engine.state.sundialSymbol = 6;
+  engine.state.sundialSymbol = 2;
   assert.ok(getHotspots(engine.state).some(object=>object.eventId==='examine_river'));
   assert.ok(getHotspots(engine.state).every(object=>object.actions.every(action=>action.command!=='in')));
-  engine.state.room = 'islet';
+  engine.state.room = '__unmade__';
   assert.deepEqual(getHotspots(engine.state), []);
   assert.deepEqual(getInventoryActions('umbrella', engine.state), []);
-  engine.state.chapter = 'islet';
+  engine.state.chapter = '__unsupported__';
   assert.deepEqual(getHotspots(engine.state), []);
 });
 

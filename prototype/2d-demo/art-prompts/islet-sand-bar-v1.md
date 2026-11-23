@@ -1,0 +1,16 @@
+# T27 沙洲背景
+
+项目原创画稿。使用内置图像生成工具绘制河中沙洲，再于原画左岸加入可接近的菌门。最终 PNG 完整保留，位于 `assets/islet-sand-bar-v1.png`。船与船夫使用独立透明图层。
+
+## 地形原画
+
+```text
+One finished original environment painting for an atmospheric 2D adventure game, a natural sandbar in a broad dark river. Elevated three-quarter game camera, landscape approximately 5:3. Its neighboring scene is a damp sandy islet under thick blue-gray mist, mossy wet stones and soft shafts of muted amber light. Render tactile wet ochre sand, restrained warm reflected light, deep teal water with fine ripples, cool atmospheric perspective, feathered mist, tiny detailed edges; hand-painted HD-2D miniature terrain with realistic proportions and a clear playable surface. No frame, text, arrows, UI, person, boat, sign or item.
+Layout distinct from the island: a hooked, tapering tongue of finely rippled sand enters from the BOTTOM CENTER edge, about 55 logical pixels wide at x240 of 480. Walk up from this bottom-center neck into a modest open sand clearing around x235..290,y165 on the same elevation, with a small low curving ridge and driftwood towards the LEFTMOST non-walkable fringe. The tongue narrows towards its rounded northern tip at x270,y86; this tip ends in water, NOT an exit. On the RIGHT side of the central clearing a shallow scalloped sand landing at x315,y162 has a broad band of OPEN rippled dark river beyond it centered around x365,y158, reserved for a separately composited ferry. Both left and right banks of the sand spit are unmistakable. The BOTTOM CENTER is the only place sand reaches a frame edge, so it reads as a safe way back. The foreground sand has footprints-free delicate intertidal wind ripples and amber highlights. A few low reeds and weather-smoothed rocks along edges; quiet fog over the river toward the top. The central playable floor must remain uncluttered and legible. No tall trees, mountains, city lights, water lilies, ships, docks, ruins or buildings. This is a quiet, mysterious, lonely bend of the river.
+```
+
+## 白门局部调整
+
+```text
+Edit this existing original 5:3 sandbar environment painting for our adventure game. This is an in-place prop insertion; keep the camera, sandbar silhouette, sand outlet at bottom, left-side driftwood, blue-green river, sand detail, honey gold light, perspective and composition. Add one lonely giant river toadstool with one small CLOSED off-white wooden plank door fitted into its pale stem at ground level, on the flat lower-left portion of the sandbar, near the low rocks. Use realistic organic form and painterly weathered details: gently asymmetrical chestnut-umber cap, a little russet at the edge, earthy pale gills and a pale stem. The front-facing pale door should read clearly at game scale with a dark frame, simple latch and subtle plank lines. Logical frame is 480 wide by 288 high. Target foot of stem near x155 y184, door threshold physically on sand. Approximate cap top y100, spans x108–189; 26px tall door. This small unique mushroom is the only tall prop added. Its cap must not block the middle or right of the sandy path. Keep an uninterrupted open approach on flat sand around x173 y196, and keep the wide clearing and the entire right-side water EMPTY for a ferry sprite to be layered later. No second fungus, no fence, no player, no boat, no UI or labels. Integrate perspective and shadows with the existing painting.
+```

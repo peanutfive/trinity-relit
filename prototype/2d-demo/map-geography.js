@@ -25,7 +25,9 @@ const orbit={orbit_satellite:[380,282,'satellite'],orbit_space:[720,205,'orbit']
 // it off the island; the two scaffold levels are stacked, never a flat road.
 const pacific={mesa:[140,170,'hill'],scaffold:[600,245,'house'],bottom_scaffold:[600,390,'stairs'],north_beach:[600,100,'water'],south_beach:[600,560,'water'],west_beach:[330,350,'water'],east_beach:[870,350,'water']};
 const tundra={tundra_6:[180,180,'hill'],tundra_5:[450,180,'hill'],tundra_4:[720,180,'hill'],tundra_3:[180,350,'place'],under_platform:[450,350,'stairs'],tundra_2:[720,350,'place'],tundra_1:[180,520,'gate'],tundra_8:[450,520,'place'],tundra_7:[720,520,'place'],platform:[965,350,'house'],cliff_edge:[965,170,'hill']};
-const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra};
+const islet={islet:[525,458,'island'],sand_bar:[556,212,'water']};
+const desert={desert_5:[290,337,'dune'],shallow_crater:[540,337,'basin'],desert_6:[790,337,'dune']};
+const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
 export function illustratedMapNodes(model){
@@ -52,7 +54,8 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
     return length>0&&(dx*directionVector[0]+dy*directionVector[1])/length>.83;
   };
   const reverse=edges.filter(other=>other.from===edge.to&&other.to===edge.from);
-  const road=chapter==='prologue'&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
+  const chartedGround=chapter==='prologue'||(['islet','desert'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
+  const road=chartedGround&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
   return {from,to,road:!!road,schematic:!road};
 }
 

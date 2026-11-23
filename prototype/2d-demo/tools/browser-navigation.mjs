@@ -34,7 +34,10 @@ assert.ok(marker.left>=s.player.x+12||marker.left+marker.width<=s.player.x-12
   ||marker.top>=s.player.y+7||marker.top+marker.height<=s.player.y-40);
 await page.screenshot({path:`${artifacts}/broad-walk-route-marker.png`,fullPage:true});
 await click(s.player.x,s.player.y);assert.equal((await state()).navigation.exit,null);
+// The marker follows the nearest road as the player walks. Start its click case
+// independently of the movement queued by testing the southern road.
 await click(otherRoad.x,otherRoad.y);assert.equal((await state()).navigation.exit,'s');
+await fixture(['n'],240,237);
 const labelPoint={x:marker.left+marker.width/4,y:marker.top+marker.height/2};
 assert.ok(s.exits.every(exit=>Math.hypot(exit.x-labelPoint.x,exit.y-labelPoint.y)>=13));
 await click(labelPoint.x,labelPoint.y);assert.equal((await state()).navigation.exit,'se');

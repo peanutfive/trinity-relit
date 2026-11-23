@@ -4,6 +4,10 @@ import {ORBIT_ROUTE_LAYOUT} from './orbit-route-layout.js';
 import {WABE_COMPLETION_LAYOUT} from './wabe-completion-layout.js';
 import {PACIFIC_LAYOUT} from './pacific-layout.js';
 import {TUNDRA_LAYOUT} from './tundra-layout.js';
+import {ISLET_LAYOUT} from './islet-layout.js';
+import {DESERT_ARRIVAL_LAYOUT} from './desert-arrival-layout.js';
+import {ROOMS as ISLET_ROOMS} from '../js/data/islet.js';
+import {ROOMS as DESERT_ROOMS} from '../js/data/desert.js';
 import {ROOMS as TUNDRA_ROOMS} from '../js/data/tundra.js';
 import {ROOMS as PACIFIC_ROOMS} from '../js/data/pacific.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
@@ -25,7 +29,7 @@ const extraA = './assets/gardens-extra-a.png';
 const extraB = './assets/gardens-extra-b.png';
 const wabeA = './assets/wabe-a.png';
 const wabeB = './assets/wabe-b.png';
-const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS,...PACIFIC_ROOMS,...TUNDRA_ROOMS };
+const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS,...PACIFIC_ROOMS,...TUNDRA_ROOMS,...ISLET_ROOMS,...DESERT_ROOMS };
 const sceneSpecs = {
   palace_gate: [base,0,3,236,[238,218]],
   broad_walk: [base,1,3,354,[240,250]],
@@ -194,7 +198,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},
@@ -202,6 +206,8 @@ for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOU
   footprint:{rx:6,ry:3},objects:[],exits:[],
 };
 for(const [id,scene] of Object.entries(SCENES)){
+  if(id==='desert_5')scene.mapLabel='西侧沙地';
+  if(id==='desert_6')scene.mapLabel='东侧沙地';
   if(scene.chapter==='tundra')scene.mapLabel=({tundra_1:'冻原 · 西南',tundra_2:'冻原 · 东',tundra_3:'冻原 · 西',tundra_4:'冻原 · 东北',tundra_5:'冻原 · 北',tundra_6:'冻原 · 西北',tundra_7:'冻原 · 东南',tundra_8:'冻原 · 南'})[id]||scene.label;
   const state=new GameState();state.room=id;state.chapter=scene.chapter;
   state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));

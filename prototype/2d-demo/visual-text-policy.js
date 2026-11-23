@@ -3,6 +3,9 @@
 // when their corresponding object is genuinely rendered in this scene.
 const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split('|'),paragraphs:[en,cn]});
 export const VISUAL_PRESENCE_RULES=Object.freeze([
+  rule('islet-toadstool-presence','islet','islet_gate','A lone toadstool grows here.','一株孤零零的毒菌生长在这里。'),
+  {...rule('sandbar-dory-presence','sand_bar','islet_ferry',"The oarsman's dory arrives here.",'船夫的平底船在此靠岸。'),sentence:true},
+  {...rule('sandbar-door-presence','sand_bar','islet_gate','The white door to New Mexico Desert is here.','通往新墨西哥沙漠的白门就在这里。'),sentence:true},
   {...rule('tundra-fissure-presence','cliff_edge','tundra_fissure','A fissure is here.','这里有一道裂缝。'),sentence:true},
   rule('tundra-hidden-mouse-presence','cliff_edge','tundra_fissure','A lemming is in the fissure.','裂缝里有一只旅鼠。'),
   rule('chasm-legacy-presence','chasms_brink','completion_oak|completion_toadstool',

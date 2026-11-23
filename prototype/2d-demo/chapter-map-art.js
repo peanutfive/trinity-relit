@@ -159,10 +159,43 @@ function pacificChart(id){
     ${Array.from({length:20},(_,i)=>{const x=35+(i*137)%1000,y=40+(i*83)%590;return path(`M ${x} ${y} q 14 -5 28 0 t 28 0`,'none','#c5d0b4',.7,'opacity=".2"');}).join('')}
   </g>`;
 }
+function isletChart(id){
+  // A continuous tongue of sand joins the upstream bar to the broader island.
+  const shore='M 610 75 C 643 76 637 103 612 132 Q 581 165 599 194 Q 626 218 603 241 C 579 266 558 279 557 308 Q 554 341 592 359 Q 637 374 675 394 Q 718 418 711 461 C 705 494 658 517 620 526 Q 588 541 550 565 Q 510 593 466 571 Q 436 557 401 546 Q 358 536 339 504 Q 319 470 343 433 Q 364 389 412 376 C 454 363 490 347 501 316 Q 512 286 495 259 Q 473 226 492 194 Q 503 173 518 161 Q 548 143 557 120 Q 574 84 610 75 Z';
+  return `<g class="map-islet-chart">
+    <rect width="1080" height="680" fill="url(#${id}-water)"/>
+    <rect width="1080" height="680" fill="url(#${id}-ripples)"/>
+    ${path(shore,'none','#ccd4bb',18,'opacity=".40"')}
+    ${path(shore,'#ccb889','#718979',3)}
+    ${path(shore,'none','#e0d1a5',3,'transform="translate(0 -3)"')}
+    ${path('M 606 91 Q 599 115 569 151 Q 541 180 541 202 M 507 225 Q 498 251 519 276 Q 534 310 512 343 M 360 463 Q 376 416 423 404 Q 470 392 491 365 M 378 508 Q 402 517 430 532 M 572 545 Q 601 521 646 508 Q 687 493 698 463','none','#a28d6b',2,'opacity=".78"')}
+    ${path('M 412 428 q 5 -12 10 -14 l -4 11 l 10 -8 m 7 4 q 4 -9 7 -11 l -2 8 M 647 441 l 5 -14 l 1 11 l 8 -11 m 0 14 l 8 -9 M 512 204 l 4 -11 l 1 8 l 7 -7','none','#84845b',1.6)}
+    ${path('M 173 294 C 229 310 281 305 332 278 M 177 307 C 222 322 256 319 289 308 M 754 237 Q 795 207 852 214 M 797 227 Q 835 215 864 222 M 689 564 Q 751 542 777 510','none','#c5d4bc',1.5,'opacity=".6"')}
+  </g>`;
+}
+
+function desertChart(){
+  const basin='M 400 333 C 398 295 440 272 489 264 Q 547 250 612 270 C 668 282 702 310 693 343 Q 679 386 626 402 Q 559 419 479 400 C 435 390 400 367 400 333 Z';
+  return `<g class="map-desert-chart">
+    <rect width="1080" height="680" fill="#c7b488"/>
+    ${path('M 0 165 Q 106 132 206 145 Q 342 158 441 123 T 665 97 Q 793 104 886 71 Q 1005 38 1080 53 L 1080 0 H 0 Z','#b09d75','#a28f6c',1.4)}
+    ${path('M 0 568 Q 126 515 232 544 Q 362 580 495 543 Q 633 511 766 533 Q 912 552 1080 483 V 680 H 0 Z','#d3bd8d','#bba276',1.6)}
+    ${path('M 75 232 C 168 211 221 226 293 209 M 103 241 Q 184 223 233 232 M 772 249 Q 864 229 979 250 M 821 257 Q 897 248 943 258 M 94 461 Q 184 432 279 458 M 127 467 Q 193 456 231 466 M 767 444 Q 886 411 1025 432','none','#ad946d',1.6)}
+    ${path(basin,'#b49f78','#998463',2.4)}
+    ${path('M 417 331 C 427 292 478 278 531 274 Q 615 270 660 302 M 686 340 Q 653 403 549 406 Q 457 400 420 359','none','#dec997',3)}
+    ${path('M 446 330 C 458 301 510 291 551 292 Q 614 292 647 320 Q 664 350 617 370 Q 559 393 489 370 Q 443 354 446 330 Z','#c9b58b','#a18e6b',1.5)}
+    ${path('M 455 315 l -9 -8 m 23 -1 l -7 -9 m 22 3 l -6 -11 m 23 5 l -4 -9 M 609 372 l 6 9 m 8 -15 l 7 8 m 5 -15 l 8 6 m 1 -13 l 9 3','none','#928162',1.3)}
+    ${path('M 148 377 l 4 -7 l 4 8 m 4 -3 l 6 -4 M 338 290 l 3 -8 l 4 7 l 5 -4 M 759 378 l 4 -10 l 4 9 l 5 -6 M 936 322 l 3 -7 l 2 7 l 6 -4 M 308 488 l 3 -6 l 5 7','none','#85815d',1.4)}
+  </g>`;
+}
+const chartPainters={prologue:garden,wabe:wildland,japan:hillside,underground:caveChart,
+  pacific:pacificChart,tundra:tundraChart,islet:isletChart,desert:desertChart};
+
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){
   const safeId=String(id).replace(/[^a-z0-9_-]/gi,'');
   if(chapter==='orbit')return orbitChart(safeId,nodes);
+  const paintChart=Object.hasOwn(chartPainters,chapter)?chartPainters[chapter]:garden;
   const clear=nodes.filter(node=>Number.isFinite(node.x)&&Number.isFinite(node.y)).map(node=>`<ellipse cx="${node.x}" cy="${node.y}" rx="140" ry="112" fill="url(#${safeId}-clear)"/>`).join('');
   return `<defs>
     <radialGradient id="${safeId}-paper"><stop stop-color="#c5c6a1"/><stop offset=".75" stop-color="#b3b58e"/><stop offset="1" stop-color="#a5a984"/></radialGradient>
@@ -173,7 +206,7 @@ export function terrainMarkup(chapter,id,nodes=[]){
     <radialGradient id="${safeId}-clear"><stop offset=".2" stop-color="black"/><stop offset="1" stop-color="black" stop-opacity="0"/></radialGradient>
     <mask id="${safeId}-mist"><rect width="1080" height="680" fill="white"/>${clear}</mask>
   </defs><rect width="1080" height="680" fill="url(#${safeId}-paper)"/>
-  <g class="map-landscape">${chapter==='tundra'?tundraChart(safeId):chapter==='pacific'?pacificChart(safeId):chapter==='underground'?caveChart():chapter==='japan'?hillside():chapter==='wabe'?wildland(safeId):garden(safeId)}</g>
+  <g class="map-landscape">${paintChart(safeId)}</g>
   <rect width="1080" height="680" fill="url(#${safeId}-grain)"/>
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>
@@ -183,6 +216,9 @@ export function terrainMarkup(chapter,id,nodes=[]){
 }
 
 const icons={
+  island:'M -10 4 Q -7 3 -5 0 Q -2 -7 3 -4 Q 5 -4 6 0 Q 8 3 10 4 Z M -7 7 Q -3 5 0 7 T 7 7',
+  dune:'M -11 5 Q -4 5 1 -6 Q 4 0 10 2 M -4 6 Q 2 5 5 1',
+  basin:'M -10 -3 Q -6 -5 -3 -5 M 2 -5 Q 8 -5 10 -1 Q 9 6 0 6 Q -7 6 -10 2 M -6 -1 Q -3 3 2 2 Q 5 2 7 -1',
   gate:'M -9 6 V -7 H -4 V 6 M 4 6 V -7 H 9 V 6 M -4 -4 H 4 M -3 1 H 3',
   statue:'M -7 7 H 7 M -4 6 V 0 H 4 V 6 M 0 0 V -6 M -3 -4 H 3 M 0 -7 V -9',
   flower:'M 0 7 V 0 M -1 4 Q -8 -2 -6 -3 Q -1 -3 0 1 M 0 1 Q 7 -4 7 -1 Q 8 3 0 5 M -3 -5 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0',

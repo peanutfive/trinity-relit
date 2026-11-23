@@ -1,6 +1,6 @@
 # Trinity · HD-2D 探索版
 
-开发依据：[2D开发计划](DEVELOPMENT_PLAN.md)及[人物空间与探索修订](EXPLORATION_PLAN.md)。当前可游玩肯辛顿花园11房、Wabe 26/30房、日本游乐场/避难所2房、地下3房和地球轨道2房，共44场景；这是基于共用规则的表现版，T19已按原版实测修正序章时钟与长水湖，其余规则差异仍按人类决定暂缓。制作与证据边界见[序章制作表](PROLOGUE_PRODUCTION.md)、[Wabe制作记录](WABE_PRODUCTION.md)、[日本章节记录](JAPAN_PRODUCTION.md)、[崖壁区域记录](CLIFF_PRODUCTION.md)、[地下章节记录](UNDERGROUND_PRODUCTION.md)及[藤架与轨道记录](ARBOR_ORBIT_PRODUCTION.md)。文字版仍由仓库原入口单独提供。
+开发依据：[2D开发计划](DEVELOPMENT_PLAN.md)及[人物空间与探索修订](EXPLORATION_PLAN.md)。当前可游玩肯辛顿花园11房、Wabe 30房、日本2房、地下3房、地球轨道2房、太平洋7房、冻原11房、小岛2房和沙漠抵达区3房，共71场景。小岛入口与沙漠可玩范围见[章节交付记录](ISLET_PRODUCTION.md)。这是基于共用规则的表现版，T19已按原版实测修正序章时钟与长水湖，其余规则差异仍按人类决定暂缓。制作与证据边界见[序章制作表](PROLOGUE_PRODUCTION.md)、[Wabe制作记录](WABE_PRODUCTION.md)、[日本章节记录](JAPAN_PRODUCTION.md)、[崖壁区域记录](CLIFF_PRODUCTION.md)、[地下章节记录](UNDERGROUND_PRODUCTION.md)及[藤架与轨道记录](ARBOR_ORBIT_PRODUCTION.md)。文字版仍由仓库原入口单独提供。
 
 启动仓库开发服务器，打开 `/2d-demo/`。
 

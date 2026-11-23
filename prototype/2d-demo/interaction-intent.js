@@ -9,6 +9,13 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');
+  if (object.kind === 'islet_gate') return seen ? find('enter door') : find('examine ') || find('look');
+  if (object.kind === 'islet_ferry' || object.kind === 'islet_oarsman') {
+    const payment = heldItem === 'silver_coin' && find('give silver coin');
+    if (payment) return payment;
+    const observe = find('examine ') || find('look');
+    return seen ? find('in') || find('out') || observe : observe;
+  }
   if(object.kind==='pacific_box')return seen?find('open box')||find('look'):find('look');
   if(['pacific_switch','pacific_button'].includes(object.kind))return find('push ')||find('look');
   // Doorways are navigation: carrying a prop must not lock the player inside.
