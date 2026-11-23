@@ -2,7 +2,7 @@ import { SAVE_VERSION as ENGINE_SAVE_VERSION } from '../js/engine.js';
 import { TIMERS as PROLOGUE_TIMERS,restorePrologueTime } from '../js/data/prologue.js';
 import { TIMERS as PACIFIC_TIMERS } from '../js/data/pacific.js';
 import { SCENES, LOGICAL_SIZE } from './scene-manifest.js';
-import { isBlocked as worldIsBlocked } from './world.js';
+import { findPath, isBlocked as worldIsBlocked } from './world.js';
 
 // This key is intentionally unrelated to the text game's trinity-relit:save:v1.
 export const VISUAL_SAVE_VERSION = 1;
@@ -65,11 +65,10 @@ function clearSegment(scene, from, to, blocked) {
   }
   return true;
 }
-function reachable(scene, point, blocked) {
+function reachableWithCustomCollision(scene, point, blocked) {
   const start = { x: scene.spawn[0], y: scene.spawn[1] };
   if (clearSegment(scene, start, point, blocked)) return true;
-  // A small room-local flood avoids placing a restored character in an isolated
-  // pocket. Edge sampling prevents crossing a thin collider between grid points.
+  // The optional collision override may describe geometry outside the scene mesh.
   const stride = 8, queue = [start], visited = new Set([`${start.x},${start.y}`]);
   for (let index = 0; index < queue.length; index++) {
     const node = queue[index];
@@ -111,7 +110,9 @@ function visualPosition(visual, scene, blocked) {
   if (!Array.isArray(scene.spawn) || !Number.isFinite(scene.spawn[0]) || !Number.isFinite(scene.spawn[1])
     || blocked(scene, scene.spawn[0], scene.spawn[1])) fail('SCENE_SPAWN', '当前场景缺少可用的出生点。');
   const valid = Number.isFinite(visual.x) && Number.isFinite(visual.y)
-    && !blocked(scene, visual.x, visual.y) && reachable(scene, visual, blocked);
+    && (blocked === worldIsBlocked
+      ? findPath(scene, scene.spawn, visual).length > 0
+      : !blocked(scene, visual.x, visual.y) && reachableWithCustomCollision(scene, visual, blocked));
   const normalized = {
     room: visual.room,
     x: valid ? visual.x : scene.spawn[0], y: valid ? visual.y : scene.spawn[1],

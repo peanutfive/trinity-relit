@@ -487,6 +487,12 @@ async function transition(exit) {
   render();
 }
 
+function canMovePlayer() {
+  return started && !pages.length && !busy && !paused && !chapterMap.isOpen()
+    && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram')
+    && $('#quest').hidden;
+}
+
 function update(dt) {
   if (paused || chapterMap.isOpen() || applyingCommand) return;
   clock += dt;
@@ -494,7 +500,7 @@ function update(dt) {
   exitLock = Math.max(0, exitLock - dt);
   motion.elapsed += dt;
   if (motion.action !== 'idle' && motion.elapsed >= motion.duration) motion.action = 'idle';
-  const canWalk = started && !pages.length && !busy && !paused && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram') && $('#quest').hidden;
+  const canWalk = canMovePlayer();
   let dx = canWalk ? Number(keys.has('ArrowRight') || keys.has(preferences.bindings.right)) - Number(keys.has('ArrowLeft') || keys.has(preferences.bindings.left)) : 0;
   let dy = canWalk ? Number(keys.has('ArrowDown') || keys.has(preferences.bindings.down)) - Number(keys.has('ArrowUp') || keys.has(preferences.bindings.up)) : 0;
   // A movement input wins over a previously queued click, even on the frame
@@ -763,6 +769,11 @@ function actionKey(key) {
 }
 
 const normalKey = key => key.length === 1 ? key.toLowerCase() : key;
+const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+function isMovementKey(key) {
+  const {up, down, left, right} = preferences.bindings;
+  return arrowKeys.includes(key) || [up, down, left, right].includes(key);
+}
 window.addEventListener('keydown', event => {
   const key = normalKey(event.key);
   if (paused && captureBinding) {
@@ -798,10 +809,15 @@ window.addEventListener('keydown', event => {
     return;
   }
   if (event.target.closest('button') && ['Enter', ' '].includes(key)) return;
-  if(key===preferences.bindings.fullscreen)event.preventDefault();
-  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(key)) event.preventDefault();
-  if (!event.repeat) actionKey(key);
-  keys.add(key);
+  if (arrowKeys.includes(key) || key === ' ') event.preventDefault();
+  // Held keys already have an entry. A repeat must never restore one cleared
+  // by a room change, dialogue, map, pause or loss of focus.
+  if (event.repeat) return;
+  if (isMovementKey(key)) {
+    if (canMovePlayer()) keys.add(key);
+    return;
+  }
+  actionKey(key);
 });
 canvas.addEventListener('contextmenu',event=>{event.preventDefault();if(started&&!chapterMap.isOpen())setPaused(true);});
 $('.stage').addEventListener('touchstart',event=>{if(event.touches.length===2){event.preventDefault();if(chapterMap.isOpen())chapterMap.close('gesture');else setPaused(!paused);}}, {passive:false});
@@ -871,6 +887,7 @@ $('#language').onclick = () => {
 };
 for (const button of document.querySelectorAll('[data-key]')) {
   button.onpointerdown = event => {
+    if (!canMovePlayer()) return;
     event.preventDefault(); button.setPointerCapture(event.pointerId); keys.add(button.dataset.key);
   };
   button.onpointerup = button.onpointercancel = button.onlostpointercapture = () => keys.delete(button.dataset.key);

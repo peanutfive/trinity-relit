@@ -163,6 +163,37 @@ test('无碰撞但与出生点隔离的位置也回退，读档不把人锁在�
   assert.deepEqual([parsed.visual.x, parsed.visual.y], scene.spawn);
 });
 
+test('穿过窄弯道可抵达的存档保留精确坐标和朝向', () => {
+  const g = session();
+  const scene = { ...SCENES.palace_gate, spawn: [40, 40],
+    walkablePolygons: [
+      [[16, 16], [72, 16], [72, 84], [16, 84]],
+      [[64, 48], [144, 48], [144, 56], [64, 56]],
+      [[136, 16], [200, 16], [200, 84], [136, 84]],
+    ], blockedPolygons: [], obstacles: [], footprint: { rx: 6, ry: 3 }, pathResolution: 1,
+  };
+  const position = { room: 'palace_gate', x: 160.5, y: 40, face: 'left' };
+  const packet = { version: VISUAL_SAVE_VERSION, engine: g.engine.serialize(), visual: position };
+  const parsed = parseVisualSave(packet, { scenes: { palace_gate: scene } });
+  const { room, x, y, face } = parsed.visual;
+  assert.deepEqual({ room, x, y, face }, position);
+});
+
+test('读档按场景碰撞精度识别薄障碍，回退隔绝的位置', () => {
+  const g = session();
+  const scene = { ...SCENES.palace_gate, spawn: [40, 40],
+    walkablePolygons: [[[16, 16], [100, 16], [100, 84], [16, 84]]],
+    blockedPolygons: [], footprint: { rx: 0.1, ry: 0.1 }, pathResolution: 0.25,
+    obstacles: [{ x: 60.5, y: 16, w: 1, h: 68 }],
+  };
+  const packet = { version: VISUAL_SAVE_VERSION, engine: g.engine.serialize(),
+    visual: { room: 'palace_gate', x: 80, y: 40, face: 'right' } };
+  assert.equal(isBlocked(scene, packet.visual.x, packet.visual.y), false);
+  const parsed = parseVisualSave(packet, { scenes: { palace_gate: scene } });
+  assert.deepEqual([parsed.visual.x, parsed.visual.y], scene.spawn);
+  assert.equal(parsed.visual.face, packet.visual.face);
+});
+
 test('死亡不保存、不覆盖最后活档；二维读写清除不触碰文字版key', async () => {
   const g = session(); await command(g, 'e');
   const textKey = 'trinity-relit:save:v1', textSave = JSON.stringify(g.engine.serialize());
