@@ -24,11 +24,27 @@ for(const [commands,x,y,room,target]of [[[],238,218,'palace_gate','broad_walk'],
 }
 await fixture([],280,158);await move('ArrowRight',500);assert.equal((await state()).room,'palace_gate');assert.ok((await state()).player.x>320);await page.screenshot({path:`${artifacts}/gate-east-road.png`,fullPage:true});
 await fixture(['n','n'],230,196);await click(277,189);for(let i=0;i<120;i++){await page.evaluate(()=>window.advanceTime(100));if((await state()).room==='round_pond')break;}await drain();let s=await state();assert.equal(s.room,'round_pond');assert.equal(s.navigation.arrival.entrance,'nw');assert.ok(s.player.x<70&&s.player.y<110);await page.screenshot({path:`${artifacts}/pond-NW-arrival.png`,fullPage:true});
+// Two roads are nearby on the Broad Walk. Moving the closest marker keeps the
+// explorer visible, frees the old hit area, and preserves the other road's target.
+await fixture(['n'],240,237);
+s=await state();const marker=s.routeMarker,otherRoad=s.exits.find(exit=>exit.dir==='s');
+assert.equal(marker?.exit.dir,'se');
+assert.ok(Math.hypot(otherRoad.x-s.player.x,otherRoad.y-s.player.y)<55);
+assert.ok(marker.left>=s.player.x+12||marker.left+marker.width<=s.player.x-12
+  ||marker.top>=s.player.y+7||marker.top+marker.height<=s.player.y-40);
+await page.screenshot({path:`${artifacts}/broad-walk-route-marker.png`,fullPage:true});
+await click(s.player.x,s.player.y);assert.equal((await state()).navigation.exit,null);
+await click(otherRoad.x,otherRoad.y);assert.equal((await state()).navigation.exit,'s');
+const labelPoint={x:marker.left+marker.width/4,y:marker.top+marker.height/2};
+assert.ok(s.exits.every(exit=>Math.hypot(exit.x-labelPoint.x,exit.y-labelPoint.y)>=13));
+await click(labelPoint.x,labelPoint.y);assert.equal((await state()).navigation.exit,'se');
+for(let i=0;i<120&&(await state()).room==='broad_walk';i++)await page.evaluate(()=>window.advanceTime(100));
+await drain();assert.equal((await state()).room,marker.exit.target);
 // These centreline samples were read from the painted paths, not generated
 // by the collision/pathfinding code being tested. No exit arrows are clicked.
 await fixture(['e','nw','n'],100,160);
 for(const [x,y]of [[90,140],[76,120],[80,99],[100,87],[122,75],[150,63],[180,52],[211,43],[240,35],[272,36],[315,37],[355,38],[394,40]])await point(x,y,'round_pond');
 assert.equal((await state()).room,'round_pond');await page.screenshot({path:`${artifacts}/pond-north-bank.png`,fullPage:true});
 await point(418,36,'round_pond');await point(425,22,'round_pond');await page.waitForFunction(()=>JSON.parse(window.render_game_to_text()).room==='lancaster_gate');
-assert.deepEqual(errors,[]);console.log('PASS: D moves into Flower Walk; three north roads avoid diagonal exits; Palace east road passes behind pillar; Black Lion→pond uses NW entrance; keyboard follows painted west curve and north bank to true NE branch; no errors.');await writeFile(`${artifacts}/result.json`,JSON.stringify({pass:true,cases:['flower_D','palace_north','broad_north','flower_north','gate_east','pond_NW_arrival','pond_painted_curve_and_NE'],errors},null,2));
+assert.deepEqual(errors,[]);console.log('PASS: Flower Walk input, north and east roads, source arrivals, Broad Walk marker clicks, and the painted pond bank; no browser errors.');await writeFile(`${artifacts}/result.json`,JSON.stringify({pass:true,cases:['flower_D','palace_north','broad_north','flower_north','gate_east','pond_NW_arrival','broad_walk_route_marker','pond_painted_curve_and_NE'],errors},null,2));
 }catch(error){await page.screenshot({path:`${artifacts}/failure.png`,fullPage:true}).catch(()=>{});await writeFile(`${artifacts}/failure.json`,JSON.stringify({message:error.message,state:await state().catch(()=>null),errors},null,2));throw error;}finally{await browser.close();}

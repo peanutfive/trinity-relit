@@ -568,18 +568,65 @@ function pointedPaperDetail(point) {
   return point.x>box.left&&point.x<box.left+box.width&&point.y>box.top&&point.y<box.top+box.height;
 }
 
-function exitLabel(exit) {
-  const anchor=scenes[engine.state.room].exitLabelAnchors?.[exit.dir];
-  const x=anchor?.[0]??Math.max(52,Math.min(416,exit.x));
-  const y=anchor?.[1]??(['ne','nw'].includes(exit.dir)?Math.max(49,exit.y-10):exit.dir==='n'?Math.max(27,exit.y-10):exit.dir==='s'?Math.min(268,exit.y-7):exit.y-10);
-  const text=(exit.dir==='n'?'↑ ':exit.dir==='w'?'← ':'')+exit.label+(exit.dir==='e'?' →':exit.dir==='s'?' ↓':'');
-  ctx.save();ctx.font='8px serif';const width=ctx.measureText(text).width+14;ctx.restore();
-  return {x,y,text,width,left:x-width/2,top:y-9,height:14};
+function visibleRouteMarker() {
+  if (reviewRoutes || !canMovePlayer()) return null;
+  const routes = exits();
+  let route = null, exit = null, bestDistance = Infinity;
+  for (const candidate of routes) {
+    if (candidate.interactionOnly) continue;
+    const distance = Math.hypot(candidate.x - player.x, candidate.y - player.y);
+    if (distance >= 55 || distance >= bestDistance) continue;
+    route = exit = candidate;
+    bestDistance = distance;
+  }
+  for (const boundary of sceneBoundaries(engine.state.room, engine.state, engine.rooms)) {
+    const distance = Math.hypot(boundary.x - player.x, boundary.y - player.y);
+    if (distance >= 49 || distance >= bestDistance) continue;
+    route = boundary;
+    exit = null;
+    bestDistance = distance;
+  }
+  if (!route) return null;
+
+  const { dir } = route;
+  const anchor = exit && scenes[engine.state.room].exitLabelAnchors?.[dir];
+  const x = anchor?.[0] ?? Math.max(52, Math.min(416, route.x));
+  const y = anchor?.[1] ?? ({ ne: Math.max(49, route.y - 10), nw: Math.max(49, route.y - 10),
+    n: Math.max(27, route.y - 10), s: Math.min(268, route.y - 7) }[dir] ?? route.y - 10);
+  const text = exit ? `${{ n: '↑ ', w: '← ' }[dir] ?? ''}${exit.label}${{ e: ' →', s: ' ↓' }[dir] ?? ''}` : '前方场景制作中';
+  ctx.save();
+  ctx.font = '8px serif';
+  const width = ctx.measureText(text).width + 14, height = 14;
+  ctx.restore();
+
+  const minEdge = 6, maxLeft = LOGICAL_SIZE.width - width - minEdge, maxTop = LOGICAL_SIZE.height - height - minEdge;
+  const left = Math.max(minEdge, Math.min(maxLeft, x - width / 2));
+  const top = Math.max(minEdge, Math.min(maxTop, y - 9));
+  // Reserve the visible character and the direct canvas targets for other roads.
+  const floating = engine.state.chapter === 'orbit';
+  const halfWidth = floating ? 36 : 12;
+  const obstacles = [{ left: player.x - halfWidth, right: player.x + halfWidth,
+    top: player.y - (floating ? 54 : 40), bottom: player.y + (floating ? 20 : 7) }];
+  for (const other of routes) {
+    if (other !== exit) obstacles.push({ left: other.x - 13, right: other.x + 13, top: other.y - 13, bottom: other.y + 13 });
+  }
+  const positions = [[left, top]];
+  for (const obstacle of obstacles) {
+    positions.push([obstacle.left - width, top], [obstacle.right, top],
+      [left, obstacle.top - height], [left, obstacle.bottom]);
+  }
+  positions.sort((a, b) => Math.hypot(a[0] - left, a[1] - top) - Math.hypot(b[0] - left, b[1] - top));
+  const placement = positions.find(([px, py]) => px >= minEdge && px <= maxLeft && py >= minEdge && py <= maxTop
+    && obstacles.every(obstacle => px + width <= obstacle.left || px >= obstacle.right
+      || py + height <= obstacle.top || py >= obstacle.bottom));
+  return placement ? { exit, text, left: placement[0], top: placement[1], width, height } : null;
 }
 
 function pointedExitLabel(point) {
-  if(reviewRoutes)return null;
-  return exits().find(exit=>{const label=exitLabel(exit);return !exit.interactionOnly&&Math.hypot(exit.x-player.x,exit.y-player.y)<55 && point.x>=label.left&&point.x<=label.left+label.width&&point.y>=label.top&&point.y<=label.top+label.height;});
+  const marker = visibleRouteMarker();
+  if (marker?.exit && point.x >= marker.left && point.x <= marker.left + marker.width
+      && point.y >= marker.top && point.y <= marker.top + marker.height) return marker.exit;
+  return null;
 }
 
 function render() {
@@ -609,21 +656,18 @@ function render() {
     if(engine.state.hasFlag('bird_unfolded')){ctx.fillStyle='#59472d';ctx.font='italic 2px Georgia,serif';ctx.textAlign='center';ctx.fillText('Long Water,',0,-6);ctx.fillText("Four O’Clock",0,-3.4);}
     ctx.restore();
   }
-  for (const exit of crossing||reviewRoutes?[]:exits().filter(exit => !exit.interactionOnly&&Math.hypot(exit.x-player.x,exit.y-player.y)<55)) {
-    const {x,y,text:label,width}=exitLabel(exit);
+  const marker = crossing ? null : visibleRouteMarker();
+  if (marker) {
+    const { left, top, width, height, text, exit } = marker;
     ctx.font = '8px serif';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#19251ed6';
-    ctx.fillRect(x - width / 2, y - 9, width, 14);
+    ctx.fillStyle = exit ? '#19251ed6' : '#19251ee8';
+    ctx.fillRect(left, top, width, height);
     ctx.strokeStyle = '#cfb48177';
     ctx.lineWidth = 0.5;
-    ctx.strokeRect(x - width / 2, y - 9, width, 14);
-    ctx.fillStyle = '#efe0b8';
-    ctx.fillText(label, x, y);
-  }
-  for(const boundary of crossing||reviewRoutes?[]:sceneBoundaries(engine.state.room,engine.state,engine.rooms).filter(p=>Math.hypot(p.x-player.x,p.y-player.y)<49)){
-    const x=Math.max(62,Math.min(418,boundary.x)),y=Math.max(30,Math.min(270,boundary.y-11));
-    ctx.fillStyle='#19251ee8';ctx.fillRect(x-57,y-10,114,16);ctx.fillStyle='#d1c6a3';ctx.font='7px serif';ctx.textAlign='center';ctx.fillText('前方场景制作中',x,y);
+    ctx.strokeRect(left, top, width, height);
+    ctx.fillStyle = exit ? '#efe0b8' : '#d1c6a3';
+    ctx.fillText(text, left + width / 2, top + 9);
   }
 }
 
@@ -897,7 +941,7 @@ window.render_game_to_text = () => JSON.stringify({
   art: artStatus(), backgrounds:requestedSceneArt(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
-  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
+  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), routeMarker:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, dead:engine.state.dead,processing:busy,
   storyClock:prologueClock(engine.state),
   inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol, flipped:engine.state.flipped,
