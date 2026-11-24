@@ -1,4 +1,5 @@
 import { ROOMS as RANCH } from '../js/data/ranch.js';
+import { ITEMS } from '../js/data/items.js';
 
 const optics = 'binoculars';
 const strain = 'windmill_strain';
@@ -235,12 +236,12 @@ function doorEvents(roomId, door) {
 
 // Exits, narration and both sides' commands read the same physical door flag.
 // Each direction still uses the original room's destination when open.
-function roomWithDoors(roomId, passages, observations=[], roomNote='') {
+function roomWithDoors(roomId, passages, observations=[], roomNote='', describe=RANCH[roomId].desc) {
   const room = RANCH[roomId];
   return {
     ...room,
     desc(s) {
-      let text = room.desc(s);
+      let text = describe(s);
       for (const [door] of passages) {
         if (s.hasFlag(door.flag)) {
           text = text.replace('a closed '+door.name, 'an open '+door.name)
@@ -268,6 +269,160 @@ function roomWithDoors(roomId, passages, observations=[], roomNote='') {
   };
 }
 
+// Ordinary portable objects use their existing inventory IDs and one real location.
+// A missing location in a pre-kitchen save is different from a relocated item.
+const cupboard = 'cupboard';
+const knifeScore = 'scored_steak_knife';
+export const CUPBOARD_ITEM_NAMES = {
+  knife:'steak knife', splinter:'splinter', paper_bird:'paper bird', watch:'wristwatch',
+  binoculars:'pair of binoculars', lantern:'lantern', credit_card:'credit card',
+  coin:'seven-sided coin', small_coin:'small coin', silver_coin:'silver coin', ball:'soccer ball',
+  umbrella:'umbrella', gnomon:'gnomon', bag:'bag of crumbs', ruby:'ruby', axe:'axe', icicle:'icicle',
+  garlic:'clove of garlic', cage:'birdcage', key_barrow:'skeleton key', coconut:'coconut',
+  emerald:'emerald', spade:'spade', shroud:'burial shroud', bandage:'bandage',
+  walkie_talkie:'walkie-talkie', screwdriver:'screwdriver', key_padlock:'steel key', slip:'slip of cardboard',
+};
+const cupboardIds = Object.keys(CUPBOARD_ITEM_NAMES);
+const cupboardNouns = ['cupboard','橱柜','柜子'];
+const utensilNouns = ['knife','steak knife'];
+const cnItem = id => id==='knife' ? '牛排刀' : ITEMS[id].cn;
+const itemName = (s,id) => id==='paper_bird' && s.hasFlag('bird_unfolded') ? 'piece of paper' : CUPBOARD_ITEM_NAMES[id];
+const withArticle = name => (/^[aeiou]/.test(name)?'an ':'a ')+name;
+export function restoreKitchenState(s) {
+  const location = s.itemAt('knife');
+  if (location == null) s.placeItem('knife',cupboard);
+  else if (location !== cupboard) s.setFlag(knifeScore);
+}
+
+function inCupboard(s,id) {
+  const location = s.itemAt(id);
+  return location===cupboard || (location==null && id==='knife');
+}
+export function cupboardContents(s) {
+  return cupboardIds.filter(id => inCupboard(s,id))
+    .sort((a,b) => s.cnt('cupboard_order_'+b)-s.cnt('cupboard_order_'+a));
+}
+
+// The display can place a returned object on a free shelf spot without making
+// its neighbours jump. Older saves with contents but no slot counters work too.
+export function cupboardSlots(s) {
+  const slots=new Map(),occupied=new Set();
+  const contents=cupboardContents(s);
+  for(const id of contents){
+    const stored=s.cnt('cupboard_slot_'+id);
+    const slot=stored>0 && stored<=cupboardIds.length ? stored-1 : id==='knife'?0:null;
+    if(slot!==null && !occupied.has(slot)){
+      slots.set(id,slot);
+      occupied.add(slot);
+    }
+  }
+  for(const id of contents){
+    if(slots.has(id))continue;
+    let slot=0;
+    while(occupied.has(slot))slot++;
+    slots.set(id,slot);
+    occupied.add(slot);
+  }
+  return slots;
+}
+
+function cupboardList(s,ids) {
+  const names = ids.map(id => {
+    const name = itemName(s,id);
+    const adjective = id==='splinter' || (id==='lantern' && s.hasFlag('lantern_on')) ? ' (providing light)' : '';
+    return withArticle(name) + adjective;
+  });
+  return {
+    en:names.length>1 ? names.slice(0,-1).join(', ')+' and '+names.at(-1) : names[0],
+    cn:ids.map(id => cnItem(id) + (id==='splinter' || (id==='lantern' && s.hasFlag('lantern_on')) ? '（发着光）' : '')).join('、'),
+  };
+}
+
+function kitchenDescription(s) {
+  const ids = cupboardContents(s), list = cupboardList(s,ids);
+  const contents = ids.length ? ' with '+list.en+' in it' : '';
+  const room = 'Disconnected stove pipes and an open cupboard'+contents+" are the only evidence of this room's identity.";
+  const cn = '拆开的炉管和'+(ids.length ? '放着'+list.cn+'的' : '一个敞开的')+'橱柜是这间房用途仅存的线索。';
+  return room+' A closed outer door in the west wall leads out to a hallway. Other exits lead north and east.\n\n'
+    +cn+'西墙上一扇关闭的外门通往走廊。其他出口通往北面和东面。';
+}
+
+function inspectCupboard(s,inside) {
+  const ids = cupboardContents(s);
+  if (!ids.length) return inside ? 'You see nothing unusual in the cupboard.\n\n柜子里面没有什么特别的东西。'
+    : 'You see nothing interesting on the cupboard.\n\n橱柜上没有什么值得一看的东西。';
+  const list = cupboardList(s,ids);
+  return 'You see '+list.en+(inside?' in':' on')+' the cupboard.\n\n你看到橱柜'+(inside?'里':'上')+'放着'+list.cn+'。';
+}
+
+function cupboardItemEvents(id) {
+  const noun = [id,CUPBOARD_ITEM_NAMES[id]];
+  return [
+    {
+      id:'cupboard_store_'+id,match:{verb:['put'],noun,noun2:cupboardNouns},
+      act(s,eng) {
+        if (s.inPocket(id)) return eng.print("You'll have to take it out of your pocket first.\n\n得先把它从口袋里拿出来。");
+        const en = itemName(s,id), cn = cnItem(id);
+        if (!s.has(id)) {
+          if (s.inRoom(id) || inCupboard(s,id)) return eng.print("You're not holding "+withArticle(en)+".\n\n你手里没有拿着"+cn+"。");
+          return eng.print("You're not holding that.\n\n你手里没有拿着它。");
+        }
+        if (s.wearing(id)) eng.print('[taking off the '+en+' first]\n\n[你先脱下了'+cn+']');
+        const used=new Set(cupboardSlots(s).values());
+        let slot=0;
+        while(used.has(slot))slot++;
+        s.moveItem(id,cupboard);
+        s.setCnt('cupboard_slot_'+id,slot+1);
+        s.inc('cupboard_order');
+        s.setCnt('cupboard_order_'+id,s.cnt('cupboard_order'));
+        eng.print('You put the '+en+' in the cupboard.\n\n你把'+cn+'放进了橱柜。');
+      },text:'',
+    },
+    {
+      id:'cupboard_retrieve_'+id,match:{verb:['take'],noun},
+      when:s => inCupboard(s,id),
+      act(s,eng) {
+        if (s.carryCount()>=8) return eng.print("You're holding too much already.\n\n你拿不下更多东西了。");
+        s.take(id);
+        if (id==='knife' && !s.hasFlag(knifeScore)) {
+          s.setFlag(knifeScore);
+          s.addScore(1);
+        }
+        eng.print('You take the '+itemName(s,id)+' out of the cupboard.\n\n你从橱柜里取出了'+cnItem(id)+'。');
+      },text:'',
+    },
+    {
+      id:'cupboard_missing_'+id,match:{verb:['take'],noun,noun2:cupboardNouns},
+      when:s => s.inRoom(id),
+      text:s => 'The '+itemName(s,id)+" isn't on the cupboard.\n\n"+cnItem(id)+'不在橱柜上。',
+    },
+    {
+      id:'cupboard_inspect_'+id,match:{verb:['examine'],noun},when:s => inCupboard(s,id),
+      text:s => id==='knife' ? 'The blade is still reasonably sharp.\n\n刀刃还算锋利。'
+        : typeof ITEMS[id].desc==='function' ? ITEMS[id].desc(s) : ITEMS[id].desc,
+    },
+  ];
+}
+const kitchenEvents = [
+  {id:'cupboard_inside',match:{verb:['look'],noun:['in cupboard','in the cupboard']},text:s=>inspectCupboard(s,true)},
+  {id:'cupboard_examine',match:{verb:['examine','search'],noun:cupboardNouns},text:s=>inspectCupboard(s,false)},
+  {id:'cupboard_open_shelf',match:{verb:['open','close'],noun:cupboardNouns},text:"It's an open cupboard, with no doors.\n\n这是个敞开的橱柜，没有柜门。"},
+  {id:'cupboard_fixed',match:{verb:['take'],noun:cupboardNouns},text:'The cupboard is firmly attached to the wall.\n\n橱柜牢牢固定在墙上。'},
+  {id:'kitchen_inspect_pipes',match:{verb:['examine'],noun:['pipes','stove pipes','炉管']},text:'You see nothing extraordinary in the stove pipes.\n\n炉管里没有什么特别的东西。'},
+  {id:'kitchen_fixed_pipes',match:{verb:['take'],noun:['pipes','stove pipes','炉管']},text:'The stove pipes are firmly attached to the wall.\n\n炉管牢牢固定在墙上。'},
+  {id:'kitchen_knife_held',match:{verb:['take'],noun:utensilNouns},when:s=>s.carrying('knife'),
+    text:"You're already holding the steak knife.\n\n你已经拿着那把牛排刀了。"},
+  ...cupboardIds.flatMap(cupboardItemEvents),
+];
+
+const stairNouns=['stairs','stairway','staircase','楼梯','台阶'];
+const downToIcehouse={to:'icehouse',text:'You descend the stairway.\n\n你沿楼梯走了下去。'};
+const upToHallway={to:'hallway',text:'You trudge up the stairway.\n\n你一步步爬上楼梯。'};
+const hallway = roomWithDoors('hallway', [[hallDoor,['e']]], [{
+  id:'hallway_inspect_stairs',match:{verb:['examine'],noun:stairNouns},
+  text:'The stairway leads down into the icehouse.\n\n这段楼梯向下通往冰库。',
+}]);
+
 export const RANCH_STORY_ROOMS = {
   ...RANCH,
   ne_yard:roomWithDoors('ne_yard', [[outsideDoor,['w','in']]]),
@@ -277,7 +432,28 @@ export const RANCH_STORY_ROOMS = {
   }]),
   sw_yard:roomWithDoors('sw_yard', [[southGate,['sw','out']]]),
   sw_ranch:roomWithDoors('sw_ranch', [[southGate,['ne','in']]]),
-  hallway:roomWithDoors('hallway', [[hallDoor,['e']]]),
+  hallway:{...hallway,exits(s){return {...hallway.exits(s),w:downToIcehouse,d:downToIcehouse};}},
+  icehouse:{
+    ...RANCH.icehouse,
+    exits(){return {e:upToHallway,u:upToHallway,out:upToHallway};},
+    events:[
+      {id:'icehouse_touch_wall',match:{verb:['touch'],noun:['wall','walls','墙','墙壁']},
+        text:'The walls of this underground chamber are cool and clammy to your touch.\n\n这间地下室的墙壁摸起来冰凉潮湿。'},
+      {id:'icehouse_examine_wall',match:{verb:['examine'],noun:['wall','walls','墙','墙壁']},
+        text:"[You don't need to refer to the wall to complete this story.]\n\n[完成这个故事无需特意查看墙壁。]"},
+      {id:'icehouse_inspect_stairway',match:{verb:['examine'],noun:stairNouns},
+        text:'The stairway leads up to the hallway.\n\n这段楼梯向上通往走廊。'},
+    ],
+  },
+  kitchen:{...roomWithDoors('kitchen',[[hallDoor,['w']]],kitchenEvents,'',kitchenDescription),onEnter:restoreKitchenState},
+  bathroom:{
+    ...RANCH.bathroom, events:[
+      {id:'bathroom_inspect_sink',match:{verb:['examine','look'],noun:['sink','basin','in sink','in the sink','in basin','in the basin','洗手池','水池']},
+        text:'The porcelain is stained with big, disgusting patches of brown and green mildew.\n\n瓷面布满棕绿色的大片霉斑，令人作呕。'},
+      {id:'bathroom_fixed_sink',match:{verb:['take'],noun:['sink','basin','洗手池','水池']},
+        text:'The sink is firmly attached to the wall.\n\n洗手池牢牢固定在墙上。'},
+    ],
+  },
   back_yard:roomWithDoors('back_yard', [[screenDoor,['e']],[northGate,['nw','out']]]),
   spare_room:roomWithDoors('spare_room', [[screenDoor,['w']]], [
     {

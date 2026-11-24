@@ -231,8 +231,30 @@ function notice(c,x,y,options={}) {
   for(let i=0;i<3;i++)line(c,[[x-7,y-26+i*3],[x+7-(i%2)*3,y-26+i*3]],'#827f63',.5);
 }
 
+function drawShelfItem(c,{kind,x,y,label}){
+  if(['coin','small_coin','silver_coin'].includes(kind)){
+    const silver=kind==='silver_coin';
+    ellipse(c,x,y-1,3,1.3,silver?'#77776b':'#8f6d3e');
+    ellipse(c,x,y-1.5,2.7,1,silver?'#c4c2a8':'#c9a665');
+  }else if(kind==='credit_card'||kind==='slip'){
+    polygon(c,[[x-4,y-1],[x+3,y-3],[x+5,y-1],[x-2,y+1]],kind==='slip'?'#cbbca2':'#a7ac9c');
+    line(c,[[x-2,y-1],[x+2,y-2]],'#675f51',.6);
+  }else if(kind==='watch'){
+    line(c,[[x-5,y],[x+5,y-3]],'#6b4730',2);
+    ellipse(c,x,y-1.5,2.4,1.8,'#c4b486');
+    line(c,[[x,y-2.6],[x,y-1.5],[x+1,y-1.5]],'#5b5547',.5);
+  }else{
+    // A shelf marker keeps a player-deposited item selectable if it has no world sprite.
+    c.fillStyle='#41382e';c.fillRect(x-5,y-7,10,7);
+    c.fillStyle='#ddc59b';c.font='5px serif';c.textAlign='center';c.fillText((label||'物').slice(0,2),x,y-1);
+  }
+}
+
 export function drawStoryProp(c,hotspot,state={},time=0) {
   if(!hotspot||hotspot.baked||hotspot.visual===false)return;
+  // Raised shelves use a separate on-floor point for approaching with F.
+  if((hotspot.visualOptions?.onShelf || hotspot.kind==='ranch_tableware') && Array.isArray(hotspot.drawAt))
+    hotspot={...hotspot,x:hotspot.drawAt[0],y:hotspot.drawAt[1]};
   const identity=resolveStoryActor(hotspot,state);
   if(identity.actorId)hotspot={...hotspot,...identity};
   const x=hotspot.x||0,y=hotspot.y||0,kind=identity.kind;
@@ -259,6 +281,7 @@ export function drawStoryProp(c,hotspot,state={},time=0) {
   else if(kind==='dish'){ellipse(c,x,y,6,2,'#7b8a7e');ellipse(c,x,y-.5,4.8,1.3,'#b7c8b7');}
   else if(kind==='missile'){c.save();c.translate(x,y);c.rotate(.32);polygon(c,[[-2,-25],[1,-29],[4,-25],[4,-7],[2,-3],[-2,-7]],'#a5b0a4');polygon(c,[[-1,-24],[1,-27],[1,-5],[-1,-8]],'#e4e4ce');polygon(c,[[-2,-10],[-6,-5],[-2,-6]],'#727e74');polygon(c,[[4,-10],[7,-5],[4,-6]],'#798578');c.restore();}
   else if(kind==='crow'||kind==='raven'){c.save();c.translate(x,y);const flap=Math.sin(time*7);polygon(c,[[-3,-2],[-13,-6-flap*4],[-6,-1],[0,1],[6,-1],[13,-6+flap*4],[3,-2]],'#303b36');ellipse(c,2,-3,2.5,2,'#3a4339');line(c,[[4,-3],[7,-2]],'#8a876d',.7);c.restore();}
+  else if(options.onShelf)drawShelfItem(c,hotspot);
   c.restore();
 }
 

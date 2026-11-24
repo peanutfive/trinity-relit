@@ -75,6 +75,11 @@ export function filterVisualPresence(text,{room,objects=[],source='event',lanter
   const visible=new Set(objects.filter(o=>o.visual!==false).map(o=>o.kind));
   const matches=VISUAL_PRESENCE_RULES.filter(r=>(!r.when||r.when({lanternLit}))&&(r.rooms.includes(room)||(source==='item-annotation'&&r.id==='ball-in-flowers'))&&r.kinds.some(kind=>visible.has(kind)));
   const remove=new Set(matches.flatMap(r=>r.paragraphs)),removed=[];
+  if(room==='kitchen' && source==='room' && objects.some(o=>o.visual!==false && o.visualOptions?.onShelf)){
+    const intro=String(text).replace(/(an open cupboard) with [^.\n]+? in it(?= are the only evidence)/,'$1')
+      .replace(/拆开的炉管和放着[^。\n]+?的橱柜(?=是这间房)/,'拆开的炉管和一个敞开的橱柜');
+    if(intro!==text){removed.push('kitchen-shelf-contents');text=intro;}
+  }
   const parts=String(text).split(/\n+/).map(p=>p.trim()).filter(Boolean);
   for(const r of VISUAL_GUIDANCE_RULES.filter(r=>r.room===room))for(let i=0;i<parts.length;i++)for(const sentence of r.sentences)if(parts[i].includes(sentence)){
     parts[i]=parts[i].replace(sentence,'').trim();if(!removed.includes(r.id))removed.push(r.id);

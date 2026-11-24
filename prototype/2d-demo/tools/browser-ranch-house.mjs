@@ -13,6 +13,9 @@ const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-ranch-house');
 const checkpointOnly = process.argv.includes('--checkpoint-only');
 const southWingOnly = process.argv.includes('--south-wing-only');
+const kitchen = process.argv.includes('--kitchen');
+const kitchenOnly = process.argv.includes('--kitchen-only');
+const icehouse = process.argv.includes('--icehouse');
 const prelude = join(output, 'normal-route');
 const playedSave = process.env.PLAYED_RANCH_SAVE || join(prelude, 'windmill-normal-save.json');
 await mkdir(output, { recursive: true });
@@ -29,7 +32,7 @@ assert.equal(saved.engine.state.itemLoc.splinter, 'inventory');
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, hasTouch: true });
 page.setDefaultTimeout(8000);
-const errors = [], steps = [];
+const errors = [], steps = [], animationFrames = [];
 page.on('pageerror', error => errors.push(error.message));
 page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
 page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
@@ -104,13 +107,15 @@ async function walkTo([x, y]) {
     `${before.room} 没有走到画面点 ${x},${y}，停在 ${feet(after)}`);
 }
 
-function checkArrival(before, after, target, command, entrance) {
+function checkArrival(before, after, target, command, entrance, { take, place, score = 0 } = {}) {
   assert.equal(after.room, target);
   assert.equal(after.chapter, 'ranch');
   assert.equal(after.lastCommand, command);
   assert.equal(after.turns, before.turns + 1);
-  assert.equal(after.score, before.score);
-  assert.deepEqual(after.inventory, before.inventory);
+  assert.equal(after.score, before.score + score);
+  const expectedInventory = before.inventory.filter(id => id !== place);
+  if (take) expectedInventory.push(take);
+  assert.deepEqual(after.inventory.toSorted(), expectedInventory.toSorted());
   assert.equal(after.art, 'loaded');
   if (target !== before.room) {
     assert.equal(after.navigation.arrival?.fromRoom, before.room);
@@ -140,7 +145,7 @@ async function road(dir, target, entrance, points, directions = keys[dir]) {
     entrance, foot: feet(after), turn:after.turns });
 }
 
-async function action(command, target, { point: hitPoint, touch = false, entrance, label, screenshot } = {}) {
+async function action(command, target, { point: hitPoint, touch = false, entrance, label, screenshot, take, place, score, animation } = {}) {
   const before = await drain();
   assert.ok(before.objects.some(object => object.actions.some(action => action.command === command)),
     `${before.room} 缺少实际 ${command} 物件`);
@@ -148,13 +153,35 @@ async function action(command, target, { point: hitPoint, touch = false, entranc
   if (hitPoint) await point(hitPoint, touch);
   else await page.keyboard.press('f');
   const after = await until(s => !s.processing && s.turns > before.turns, `未执行 ${command}`);
-  checkArrival(before, after, target, command, entrance);
+  checkArrival(before, after, target, command, entrance, { take, place, score });
   const dialogue = after.dialogue?.text;
+  if (animation) await captureStairs(animation);
   await drain();
   if (screenshot) await shot(screenshot);
   steps.push({ from: before.room, to: target, command, input: touch ? 'touch' : hitPoint ? 'click' : 'F',
-    point: hitPoint, entrance, foot: feet(after), dialogue });
+    point: hitPoint, entrance, foot: feet(after), dialogue, take, place, score });
   return after;
+}
+
+async function captureStairs(name) {
+  const mid = await until(s=>s.narrative.currentEvent==='ranch_cellar_stairs' && s.narrative.elapsed>=1.05,
+    '未看到冰库楼梯中段');
+  assert.equal(mid.narrative.sceneRoom,'icehouse');
+  assert.ok(mid.narrative.elapsed<1.30);
+  await shot(name);
+  await page.keyboard.press('Escape');
+  const paused = await until(s=>s.mode==='paused','演出没有暂停');
+  await tick(2400);
+  const frozen = await state();
+  assert.equal(frozen.narrative.currentEvent,'ranch_cellar_stairs');
+  assert.equal(frozen.narrative.elapsed,paused.narrative.elapsed);
+  assert.deepEqual(story(frozen),story(mid));
+  await page.keyboard.press('Escape');
+  const resumed = await until(s=>s.narrative.elapsed>frozen.narrative.elapsed+0.05,'演出没有从中段继续');
+  await drain();
+  assert.deepEqual(story(await state()),story(mid));
+  animationFrames.push({name,seconds:mid.narrative.elapsed,paused:paused.narrative.elapsed,
+    frozen:frozen.narrative.elapsed,resumed:resumed.narrative.elapsed,turn:mid.turns,room:mid.narrative.sceneRoom});
 }
 
 async function touchRoad(dir, target, entrance, hitPoint) {
@@ -242,6 +269,7 @@ const outsideDoor = { noun: 'outside door', flag: 'ne_yard_outside_door_open', l
 const southGate = { noun: 'iron gate', flag: 'sw_yard_iron_gate_open', label: '铁门' };
 const northGate = { noun: 'iron gate', flag: 'back_yard_iron_gate_open', label: '铁门' };
 const screenDoor = { noun: 'screen door', flag: 'back_yard_screen_door_open', label: '纱门' };
+const kitchenDoor = { noun: 'outer door', flag: 'hallway_outer_door_open', label: '外门' };
 
 function doorHandle(current, { noun }, open) {
   const command = `${open ? 'close' : 'open'} ${noun}`;
@@ -275,7 +303,7 @@ async function staysPut(directions, { route, target, point: ground, label, pictu
   if (picture) await shot(picture);
 }
 
-async function checkMap(chapter, required, connections, screenshot, { concealed = [], concealedConnections = [], closed } = {}) {
+async function checkMap(chapter, required, connections, screenshot, { concealed = [], concealedConnections = [], closed, stairway } = {}) {
   const before = await drain();
   await page.keyboard.press('m');
   const active = await until(s => s.mode === 'map', '未打开探索地图');
@@ -294,10 +322,14 @@ async function checkMap(chapter, required, connections, screenshot, { concealed 
     const detail = await map.locator('.map-route-summary').textContent();
     assert.equal(detail.includes('门已关'), closed, `地图闭门提示与 ${before.room} 的实走进度不符`);
   }
+  if (stairway) {
+    const stairs = await map.locator('.map-stairway').evaluateAll(items => items.map(item=>[item.dataset.from,item.dataset.to].sort()));
+    assert.equal(stairs.filter(pair=>pair.join('|')===stairway.toSorted().join('|')).length,1);
+  }
   await shot(screenshot);
   await page.keyboard.press('m');
   assert.deepEqual(story(await state()), story(before));
-  steps.push({ command:'map', room:before.room, required, connections, concealed, concealedConnections, closed });
+  steps.push({ command:'map', room:before.room, required, connections, concealed, concealedConnections, closed, stairway });
 }
 
 async function testBedroom() {
@@ -330,10 +362,14 @@ async function testBedroom() {
     [['front_deck','ne_yard'],['ne_yard','bedroom']], 'bedroom-map');
 }
 
-async function testSouthGate() {
+async function walkToSouthwestYard() {
   await road('s', 'front_deck', 'n', [[183,244]]);
   await road('s', 'se_yard', 'n', [[155,244]]);
   await road('w', 'sw_yard', 'e', [[43,144]]);
+}
+
+async function testSouthGate() {
+  await walkToSouthwestYard();
   await shot('southwest-yard-entry');
   await staysPut(['a'], { label:'刚从东南院进西南院时继续向西' });
   await road('e', 'se_yard', 'w', [[437,96]]);
@@ -451,22 +487,190 @@ async function testRearRooms() {
     'house-complete-loop-map');
 }
 
+async function walkToHallway() {
+  await walkToSouthwestYard();
+  await road('n', 'hallway', 's', [[205,111],[201,78]]);
+}
+
+async function testKitchenDoor() {
+  await walkToHallway();
+  await staysPut(['d'], { point:[286,172],route:'e',target:'kitchen',label:'短廊外门关闭' });
+  await checkMap('ranch', ['hallway'], [], 'kitchen-unvisited-map', { concealed:['kitchen'],closed:false });
+  await approach(kitchenDoor.label, ['d'], [276,171]);
+  await toggleDoor(kitchenDoor, true, { screenshot:'hallway-kitchen-door-open' });
+
+  await page.setViewportSize({ width:390,height:844 });
+  await toggleDoor(kitchenDoor, false, { point:[307,150],touch:true,screenshot:'phone-kitchen-door-leaf' });
+  await toggleDoor(kitchenDoor, true, { point:[320,154],touch:true });
+  await action('e', 'kitchen', { point:[320,154],touch:true,entrance:'w',screenshot:'phone-kitchen-doorway' });
+  await page.setViewportSize({ width:1440,height:900 });
+  await shot('kitchen-entry');
+
+  await approach(kitchenDoor.label, ['a'], [102,163]);
+  await toggleDoor(kitchenDoor, false, { screenshot:'inside-kitchen-door-closed' });
+  await reopen('kitchen-door-closed-reopened');
+  await checkMap('ranch', ['hallway','kitchen'], [['hallway','kitchen']], 'kitchen-closed-door-map', { closed:true });
+  await staysPut(['a'], { point:[86,185],route:'w',target:'hallway',label:'厨房外门关闭' });
+  await approach(kitchenDoor.label, ['a'], [102,184]);
+  await toggleDoor(kitchenDoor, true);
+}
+
+async function holdInventoryItem(id, label) {
+  await drain();
+  await page.keyboard.press('i');
+  await page.locator('#choices').getByRole('button', { name:label, exact:true }).click();
+  assert.equal((await state()).heldItem, id);
+}
+
+function shelfPoint(current, itemId) {
+  const item = current.objects.find(object=>object.itemId===itemId && object.visualOptions?.onShelf);
+  assert.ok(item, `敞柜没有显示 ${itemId}`);
+  return [item.pointerShape.x,item.pointerShape.y];
+}
+
+async function testCupboard() {
+  const before = await drain();
+  assert.ok(before.objects.some(object=>object.kind==='ranch_cupboard'));
+  assert.ok(before.objects.some(object=>object.itemId==='knife'));
+  const cabinetPoint = [287,55];
+  await approach('橱柜', ['w'], [287,124]);
+  const cupboard = await action('examine cupboard', 'kitchen', { label:'橱柜',screenshot:'kitchen-cupboard' });
+  assert.match(cupboard.dialogue?.text, /牛排刀/);
+
+  await page.setViewportSize({ width:390,height:844 });
+  await action('take knife from cupboard','kitchen', {
+    point:shelfPoint(cupboard,'knife'),touch:true,take:'knife',score:1,screenshot:'phone-take-knife',
+  });
+  await page.setViewportSize({ width:1440,height:900 });
+  await reopen('knife-inventory-reopened');
+  await holdInventoryItem('knife', '刀');
+  await action('put knife in cupboard','kitchen', { point:cabinetPoint,place:'knife',screenshot:'knife-returned' });
+  await holdInventoryItem('splinter', '木片');
+  const bothStored = await action('put splinter in cupboard','kitchen', { point:cabinetPoint,place:'splinter' });
+  await reopen('knife-cupboard-reopened');
+  const both = await action('examine cupboard','kitchen', { point:cabinetPoint,screenshot:'cupboard-two-items' });
+  assert.match(both.dialogue?.text, /牛排刀/);
+  assert.match(both.dialogue?.text, /木片/);
+  for (const id of ['knife','splinter']) assert.deepEqual(shelfPoint(both,id),shelfPoint(bothStored,id));
+  const wood = await action('take splinter from cupboard','kitchen', { point:shelfPoint(both,'splinter'),take:'splinter' });
+  assert.deepEqual(shelfPoint(wood,'knife'),shelfPoint(both,'knife'));
+  await action('take knife from cupboard','kitchen', { point:shelfPoint(wood,'knife'),take:'knife' });
+  await reopen('knife-retaken-reopened');
+  await page.keyboard.press('i');
+  assert.equal(await page.locator('#choices').getByRole('button', { name:'刀', exact:true }).count(), 1);
+  await page.keyboard.press('i');
+  await drain();
+}
+
+async function testNorthRooms() {
+  await road('n','nw_room','s', [[225,103]]);
+  await shot('northwest-room-from-kitchen');
+  await road('n','spare_room','s', [[232,85]]);
+  await road('n','bathroom','s', [[228,75]]);
+  await shot('bathroom-from-spare-room');
+  await action('examine sink','bathroom', { point:[199,80],screenshot:'bathroom-sink' });
+  const fixed = await action('take sink','bathroom', { point:[199,80] });
+  assert.match(fixed.dialogue?.text, /固定|墙/);
+  await reopen('bathroom-reopened');
+  await road('s','spare_room','n', [[236,213]]);
+  await road('s','nw_room','n', [[230,241]]);
+  await road('s','kitchen','n', [[229,225]]);
+  await checkMap('ranch', ['hallway','kitchen','nw_room','spare_room','bathroom'],
+    [['hallway','kitchen'],['kitchen','nw_room'],['nw_room','spare_room'],['spare_room','bathroom']], 'kitchen-north-map');
+}
+
+async function testKitchenWing() {
+  await testKitchenDoor();
+  await testCupboard();
+  if (!kitchenOnly) await testNorthRooms();
+  await road('w','hallway','e', [[87,185]]);
+  assert.ok((await state()).inventory.includes('knife'));
+  await shot('hallway-return-with-knife');
+}
+
+function staircase(current, target) {
+  const exits = current.exits.filter(exit=>exit.target===target);
+  assert.equal(exits.length,1,'同一楼梯只显示一个出口');
+  assert.equal(exits[0].interactionOnly,true);
+  const passage = current.objects.filter(object=>object.actions.some(action=>action.command===exits[0].dir));
+  assert.equal(passage.length,1,'同一楼梯只应有一个互动');
+  return { exit:exits[0], object:passage[0] };
+}
+
+async function dropWoodBeforeStairs() {
+  const before = await drain();
+  await holdInventoryItem('splinter','木片');
+  await page.keyboard.press('i');
+  await page.locator('#inventory-drop').click();
+  const after = await until(s=>!s.processing && s.lastCommand==='drop splinter' && s.turns>before.turns,'走廊没有放下木片');
+  checkArrival(before,after,'hallway','drop splinter',null,{place:'splinter'});
+  assert.ok(after.objects.some(object=>object.itemId==='splinter'));
+  await drain();
+  steps.push({ command:'drop splinter',room:'hallway',input:'inventory menu',turn:after.turns });
+}
+
+async function testIcehouse() {
+  await walkToHallway();
+  await saveProgress('hallway-played.json');
+  await checkMap('ranch', ['hallway'], [], 'icehouse-unvisited-map', {concealed:['icehouse']});
+  await dropWoodBeforeStairs();
+  await staysPut(['a'], {point:[168,177],label:'走到西阶不会自行下楼'});
+  const down = staircase(await state(),'icehouse');
+  await approach(down.object.label,['a'],[172,178]);
+  const arrival = await action(down.exit.dir,'icehouse',{
+    label:down.object.label,entrance:SCENES.icehouse.sourceArrivals.hallway.entrance,screenshot:'icehouse-without-wood',
+    animation:'icehouse-down-mid-stair',
+  });
+  assert.ok(!arrival.inventory.includes('splinter')&&!arrival.inventory.includes('lantern'));
+  assert.ok(arrival.objects.every(object=>!object.itemId));
+  const wall = await action('touch wall','icehouse',{point:[110,61],screenshot:'icehouse-wall-left'});
+  assert.match(wall.dialogue?.text,/冰凉|潮湿/);
+  assert.ok(wall.player.x>=85 && wall.player.x<=132,`墙面偏左触点没有带角色走到同侧 ${feet(wall)}`);
+  await reopen('icehouse-reopened');
+  await checkMap('ranch', ['hallway','icehouse'], [['hallway','icehouse']], 'icehouse-stairs-map', {stairway:['hallway','icehouse']});
+
+  const up = staircase(await state(),'hallway');
+  await page.setViewportSize({width:390,height:844});
+  await action(up.exit.dir,'hallway',{point:[376,132],touch:true,entrance:'w',screenshot:'phone-icehouse-return'});
+  assert.ok((await state()).objects.some(object=>object.itemId==='splinter'));
+  await action(down.exit.dir,'icehouse',{
+    point:[120,178],touch:true,entrance:SCENES.icehouse.sourceArrivals.hallway.entrance,screenshot:'phone-icehouse-entry',
+  });
+  await page.setViewportSize({width:1440,height:900});
+  await approach(up.object.label,['d'],[316,153]);
+  await action(up.exit.dir,'hallway',{label:up.object.label,entrance:'w',animation:'icehouse-up-mid-stair'});
+
+  const item = (await state()).objects.find(object=>object.itemId==='splinter');
+  assert.ok(item);
+  const itemPoint = [item.pointerShape.x,item.pointerShape.y];
+  if (!(await state()).observed.includes(item.id)) await action('examine splinter','hallway',{point:itemPoint});
+  await action('take splinter','hallway',{point:itemPoint,take:'splinter'});
+  await reopen('hallway-reopened-after-icehouse');
+}
+
 try {
   await importPlayedProgress();
   await reachNorthYard();
   if (!checkpointOnly) {
-    await testBedroom();
-    await testSouthGate();
-    if (!southWingOnly) await testRearRooms();
+    if (icehouse) await testIcehouse();
+    else if (kitchen || kitchenOnly) await testKitchenWing();
+    else {
+      await testBedroom();
+      await testSouthGate();
+      if (!southWingOnly) await testRearRooms();
+    }
   }
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({ source: saved.engine.state.room,
-    sourceTurn:saved.engine.state.turns, steps, errors }, null, 2)}\n`);
-  console.log(checkpointOnly ? '经正式道路和坡道到达东北院' : '牧场双侧门、触摸门洞、走廊、刷新与地图通过');
+    sourceTurn:saved.engine.state.turns, steps, animationFrames, errors }, null, 2)}\n`);
+  if (checkpointOnly) console.log('经正式道路和坡道到达东北院');
+  else if (icehouse) console.log('短廊西阶、暗处无木片、手机上下楼、地图与刷档通过');
+  else if (kitchen || kitchenOnly) console.log('厨房外门、敞柜、北侧房间、触摸与存档通过');
+  else console.log('牧场双侧门、触摸门洞、走廊、刷新与地图通过');
 } catch (error) {
   await shot('failure').catch(() => {});
   await writeFile(join(output, 'failure.json'), `${JSON.stringify({ message: error.message,
-    current: await state().catch(() => null), steps, errors }, null, 2)}\n`);
+    current: await state().catch(() => null), steps, animationFrames, errors }, null, 2)}\n`);
   throw error;
 } finally {
   await browser.close();

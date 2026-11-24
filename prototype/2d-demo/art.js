@@ -29,7 +29,13 @@ export function ensureSceneArt(room,state){
   if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
   const base=loadPlate(src),doors=ranchDoors(scene);
   // Door commands and restored saves must show the matching plate from their first frame.
-  return doors.length?Promise.all([base,...doors.map(door=>loadPlate(doorImage(door)))]).then(([image])=>image):base;
+  const extras=[...doors.map(doorImage),...(scene.preloadArt||[])];
+  return extras.length?Promise.all([base,...extras.map(loadPlate)]).then(([image])=>image):base;
+}
+export function propImage(src){
+  if(!backgrounds.has(src) && typeof Image!=='undefined')loadPlate(src).catch(()=>{});
+  const image=backgrounds.get(src);
+  return image?.complete && image.naturalWidth ? image : null;
 }
 export function requestedSceneArt(){return [...backgrounds.keys()];}
 const dust = Array.from({length:22},(_,i)=>({x:(i*79+31)%480,y:(i*47+19)%288,phase:i*2.1}));

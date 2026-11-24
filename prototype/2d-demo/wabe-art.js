@@ -27,7 +27,7 @@ function ringAngle(symbol,time) {
   return angle;
 }
 export function renderWabeSprite(ctx,object,state,time) {
-  if(state.chapter!=='wabe')return false;
+  if(state.chapter!=='wabe' && !(state.chapter==='ranch' && object.kind==='splinter'))return false;
   const {kind,x,y}=object;
   // These immovable features are part of the painted background.
   if(kind==='stairs'||kind==='log')return true;
@@ -60,7 +60,8 @@ export function renderWabeSprite(ctx,object,state,time) {
   if(kind==='splinter'){
     if(!atlas.complete||!atlas.naturalWidth)return false;
     ctx.save();ctx.shadowColor='#c1d996';ctx.shadowBlur=2+Math.sin(time*2)*.5;
-    stamp(ctx,'splinter',x,y,23,16);ctx.restore();return true;
+    const width=object.visualOptions?.onShelf?12:23;
+    stamp(ctx,'splinter',x,y,width,width*16/23);ctx.restore();return true;
   }
   return false;
 }

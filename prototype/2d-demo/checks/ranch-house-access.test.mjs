@@ -134,14 +134,18 @@ test('新路口从对应来向入场，玩家可从落脚点走进房间，也�
   }
 });
 
-test('未制作的相邻房间只标到边界，已关上的通廊外门遮住对应提示', () => {
+test('走廊东西和备用房间南北的通路已经连通，关闭的外门隐藏当地路牌', () => {
   function boundaries(room, flags=[]) {
     const state = stateAt(room,flags);
     return sceneBoundaries(room,state,ROOMS).map(route=>route.dir).sort();
   }
-  assert.deepEqual(boundaries('spare_room'), ['n','s']);
-  assert.deepEqual(boundaries('hallway'), ['w']);
-  assert.deepEqual(boundaries('hallway',[hallDoor]), ['e','w']);
+  assert.deepEqual(boundaries('spare_room'), []);
+  assert.deepEqual(boundaries('hallway'), []);
+  assert.deepEqual(boundaries('hallway',[hallDoor]), []);
+  assert.equal(sceneExits('hallway',stateAt('hallway'),ROOMS).find(exit=>exit.dir==='w')?.target,'icehouse');
+  const upstairs = sceneExits('spare_room',stateAt('spare_room'),ROOMS);
+  assert.equal(upstairs.find(exit=>exit.dir==='n')?.target,'bathroom');
+  assert.equal(upstairs.find(exit=>exit.dir==='s')?.target,'nw_room');
   for (const room of ['back_yard','spare_room','hallway','bedroom','sw_yard']) {
     const signs = sceneExits(room,stateAt(room),ROOMS);
     assert.ok(signs.every(sign=>sign.target!==room), room+' 的实墙不能挂上指回本地的路牌');
@@ -211,8 +215,8 @@ test('门槛、走廊和脚下土路与五幅原画的实际位置吻合', () =>
     ], [[251,24],[231,229],[47,220]]],
     ['hallway', [
       [[234,271],[232,195],[238,128],[237,67],[237,18]],
-      [[224,158],[170,165],[129,174],[99,180]],
-    ], [[69,181],[130,108],[344,123]]],
+      [[224,158],[170,165],[146,175],[139,176]],
+    ], [[69,181],[99,180],[130,108],[344,123]]],
     ['back_yard', [
       [[237,270],[235,198],[238,130],[169,90],[117,70],[90,60]],
       [[238,130],[305,138],[366,147],[405,158]],
@@ -245,7 +249,7 @@ test('点击已推开的门扇关门，点击空出的门洞穿行，两处脚�
     ['nw_ranch',northGate,[253,136],[231,127],'back_yard'],
     ['back_yard',screenDoor,[395,141],[409,143],'spare_room'],
     ['spare_room',screenDoor,[63,149],[49,154],'back_yard'],
-    ['hallway',hallDoor,[307,153],[319,153],null],
+    ['hallway',hallDoor,[307,153],[319,153],'kitchen'],
   ];
   const navigation = createNavigationSceneCache();
   for (const [room,flag,leafPoint,holePoint,target] of samples) {
@@ -270,16 +274,10 @@ test('点击已推开的门扇关门，点击空出的门洞穿行，两处脚�
     }
     const close = pick(leafPoint,door.id);
     assert.equal(close,'close '+door.noun);
-    const passage = target ? pick(holePoint,openingId) : null;
-    if (!target) {
-      assert.ok(!objects.some(object=>object.id===openingId),'厨房尚无可穿过的门洞');
-      assert.notEqual(pointerTarget(objects,{x:holePoint[0],y:holePoint[1]})?.kind,'passage');
-    }
+    const passage = pick(holePoint,openingId);
     await enter(close,room);
     assert.equal(engine.state.hasFlag(flag),false);
-    if (passage) {
-      await enter(open,room);
-      await enter(passage,target);
-    }
+    await enter(open,room);
+    await enter(passage,target);
   }
 });

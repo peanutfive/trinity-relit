@@ -1,6 +1,14 @@
 import {resolveInteraction} from './interaction-intent.js';
 const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
 const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water)$/;
+function physicalHint(command,target){
+  if(command==='take map'||command==='take sink'||command==='take stove pipes')return '试着取下';
+  if(command?.endsWith(' in cupboard'))return '放进橱柜';
+  if(target.kind==='ranch_tableware'||target.visualOptions?.onShelf && command?.startsWith('take '))return '拿起';
+  if(command==='open box')return '打开';
+  if(/^push (switch|button)$/.test(command||''))return '按下';
+  return null;
+}
 // The nearby prompt and the F handler consume this same read-only decision.
 // A selected prop must never relabel a passage as a puzzle-item combination.
 export function keyboardInteraction(state,target,{heldItem=null,observed=new Set()}={}){
@@ -11,7 +19,7 @@ export function keyboardInteraction(state,target,{heldItem=null,observed=new Set
   if(!target)return null;
   const command=resolveInteraction(state,target,{heldItem,observed});
   const inspecting=/^(examine |read |look$)/.test(command||'');
-  const physical=command==='take map'?'试着取下':command==='open box'?'打开':/^push (switch|button)$/.test(command||'')?'按下':null;
+  const physical=physicalHint(command,target);
   const hint=target.physicalHint|| (navigation.test(command||'')?target.navigationHint||'通行':command==='wait'?'等候':inspecting?'观察':physical|| (heldItem?'使用手中物品':observed.has(target.id)?target.label:'观察'));
   return {type:'target',target,command,hint};
 }

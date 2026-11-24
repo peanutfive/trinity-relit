@@ -15,13 +15,23 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
   ranch: () => import('./ranch-story.js'),
 });
 
+class ExplorationParser extends Parser {
+  parse(input){
+    const command=super.parse(input);
+    if(command)return command;
+    if(/^(?:(?:touch|feel) (?:the )?walls?|(?:摸|触摸)(?:墙|墙壁|墙面))$/i.test(input.trim()))
+      return {type:'simple',verb:'touch',noun:'wall'};
+    return null;
+  }
+}
+
 // The visual entry point has its own room dictionary. Lazy loading must not mutate
 // the chapter module's exported ROOMS object or share state between sessions.
 export function createPrologueSession({ ui, onAutosave } = {}) {
   const quietUi = Object.fromEntries(['text', 'system', 'inventory', 'location', 'userInput'].map(name => [name, () => {}]));
   let engine;
   engine = new GameEngine({
-    rooms: { ...ROOMS }, items: ITEMS, parser: new Parser(), embedding: null,
+    rooms: { ...ROOMS }, items: ITEMS, parser: new ExplorationParser(), embedding: null,
     ui: ui || quietUi, onAutosave, preloadedChapters: ['prologue'],
     chapterLoader: async chapterId => {
       // Keep chapter imports lazy and register timer callbacks before exposing

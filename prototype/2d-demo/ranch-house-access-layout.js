@@ -61,18 +61,23 @@ export const RANCH_HOUSE_ACCESS_LAYOUT = {
     walkablePolygons:[
       along([[0,176,297],[29,174,299],[63,168,300],[98,162,303],[133,155,305],
         [155,149,307],[190,145,318],[222,147,325],[258,146,326],[288,142,333]]),
-      [[82,163],[142,145],[163,144],[161,201],[81,195]],
+      [[131,149],[146,145],[163,144],[161,201],[128,197]],
       [[296,154],[311,148],[329,174],[328,193],[303,194]],
     ],
-    exitAnchors:{n:[237,17],s:[236,273],w:[99,180],e:[319,178]},showUnmadeExits:true,
+    exitAnchors:{n:[237,17],s:[236,273],w:[139,176],e:[319,178]},showUnmadeExits:true,
     exitSpans:{n:[[187,17],[285,17]],s:[[158,273],[314,273]]},
-    hiddenExitDirs:['d','in','out'], omitSelfExitDirs:['e'],
+    hiddenExitDirs:['d','in','out'], omitSelfExitDirs:['e'],interactionExitDirs:['w'],
+    passageVisuals:{w:{label:'下楼',navigationHint:'下楼',radius:23,pointerShape:{
+      kind:'polygon',points:[[78,164],[144,144],[145,195],[79,199]],priority:3,
+    }}},
     sourceArrivals:{
       back_yard:{x:237,y:61,face:'down',entrance:'n'},
       sw_yard:{x:235,y:235,face:'up',entrance:'s'},
+      kitchen:{x:277,y:174,face:'left',entrance:'e'},
+      icehouse:{x:178,y:177,face:'right',entrance:'w'},
     },
     doorPlacement:{
-      id:'hallway:outer-door',flag:'hallway_outer_door_open',noun:'outer door',label:'外门',
+      id:'hallway:outer-door',flag:'hallway_outer_door_open',noun:'outer door',label:'外门',dir:'e',
       openOverlay:'ranch-hallway-door-open',at:[319,178],approach:[300,171],openLeafApproach:[291,165],
       pointerShape:{kind:'polygon',points:[[309,113],[329,145],[329,191],[309,159]],priority:3},
       openingShape:{kind:'polygon',points:[[313,124],[327,143],[327,185],[313,167]],priority:4},
@@ -134,6 +139,8 @@ export const RANCH_HOUSE_ACCESS_LAYOUT = {
     sourceArrivals:{
       bedroom:{x:383,y:148,face:'left',entrance:'e'},
       back_yard:{x:93,y:163,face:'right',entrance:'w'},
+      bathroom:{x:228,y:83,face:'down',entrance:'n'},
+      nw_room:{x:231,y:230,face:'up',entrance:'s'},
     },
     doorPlacement:{
       id:'spare_room:screen-door',flag:'back_yard_screen_door_open',noun:'screen door',label:'纱门',dir:'w',

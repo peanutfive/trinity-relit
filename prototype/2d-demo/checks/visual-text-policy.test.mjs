@@ -44,6 +44,19 @@ test('every marked removal still matches actual chapter wording and an actual vi
  }
 });
 
+test('厨房进门时靠画面发现柜中物品，主动看柜子会列出确实在里面的东西',async()=>{
+ const engine=createPrologueSession();await engine.activateChapter('ranch');
+ const state=engine.state;state.chapter='ranch';state.room='kitchen';
+ state.placeItem('knife','cupboard');state.placeItem('splinter','cupboard');
+ const original=engine.rooms.kitchen.desc(state),objects=getHotspots(state);
+ const shown=filterVisualPresence(original,{room:'kitchen',objects,source:'room'});
+ assert.ok(shown.removed.includes('kitchen-shelf-contents'));
+ assert.match(shown.text,/an open cupboard are the only evidence/);
+ assert.match(shown.text,/一个敞开的橱柜/);
+ assert.doesNotMatch(shown.text,/steak knife|splinter|牛排刀|木片/);
+ assert.equal(filterVisualPresence(original,{room:'kitchen',objects,source:'event'}).text,original);
+});
+
 test('水底实际亮灯时保留原版灯束描写，木片照明只保留能见范围',async()=>{
  const e=createPrologueSession();await e.activateChapter('ranch');
  e.state.chapter='ranch';e.state.room='underwater';e.state.placeItem('splinter','underwater');

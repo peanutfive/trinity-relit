@@ -5,6 +5,24 @@ import { getHotspots } from '../interaction-catalog.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from '../narrative.js';
 import { resolveStoryActor } from '../prologue-art.js';
 
+test('冰库上下阶共用一个楼梯，停在中段或跳过都不会重复进房',()=>{
+  const view=(room,x,y,turns)=>({chapter:'ranch',room,turns,visual:{player:{x,y,face:'left'},hotspots:[]}});
+  const hall=view('hallway',142,176,8),cellar=view('icehouse',300,154,9);
+  for(const [before,after,command] of [[hall,cellar,'w'],[cellar,{...hall,turns:10},'e']]){
+    const director=createNarrativeDirector(),original=JSON.stringify([before,after]);
+    assert.deepEqual(director.onCommand(before,after,command),['ranch_cellar_stairs']);
+    assert.equal(director.getState(after).sceneRoom,before.room);
+    director.update(1.1);
+    const midway=director.getState(after);
+    assert.equal(midway.sceneRoom,'icehouse');assert.ok(midway.hidePlayer);
+    assert.equal(director.getState(after).elapsed,midway.elapsed);
+    director.skip();
+    assert.equal(director.getState(after).busy,false);
+    assert.equal(director.getState(after).sceneRoom,after.room);
+    assert.equal(JSON.stringify([before,after]),original);
+  }
+});
+
 function game() {
   const engine=createPrologueSession(),director=createNarrativeDirector();
   engine.moveTo(engine.state.room);

@@ -1,4 +1,5 @@
 import { paintCharacter } from './character.js';
+import { propImage } from './art.js';
 
 const art = new Map();
 function plate(name) {
@@ -16,10 +17,11 @@ export function warmWindmillArt(room) {
   }
 }
 export function drawRanchProp(c,object) {
-  if (object.kind!=='binoculars') return false;
-  const image=plate('ranch-binoculars');
+  const tableware=object.kind==='ranch_tableware'||object.itemId==='knife';
+  if (!tableware && object.kind!=='binoculars') return false;
+  const image=tableware?propImage('./assets/ranch-tableware-v1.png'):plate('ranch-binoculars');
   if (image) {
-    const width=13, height=width*image.naturalHeight/image.naturalWidth;
+    const width=tableware?12:13, height=width*image.naturalHeight/image.naturalWidth;
     c.drawImage(image,object.x-width/2,object.y-height,width,height);
   }
   return true;
@@ -63,27 +65,45 @@ export function drawBottomVisibility(c,player,lit,bottomLight,lantern) {
 
 const clamp=t=>Math.max(0,Math.min(1,t));
 function at(a,b,t){return a+(b-a)*clamp(t);}
-export function windmillMotion(before,after,command) {
+const cellarCut=.23;
+export function ranchMotion(before,after,command) {
   if(before.chapter!=='ranch')return null;
   const from=before.room,to=after.room;
   const start=before.visual?.player, end=after.visual?.player;
   if(!start||!end)return null;
   let kind,duration;
   if(from==='windmill' && to==='reservoir'){kind='fall';duration=2.25;}
+  else if((from==='hallway'&&to==='icehouse')||(from==='icehouse'&&to==='hallway')){kind='cellar_stairs';duration=2.2;}
   else if((from==='under_windmill'&&to==='windmill')||(from==='windmill'&&to==='under_windmill')){kind='ladder';duration=.96;}
   else if(from==='south_reservoir' && to===from && command==='look at windmill through binoculars'
     && ['inventory','pocket','worn'].includes(after.itemLoc?.binoculars)){kind='focus';duration=2.25;}
   else return null;
   return {kind,duration,from,to,start,end,reaching:/^(?:take|get) /.test(command)};
 }
-export function windmillMotionRoom(m,t) {
+export function ranchMotionRoom(m,t) {
+  if(m.kind==='cellar_stairs')return (m.from==='hallway'?t:1-t)<cellarCut?'hallway':'icehouse';
   if(m.kind==='ladder')return t<.9 ? 'under_windmill' : m.to;
   return m.kind==='fall' && t<.7 ? 'windmill' : m.to;
 }
-export function drawWindmillMotion(c,m,t) {
+function drawCellarStairs(c,m,t){
+  const down=m.from==='hallway',step=down?t:1-t;
+  const hall=down?m.start:m.end,cellar=down?m.end:m.start;
+  const hallMouth={x:103,y:179},bottom={x:341,y:151},top={x:422,y:104};
+  let from,to,progress;
+  if(step<cellarCut){from=hall;to=hallMouth;progress=step/cellarCut;}
+  else if(step<.78){from=top;to=bottom;progress=(step-cellarCut)/(.78-cellarCut);}
+  else{from=bottom;to=cellar;progress=(step-.78)/.22;}
+  const x=at(from.x,to.x,progress),y=at(from.y,to.y,progress);
+  paintCharacter(c,x,y,'#a58a66',down?'left':'right',t*23,false,{moving:true,blend:.85,time:t*m.duration});
+  const fade=clamp(1-Math.abs(step-cellarCut)/.075);
+  if(fade){c.fillStyle=`rgba(24,22,20,${fade})`;c.fillRect(0,0,480,288);}
+}
+export function drawRanchMotion(c,m,t) {
   const {start,end}=m;
   c.save();
-  if(m.kind==='focus'){
+  if(m.kind==='cellar_stairs'){
+    drawCellarStairs(c,m,t);
+  }else if(m.kind==='focus'){
     const image=plate('ranch-reservoir-under_windmill-damaged');
     if(image){
       c.fillStyle='#0c1211';c.fillRect(0,0,480,288);

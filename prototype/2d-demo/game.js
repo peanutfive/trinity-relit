@@ -1,6 +1,6 @@
 import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt } from './ranch-art.js';
 import { positionWaterTarget, ranchDoors } from './ranch-actions.js';
-import { restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
+import { restoreKitchenState, restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
 import {renderCompletionSprite,completionArtStatus,completionBoyMotion} from './wabe-completion-art.js';
@@ -395,7 +395,10 @@ async function restoreProgress(input) {
   try {
     const restored = await saveStore.restore(engine, input);
     if (!restored.ok) throw restored.error;
-    if(engine.state.chapter==='ranch')restoreWindmillState(engine.state);
+    if(engine.state.chapter==='ranch'){
+      restoreWindmillState(engine.state);
+      if(engine.state.room==='kitchen')restoreKitchenState(engine.state);
+    }
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
@@ -430,6 +433,10 @@ function objects() {
   return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:positionWaterTarget(object,player));
 }
 function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
+function pendingObject(){
+  const current=objects().find(object=>object.id===walkTarget?.id);
+  return current && (current.approachSpan||current.shoreline) ? positionWaterTarget(current,walkTarget) : current;
+}
 
 function nearby() {
   const targets=objects();
@@ -558,7 +565,7 @@ function update(dt) {
   // when the old object has just entered reach.
   if(dx||dy){walkPath=[];walkTarget=null;walkExit=null;}
   if(canWalk&&walkTarget){
-    const target=objects().find(o=>o.id===walkTarget);
+    const target=pendingObject();
     if(target&&withinReach(player,target,1)){walkPath=[];walkTarget=null;interactWith(target);return;}
   }
   let remainingDistance=Infinity;
@@ -567,7 +574,7 @@ function update(dt) {
     // of a pixel early can put the feet outside a narrow lane for its full length.
     while(walkPath.length && player.x === walkPath[0][0] && player.y === walkPath[0][1]) walkPath.shift();
     if(walkPath.length){dx=walkPath[0][0]-player.x;dy=walkPath[0][1]-player.y;remainingDistance=Math.hypot(dx,dy);}
-    else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&withinReach(player,target))interactWith(target);}
+    else if(walkTarget){const target=pendingObject();walkTarget=null;if(target&&withinReach(player,target))interactWith(target);}
     else if(walkExit){
       const exit=exits().find(candidate=>candidate.dir===walkExit);walkExit=null;
       if(exit&&exitDistance(exit,player)<exit.radius){command(exit.dir);return;}
@@ -759,7 +766,7 @@ function render() {
 function pointerPoint(event){const rect=canvas.getBoundingClientRect();return {x:(event.clientX-rect.left)/rect.width*480,y:(event.clientY-rect.top)/rect.height*288};}
 function pointedObject(point,padding=0){
   const target=pointerTarget(objects(),point,{padding});
-  return target?.shoreline ? positionWaterTarget(target,point) : target;
+  return target && (target.shoreline||target.approachSpan) ? positionWaterTarget(target,point) : target;
 }
 canvas.addEventListener('pointermove',event=>{
   const p=pointerPoint(event),active=started&&!paused&&!chapterMap.isOpen()&&!busy&&!director.getState().busy;
@@ -794,7 +801,7 @@ canvas.addEventListener('pointerdown',event=>{
   if(!landing)return;
   walkPath=findPath(navigation,player,landing);
   walkExit=null;
-  walkTarget=target&&Math.hypot(target.x-landing.x,target.y-landing.y)<target.radius?target.id:null;
+  walkTarget=target&&Math.hypot(target.x-landing.x,target.y-landing.y)<target.radius?target:null;
   canvas.focus({preventScroll:true});
 });
 
@@ -1041,7 +1048,7 @@ window.render_game_to_text = () => JSON.stringify({
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), routeMarker:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, dead:engine.state.dead,processing:busy,
   storyClock:prologueClock(engine.state),
-  inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol, flipped:engine.state.flipped,
+  inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget?.id??null,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol, flipped:engine.state.flipped,
   controls: { ...preferences.bindings, pause: 'Escape' },
   settings: { video: { ...preferences.video }, audio: sound.getState(), captureBinding },
   hint: !$('#quest').hidden ? $('#objective').textContent : null,

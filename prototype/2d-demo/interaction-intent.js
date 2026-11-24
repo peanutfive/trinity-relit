@@ -9,7 +9,15 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='binoculars' && object.physicalHint)return find('take ');
   if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
   if(object.kind==='ranch_floor_mark')return find('examine ');
+  if(object.kind==='ranch_cold_wall')return find('touch ');
   if(object.kind==='ranch_wall_map')return seen?find('take '):find('examine ');
+  if(object.kind==='ranch_cupboard'){
+    const deposit=heldItem && actions.find(action=>action.itemId===heldItem && action.command.startsWith('put '));
+    return deposit?.command||(heldItem && find('put '+heldItem+' in cupboard'))||find('examine ');
+  }
+  if(object.visualOptions?.onShelf)return find('take ');
+  if(object.kind==='ranch_tableware')return find('take ');
+  if(object.kind==='ranch_sink'||object.kind==='ranch_pipes')return seen?find('take ')||find('examine '):find('examine ');
   if(object.kind==='ranch_view')return find('look at ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');

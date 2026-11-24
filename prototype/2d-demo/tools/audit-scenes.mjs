@@ -32,7 +32,7 @@ for (const [id,scene] of Object.entries(SCENES)) {
   assert.ok(rooms[id], `未知房间 ${id}`);
   assert.equal(scene.roomId,id);
   const doorLayers=ranchDoors(scene).map(door=>`./assets/${door.openOverlay}-v1.png`);
-  for(const image of [scene.background.image,scene.background.variant?.image,...doorLayers].filter(Boolean)){
+  for(const image of [scene.background.image,scene.background.variant?.image,...doorLayers,...(scene.preloadArt||[])].filter(Boolean)){
     assert.ok(existsSync(fileURLToPath(new URL(image,new URL('../',import.meta.url)))), `${id} 美术缺失 ${image}`);
   }
   assert.ok(!blocked(scene,...scene.spawn),`${id} 出生点不可达`);

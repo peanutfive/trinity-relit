@@ -1,0 +1,75 @@
+export const RANCH_KITCHEN_LAYOUT = {
+  kitchen:{
+    objectId:21,spawn:[233,158],looseAnchor:[245,177],
+    walkablePolygons:[
+      [[55,79],[102,79],[104,84],[148,85],[149,79],[284,79],[286,86],[368,86],
+        [369,79],[416,79],[429,161],[447,168],[461,262],[15,262],[30,200],[52,177]],
+      [[202,10],[246,10],[247,83],[201,83]],
+      [[28,178],[49,164],[60,174],[56,188],[30,203]],
+      [[420,145],[441,137],[449,161],[449,176],[423,176]],
+    ],
+    exitAnchors:{n:[225,67],e:[438,158],w:[44,185]},showUnmadeExits:true,
+    exitApproaches:{w:[-1,0.15]},
+    hiddenExitDirs:['in','out'],omitSelfExitDirs:['w'],
+    sourceArrivals:{nw_room:{x:225,y:107,face:'down',entrance:'n'},hallway:{x:85,y:185,face:'right',entrance:'w'}},
+    preloadArt:['./assets/ranch-tableware-v1.png'],
+    doorPlacement:{
+      id:'kitchen:outer-door',flag:'hallway_outer_door_open',noun:'outer door',label:'外门',dir:'w',
+      openOverlay:'ranch-kitchen-door-open',at:[44,185],approach:[65,183],openLeafApproach:[71,163],
+      pointerShape:{kind:'polygon',points:[[29,158],[54,133],[54,177],[29,202]],priority:3},
+      openingShape:{kind:'polygon',points:[[31,159],[46,143],[46,181],[31,198]],priority:4},
+      openLeafShape:{kind:'polygon',points:[[47,143],[54,136],[54,176],[47,181]],priority:5},
+      closedObstacles:[{x:29,y:194,w:6,h:6},{x:35,y:188,w:6,h:6},{x:41,y:182,w:6,h:6},{x:47,y:176,w:6,h:6}],
+    },
+    cupboardPlacement:{
+      approach:[285,117],pointerShape:{kind:'polygon',points:[[284,28],[366,28],[367,85],[284,85]],priority:2},
+      shelf:[296,356,52,74],itemApproachY:118,
+    },
+    pipesPlacement:{
+      approach:[117,97],pointerShape:{kind:'polygons',polygons:[[[75,29],[99,29],[113,41],[119,60],[109,64],[99,50],[75,46]],
+        [[104,60],[147,69],[145,82],[101,77]]],priority:2},
+    },
+  },
+  nw_room:{
+    objectId:1,spawn:[229,156],looseAnchor:[236,170],
+    walkablePolygons:[
+      [[56,62],[409,61],[417,140],[434,145],[443,245],[38,245],[49,140]],
+      [[207,13],[254,13],[256,68],[206,68]],[[201,238],[253,238],[254,285],[203,285]],
+      [[407,131],[431,127],[436,144],[435,155],[413,159]],
+    ],
+    exitAnchors:{n:[232,55],s:[229,255],e:[426,143]},hiddenExitDirs:['in','out'],showUnmadeExits:true,
+    sourceArrivals:{spare_room:{x:232,y:97,face:'down',entrance:'n'},kitchen:{x:229,y:215,face:'up',entrance:'s'}},
+  },
+  bathroom:{
+    objectId:175,spawn:[238,151],looseAnchor:[242,166],
+    walkablePolygons:[[[118,97],[362,96],[374,231],[102,231]],[[204,221],[269,221],[270,281],[205,281]]],
+    exitAnchors:{s:[236,242]},exitSpans:{s:[[216,242],[257,242]]},hiddenExitDirs:['in','out'],
+    sourceArrivals:{spare_room:{x:236,y:202,face:'up',entrance:'s'}},
+    sinkPlacement:{
+      approach:[215,111],pointerShape:{kind:'polygon',points:[[189,74],[209,74],[209,81],[205,86],[193,86],[189,81]],priority:2},
+    },
+  },
+  icehouse:{
+    objectId:345,spawn:[232,158],looseAnchor:[223,174],
+    walkablePolygons:[[[50,90],[430,90],[442,133],[450,186],[463,253],[15,253],[33,168]]],
+    // The first tread can be reached from the floor. The masonry stringer
+    // and the upper flight are traversed only by the climb action.
+    blockedPolygons:[[[345,135],[429,86],[445,83],[444,163],[351,168],[346,158],[342,142]]],
+    exitAnchors:{e:[337,152]},hiddenExitDirs:['u','out'],interactionExitDirs:['e'],
+    passageVisuals:{e:{label:'上楼',navigationHint:'上楼',radius:24,pointerShape:{
+      kind:'polygon',points:[[336,138],[432,85],[447,84],[446,108],[347,165]],priority:3,
+    }}},
+    sourceArrivals:{hallway:{x:300,y:154,face:'left',entrance:'e'}},
+    wallPlacement:{approach:[233,103],approachSpan:[84,390],pointerShape:{
+      kind:'polygon',points:[[57,17],[424,16],[425,76],[411,86],[58,86]],priority:2,
+    }},
+  },
+};
+
+for (const [id,layout] of Object.entries(RANCH_KITCHEN_LAYOUT)) {
+  layout.chapter='ranch';
+  layout.image='./assets/ranch-'+id+'-v1.png';
+  layout.footprint={rx:6,ry:3};
+  layout.pathResolution=0.25;
+  layout.obstacles=[];
+}

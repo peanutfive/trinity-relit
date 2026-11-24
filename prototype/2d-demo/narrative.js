@@ -1,4 +1,4 @@
-import { windmillMotion, windmillMotionRoom, drawWindmillMotion } from './ranch-art.js';
+import { ranchMotion, ranchMotionRoom, drawRanchMotion } from './ranch-art.js';
 import {createOrbitPassage,sampleOrbitPassage} from './orbit-motion.js';
 import {PIGEON_FLOCK} from './pigeon-motion.js';
 import {INVERNESS_ACTORS} from './inverness-layout.js';
@@ -115,7 +115,7 @@ export function createNarrativeDirector() {
     }
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
-    const ranch=windmillMotion(before,after,command);
+    const ranch=ranchMotion(before,after,command);
     if(ranch)push('ranch_'+ranch.kind,{id:`ranch_${ranch.kind}:${after.turns}`,room:before.room,motion:ranch,duration:ranch.duration});
     if(orbitMotion)push(orbitMotion.type,{id:`${orbitMotion.type}:${after.turns}`,room:before.room,motion:orbitMotion,duration:orbitMotion.duration});
     if(cliffMotion)push('cliff_passage',{id:`cliff_passage:${after.turns}`,room:before.room,motion:cliffMotion,duration:cliffMotion.duration});
@@ -199,7 +199,7 @@ export function createNarrativeDirector() {
     if(type==='boy_startled')hiddenKinds.push('boy','teenager','dish');
     const ranch=type?.startsWith('ranch_');
     if(type==='ranch_fall')hiddenKinds.push('binoculars');
-    const sceneRoom=ranch?windmillMotionRoom(active.motion,active.elapsed/active.duration):active?.room||state.room||lastRoom;
+    const sceneRoom=ranch?ranchMotionRoom(active.motion,active.elapsed/active.duration):active?.room||state.room||lastRoom;
     // Available commands can disappear without the people leaving the scene.
     // Return these actors to the caller's shared depth/collision pass; draw()
     // must never paint them above foreground objects after that pass has ended.
@@ -247,7 +247,7 @@ export function createNarrativeDirector() {
     const tundra=room.startsWith('tundra_')||['under_platform','platform','cliff_edge'].includes(room);
     if(!room.startsWith('orbit_')&&!tundra&&!['islet','desert','ranch'].includes(state.chapter))drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(active?.type.startsWith('ranch_')){
-      drawWindmillMotion(c,active.motion,active.elapsed/active.duration);return;
+      drawRanchMotion(c,active.motion,active.elapsed/active.duration);return;
     }
     if(!active||active.room!==room)return;
     c.save();renderEvent(c,active,state,clock);c.restore();
