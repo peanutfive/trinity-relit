@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="288" viewBox="0 0 480 288" data-room="windmill">
+  <title>风车上方木台</title>
+  <desc>俯看西侧库水，人物仅在风车上的木板间移动。东南向的木台边缘只设一架下梯。</desc>
+  <rect width="480" height="288" fill="#aa9476"/>
+  <g id="background">
+    <polygon points="0,0 125,0 145,48 148,105 132,161 107,215 51,288 0,288" fill="#647c79"/>
+    <polyline points="125,0 145,48 148,105 132,161 107,215 51,288" fill="none" stroke="#bbb8a7" stroke-width="4"/>
+  </g>
+  <g id="ladder" data-dirs="d out" fill="none" stroke="#645440" stroke-width="4">
+    <path d="M284 185 L290 219 L295 248 M301 181 L307 216 L312 244 M288 201 L304 198 M290 213 L306 210 M292 225 L309 222 M294 237 L311 234"/>
+  </g>
+  <g id="landing">
+    <polygon points="181,200 326,176 326,184 181,209 157,123 157,116" fill="#76624b"/>
+    <polygon id="floor" points="157,116 291,96 326,176 181,200" fill="#bda17c" stroke="#e1c49b" stroke-width="2"/>
+    <g fill="none" stroke="#9c8162">
+      <path d="M160 128 L296 108 M164 140 L301 120 M167 153 L307 132 M171 165 L312 143 M174 177 L317 155 M178 189 L322 167"/>
+    </g>
+  </g>
+  <g id="anchors">
+    <circle cx="294" cy="179" r="4" fill="#3e6959" data-dir="d" data-target="under_windmill"/>
+    <circle cx="268" cy="153" r="3" fill="#263f39" data-from="under_windmill"/>
+  </g>
+  <g id="scenery" data-kind="item-position-only">
+    <circle cx="171" cy="151" r="3" fill="none" stroke="#7f674a"/>
+    <circle cx="190" cy="150" r="3" fill="none" stroke="#3e6959"/>
+  </g>
+</svg>
