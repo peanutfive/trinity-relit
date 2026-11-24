@@ -36,9 +36,21 @@ test('every marked removal still matches actual chapter wording and an actual vi
   if(r.id==='parked-pram')e.state.setFlag('pram_at_walk');
   if(r.id==='umbrella-in-tree'){e.state.setFlag('umbrella_woman_done');e.state.placeItem('umbrella','lancaster_gate_tree');}
   if(r.id==='ball-on-ground')e.state.placeItem('ball','lancaster_gate');
+  if(r.id==='underwater-lantern-phrase')e.state.placeItem('splinter','underwater');
   if(r.id==='loose-gnomon')e.state.setFlag('gnomon_unscrewed');
   const original=e.rooms[e.state.room].desc(e.state),objects=getHotspots(e.state);
   for(const paragraph of r.paragraphs)assert.ok(original.includes(paragraph),`${r.id}: chapter wording changed`);
   assert.ok(filterVisualPresence(original,{room:e.state.room,objects,source:'room'}).removed.includes(r.id),`${r.id}: visible target missing`);
+ }
+});
+
+test('水底实际亮灯时保留原版灯束描写，木片照明只保留能见范围',async()=>{
+ const e=createPrologueSession();await e.activateChapter('ranch');
+ e.state.chapter='ranch';e.state.room='underwater';e.state.placeItem('splinter','underwater');
+ const text=e.rooms.underwater.desc(e.state),objects=getHotspots(e.state);
+ for(const lanternLit of [false,true]){
+  const shown=filterVisualPresence(text,{room:'underwater',objects,source:'room',lanternLit}).text;
+  assert.equal(shown.includes('beam of the lantern'),lanternLit);
+  assert.ok(shown.includes('几英尺'));
  }
 });

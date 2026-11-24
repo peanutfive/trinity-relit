@@ -1,0 +1,7 @@
+Registered open-door overlay for Trinity Relit. The only reference input to OpenAI ImageGen was the project-owned northeast court image cropped tightly around its west outside door.
+
+Generation prompt
+Edit this exact tightly cropped painted door in its stucco wall, making its single timber leaf swing FULLY OPEN INWARD. Same exact jamb, lintel, wall, oblique threshold, silhouette, frame dimensions, camera and all surroundings. Inside the aperture show simple short depth with dim brown-black shadow, a faint small interior patch of dusty wood floor joining the original sill in the lower part and only a very narrow foreshortened dark wooden edge of the door leaf swung away INTO the room, hinged on the left jamb. When viewed from outside, the open shadowy doorway is obvious. Do not show another closed wooden door facing the camera, barred door, iron grille, large furnished interior, scenery behind the opening, a person or any other items. No luminous light through the opening. Natural soft transition to warm reflected sun immediately around the original wood threshold, original rustic amber brushwork, old wood grain, muted colors. Preserve whole frame in EXACT REGISTRATION ready to crossfade with the closed-door game asset, zero change outside door opening, no moving camera. Portrait composition unchanged.
+
+Delivery
+The generated open doorway was masked to the aperture on a transparent 1619 × 971 canvas. Use exactly the same transform as the closed base plate.

@@ -3,6 +3,10 @@
 // when their corresponding object is genuinely rendered in this scene.
 const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split('|'),paragraphs:[en,cn]});
 export const VISUAL_PRESENCE_RULES=Object.freeze([
+  {when:context=>!context.lanternLit,...rule('underwater-lantern-phrase','underwater','passage',
+    'Suspended particles of muck swirl in the beam of the lantern.','悬浮的污泥颗粒在灯笼光束里旋转。'),sentence:true},
+  rule('windmill-binoculars-presence','windmill','binoculars',
+    "Somebody has left a nice pair of binoculars at the landing's edge.",'有人把一副不错的双筒望远镜留在了木台边缘。'),
   rule('islet-toadstool-presence','islet','islet_gate','A lone toadstool grows here.','一株孤零零的毒菌生长在这里。'),
   {...rule('sandbar-dory-presence','sand_bar','islet_ferry',"The oarsman's dory arrives here.",'船夫的平底船在此靠岸。'),sentence:true},
   {...rule('sandbar-door-presence','sand_bar','islet_gate','The white door to New Mexico Desert is here.','通往新墨西哥沙漠的白门就在这里。'),sentence:true},
@@ -62,10 +66,10 @@ export const VISUAL_GUIDANCE_RULES=Object.freeze([{id:'shelter-gift-guidance',ro
  ]},{id:'tundra-enclosure-debt',room:'platform',sentences:[
   'A metal enclosure holds the Soviet nuclear device.','一个金属围栏里放着苏联核装置。',
 ]}]);
-export function filterVisualPresence(text,{room,objects=[],source='event'}={}){
+export function filterVisualPresence(text,{room,objects=[],source='event',lanternLit=false}={}){
   if(source!=='room'&&source!=='item-annotation')return {text,removed:[]};
   const visible=new Set(objects.filter(o=>o.visual!==false).map(o=>o.kind));
-  const matches=VISUAL_PRESENCE_RULES.filter(r=>(r.rooms.includes(room)||(source==='item-annotation'&&r.id==='ball-in-flowers'))&&r.kinds.some(kind=>visible.has(kind)));
+  const matches=VISUAL_PRESENCE_RULES.filter(r=>(!r.when||r.when({lanternLit}))&&(r.rooms.includes(room)||(source==='item-annotation'&&r.id==='ball-in-flowers'))&&r.kinds.some(kind=>visible.has(kind)));
   const remove=new Set(matches.flatMap(r=>r.paragraphs)),removed=[];
   const parts=String(text).split(/\n+/).map(p=>p.trim()).filter(Boolean);
   for(const r of VISUAL_GUIDANCE_RULES.filter(r=>r.room===room))for(let i=0;i<parts.length;i++)for(const sentence of r.sentences)if(parts[i].includes(sentence)){

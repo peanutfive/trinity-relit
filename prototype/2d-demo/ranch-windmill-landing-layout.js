@@ -19,7 +19,7 @@ export const RANCH_WINDMILL_LANDING_LAYOUT = {
     exitAnchors:{d:[299,132],out:[299,132]},
     sourceArrivals:{under_windmill:{x:273,y:117,face:'left',entrance:'d'}},
     interactionExitDirs:['d'], hiddenExitDirs:['out'],
-    passageVisuals:{d:{label:'下木梯',radius:24,pointerShape:{
+    passageVisuals:{d:{label:'下木梯',navigationHint:'下梯',radius:24,pointerShape:{
       kind:'polygon',points:[[288,133],[311,130],[331,229],[307,235]],priority:3,
     }}},
     // Placement for a separately rendered story item when its location is

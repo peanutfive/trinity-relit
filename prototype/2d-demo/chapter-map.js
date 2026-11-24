@@ -7,7 +7,7 @@ import { ROOMS as ORBIT_ROOMS } from '../js/data/orbit.js';
 import { ROOMS as PACIFIC_ROOMS } from '../js/data/pacific.js';
 import { ROOMS as TUNDRA_ROOMS } from '../js/data/tundra.js';
 import { ROOMS as ISLET_ROOMS } from '../js/data/islet.js';
-import { ROOMS as RANCH_ROOMS } from '../js/data/ranch.js';
+import { ROOMS as RANCH_ROOMS } from './ranch-story.js';
 import { ROOMS as DESERT_ROOMS } from '../js/data/desert.js';
 
 import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';

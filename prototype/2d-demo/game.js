@@ -1,3 +1,6 @@
+import { drawSwimmer, drawBottomVisibility, drawRanchProp, drawYardDoor, warmWindmillArt } from './ranch-art.js';
+import { positionWaterTarget } from './ranch-actions.js';
+import { restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
 import {renderCompletionSprite,completionArtStatus,completionBoyMotion} from './wabe-completion-art.js';
@@ -38,7 +41,7 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>renderIsletSprite(ctx,object,state,time)||renderTundraSprite(ctx,object,state,time)||renderPacificSprite(ctx,object,state,time)||renderCompletionSprite(ctx,object,state,time)||renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>drawRanchProp(ctx,object)||renderIsletSprite(ctx,object,state,time)||renderTundraSprite(ctx,object,state,time)||renderPacificSprite(ctx,object,state,time)||renderCompletionSprite(ctx,object,state,time)||renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -100,6 +103,7 @@ const ui = {
     if(isRoom)roomDescription=text;
     else if(isRepeatedItemDescription(text, roomDescription, roomItemDescriptions))return;
     const source = isRoom ? 'room' : itemAnnotation ? 'item-annotation' : 'event';
+    if(itemAnnotation && engine.state.room==='underwater' && !reservoirBottomLit(engine.state))return;
     if (source !== 'event') {
       // A conditional exit may describe its destination both while activating
       // the new chapter and again when the enclosing movement command finishes.
@@ -107,7 +111,7 @@ const ui = {
       if (displayedDescriptions.has(entry)) return;
       displayedDescriptions.add(entry);
     }
-    const adapted=filterVisualPresence(text,{room:engine?.state.room,objects:engine?getHotspots(engine.state):[],source:showInspectionDetails?'event':source});
+    const adapted=filterVisualPresence(text,{room:engine?.state.room,objects:engine?getHotspots(engine.state):[],lanternLit:engine?.state.room==='underwater'&&reservoirLanternLit(engine.state),source:showInspectionDetails?'event':source});
     removedPresence.push(...adapted.removed);text=adapted.text;
     if (!String(text).trim()) return;
     output.push(text);
@@ -164,7 +168,11 @@ function updateHud() {
   const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
   const decision=started&&!reading&&!hintOpen&&!paused&&!director.getState().busy?keyboardInteraction(engine.state,near,{heldItem,observed:observedObjects}):null;
-  $('#hint').textContent=decision?`${keyLabel(preferences.bindings.interact)} · ${decision.hint}`:'';
+  const darkTouch=decision?.command==='u' && engine.state.room==='underwater'
+    && navigator.maxTouchPoints>0 && !reservoirBottomLit(engine.state);
+  $('#surface-water').hidden=!darkTouch;
+  const control=near?.actorRelative && matchMedia('(pointer: coarse)').matches ? '轻触人物' : keyLabel(preferences.bindings.interact);
+  $('#hint').textContent=decision&&!darkTouch?`${control} · ${decision.hint}`:'';
   $('#hand-kit').hidden = !heldItem || !started || paused || reading;
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
@@ -314,6 +322,14 @@ async function command(input, actions = [], observedId = null) {
       const arrivalDirection=before.chapter==='japan'&&engine.state.room==='moor'?'out':input;
       lastArrival=roomArrival(navigationScene(),{fromRoom:before.room,direction:arrivalDirection,exits:exits()});
       if(lastArrival){player.x=lastArrival.x;player.y=lastArrival.y;player.face=lastArrival.face;}
+      if (['reservoir','underwater'].includes(before.room) && ['reservoir','underwater'].includes(destination.room)) {
+        const {x,y,face}=before.visual.player;
+        const inside=solid(x,y)?nearestWalkable(navigationScene(),{x,y}):{x,y};
+        if(inside){
+          lastArrival={...inside,face,fromRoom:before.room};
+          player.x=inside.x;player.y=inside.y;player.face=face;
+        }
+      }
       stopMovement(); motion.blend = 0; player.walk = 0; exitLock = 0.5;
     }
     normalizePlayerLocation();
@@ -377,6 +393,7 @@ async function restoreProgress(input) {
   try {
     const restored = await saveStore.restore(engine, input);
     if (!restored.ok) throw restored.error;
+    if(engine.state.chapter==='ranch')restoreWindmillState(engine.state);
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
@@ -408,12 +425,13 @@ function objects() {
   const listed=discovery.mapHotspots(engine.state,getHotspots(engine.state,{observed:observedObjects}));
   const ids=new Set(listed.map(object=>object.id));
   const persistent=director.getState(engine.state).persistentActors.filter(object=>object.room===engine.state.room&&!ids.has(object.id));
-  return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:object);
+  return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:positionWaterTarget(object,player));
 }
 function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
 
 function nearby() {
-  return nearbyTarget(objects(), player);
+  const targets=objects();
+  return nearbyTarget(targets.filter(object=>!object.actorRelative),player) || targets.find(object=>object.actorRelative);
 }
 
 function interact() {
@@ -464,6 +482,13 @@ function inventory() {
     button.textContent = ITEMS[id].cn;
     button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
     $('#choices').append(button);
+  }
+  if(heldItem==='binoculars' && engine.state.has(heldItem)
+    && engine.currentRoom()?.events?.some(event=>event.id==='ranch_wear_binoculars')){
+    const worn=engine.state.wearing(heldItem);
+    const strap=document.createElement('button');strap.textContent=worn?'摘下望远镜':'挂上望远镜';
+    strap.onclick=()=>{closeDialog();command(worn?'remove binoculars':'wear binoculars');};
+    $('#choices').append(strap);
   }
   if(heldItem&&engine.state.has(heldItem)&&!ITEMS[heldItem]?.fixed&&!(heldItem==='soap_bubble'&&engine.state.chapter==='orbit')){
     const drop=document.createElement('button');drop.textContent='放下手中物品';drop.id='inventory-drop';
@@ -660,13 +685,34 @@ function render() {
   const crossing=renderRoom!==engine.state.room;
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
+  warmWindmillArt(renderRoom);
   drawScene(ctx, renderRoom, clock, preferences.video.effects,renderState);
+  if(renderRoom==='ne_yard')drawYardDoor(ctx,renderState);
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
   for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
-  if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => {if(renderState.chapter==='orbit')renderOrbitPlayer(ctx,player,preferences.video.effects?clock:0);else drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState());if(renderRoom.startsWith('underground_')&&engine.state.has('lantern'))renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);} });
+  if (!story.hidePlayer&&!inPram) {
+    actors.push({y:player.y,draw:()=>{
+      const time=preferences.video.effects?clock:0;
+      if(renderRoom==='reservoir'||renderRoom==='underwater'){
+        drawSwimmer(ctx,renderRoom,player,time,motion.moving);
+      }else if(renderState.chapter==='orbit'){
+        renderOrbitPlayer(ctx,player,time);
+      }else{
+        drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animationState());
+      }
+      if(renderRoom.startsWith('underground_')&&engine.state.has('lantern')){
+        renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);
+      }
+    }});
+  }
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y,renderState);});
+  if(renderRoom==='underwater'){
+    const lantern=reservoirLanternLit(renderState);
+    const bottomLight=renderObjects.find(o=>o.itemId===(lantern?'lantern':'splinter'));
+    drawBottomVisibility(ctx,player,reservoirBottomLit(renderState),bottomLight,lantern);
+  }
   director.draw(ctx, renderRoom, engine.state, clock);
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
   if(focusedItem==='paper_bird'&&pages.length){
@@ -693,7 +739,10 @@ function render() {
 }
 
 function pointerPoint(event){const rect=canvas.getBoundingClientRect();return {x:(event.clientX-rect.left)/rect.width*480,y:(event.clientY-rect.top)/rect.height*288};}
-function pointedObject(point,padding=0){return pointerTarget(objects(),point,{padding});}
+function pointedObject(point,padding=0){
+  const target=pointerTarget(objects(),point,{padding});
+  return target?.shoreline ? positionWaterTarget(target,point) : target;
+}
 canvas.addEventListener('pointermove',event=>{
   const p=pointerPoint(event),active=started&&!paused&&!chapterMap.isOpen()&&!busy&&!director.getState().busy;
   canvas.style.cursor=active&&(pages.length?pointedPaperDetail(p):pointedObject(p)||pointedExitLabel(p))?'pointer':'default';
@@ -916,6 +965,9 @@ window.addEventListener('pagehide',persistProgress);
 $('#next').onclick = next;
 $('#restart').onclick = () => { if(!started || window.confirm('重新开始会替换当前2D存档。要重新开始吗？')) reset(); };
 $('#close-quest').onclick = () => { closeQuest(); updateHud(); canvas.focus({ preventScroll: true }); };
+$('#surface-water').onclick=()=>{
+  if(engine.state.room==='underwater' && !reservoirBottomLit(engine.state))interact();
+};
 $('#skip-event').onclick = () => { director.skip(); updateHud(); render(); };
 $('#resume').onclick = () => setPaused(false);
 $('#fullscreen').onclick = fullscreen;

@@ -1,3 +1,7 @@
+import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
+import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
+import { RANCH_WATER_LAYOUT } from './ranch-water-layout.js';
+import { RANCH_WINDMILL_LANDING_LAYOUT } from './ranch-windmill-landing-layout.js';
 import {ROOMS as ORBIT_ROOMS} from '../js/data/orbit.js';
 import {ARBOR_ROUTE_LAYOUT} from './arbor-route-layout.js';
 import {ORBIT_ROUTE_LAYOUT} from './orbit-route-layout.js';
@@ -8,7 +12,7 @@ import {ISLET_LAYOUT} from './islet-layout.js';
 import {DESERT_ARRIVAL_LAYOUT} from './desert-arrival-layout.js';
 import {RANCH_PERIMETER_LAYOUT} from './ranch-perimeter-layout.js';
 import {RANCH_RESERVOIR_LAYOUT} from './ranch-reservoir-layout.js';
-import {ROOMS as RANCH_ROOMS} from '../js/data/ranch.js';
+import {ROOMS as RANCH_ROOMS} from './ranch-story.js';
 import {ROOMS as ISLET_ROOMS} from '../js/data/islet.js';
 import {ROOMS as DESERT_ROOMS} from '../js/data/desert.js';
 import {ROOMS as TUNDRA_ROOMS} from '../js/data/tundra.js';
@@ -204,7 +208,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT,...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT,...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},

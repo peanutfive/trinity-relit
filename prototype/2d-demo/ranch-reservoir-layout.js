@@ -72,8 +72,12 @@ export const RANCH_RESERVOIR_LAYOUT = {
     sourceArrivals:{
       north_reservoir:{x:104,y:49,face:'right',entrance:'nw'},
       south_reservoir:{x:110,y:247,face:'right',entrance:'sw'},
+      windmill:{x:253,y:180,face:'left',entrance:'u'},
     },
-    hiddenExitDirs:['w'], omitSelfExitDirs:['u'], showUnmadeExits:true,
+    hiddenExitDirs:['w'], omitSelfExitDirs:['u'], interactionExitDirs:['u'],
+    passageVisuals:{u:{label:'上木梯',navigationHint:'攀梯',radius:26,pointerShape:{
+      kind:'polygon',points:[[268,73],[284,72],[276,164],[260,165]],priority:3,
+    }}},
     blockedPolygons:[
       [[0,1],[33,26],[78,46],[151,74],[173,140],[154,192],[91,232],[0,288]],
       [[243,153],[250,152],[251,162],[244,164]],[[303,155],[311,152],[317,165],[311,170]],
@@ -93,9 +97,11 @@ export const RANCH_RESERVOIR_LAYOUT = {
         [131,170],[112,154],[101,143]],
     ],
     exitAnchors:{d:[234,205],s:[234,205],n:[236,134]},
-    sourceArrivals:{south_reservoir:{x:252,y:182,face:'up',entrance:'d'}},
-    hiddenExitDirs:['s','in','ne','e','se','sw','w','nw'], interactionExitDirs:['d'], showUnmadeExits:true,
-    passageVisuals:{d:{label:'下台阶',radius:26,pointerShape:{
+    sourceArrivals:{south_reservoir:{x:252,y:182,face:'up',entrance:'d'},reservoir:{x:237,y:158,face:'down',entrance:'n'}},
+    hiddenExitDirs:['s','in','ne','e','se','sw','w','nw'], interactionExitDirs:['d','n'],
+    passageVisuals:{n:{label:'入水',navigationHint:'入水',radius:21,pointerShape:{
+      kind:'polygon',points:[[208,118],[260,118],[260,135],[208,135]],priority:2,
+    }},d:{label:'下台阶',radius:26,pointerShape:{
       kind:'polygon',points:[[211,202],[256,202],[263,255],[205,255]],priority:3,
     }}},
     blockedPolygons:[

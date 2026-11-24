@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOMS } from '../../js/data/ranch.js';
+import { ROOMS } from '../ranch-story.js';
 import { RANCH_PERIMETER_LAYOUT } from '../ranch-perimeter-layout.js';
 import { RANCH_RESERVOIR_LAYOUT } from '../ranch-reservoir-layout.js';
 import { roomArrival } from '../arrivals.js';
@@ -56,12 +56,13 @@ test('一段水泥阶只显示一个交互点，踏向阶梯不会自动进出�
   for (const broken of [false,true]) {
     const windmillState = {hasFlag:() => broken};
     const exits = sceneExits('under_windmill', windmillState, ROOMS);
-    assert.deepEqual(exits.map(exit => exit.dir).sort(), ['nw','sw']);
+    assert.deepEqual(exits.map(exit => exit.dir).sort(), broken ? ['nw','sw'] : ['nw','sw','u']);
+    if(!broken)assert.equal(exits.find(exit=>exit.dir==='u').interactionOnly,true);
     const stops = sceneBoundaries('under_windmill', windmillState, ROOMS);
-    assert.deepEqual(stops.map(stop => stop.dir), broken ? [] : ['u']);
+    assert.deepEqual(stops.map(stop => stop.dir), []);
   }
-  assert.deepEqual(sceneExits('edge_reservoir',state,ROOMS).map(exit => exit.dir),['d']);
-  assert.deepEqual(sceneBoundaries('edge_reservoir',state,ROOMS).map(stop => stop.dir),['n']);
+  assert.deepEqual(sceneExits('edge_reservoir',state,ROOMS).map(exit => exit.dir),['d','n']);
+  assert.deepEqual(sceneBoundaries('edge_reservoir',state,ROOMS).map(stop => stop.dir),[]);
 });
 
 test('沿两岸真实路面转弯、绕过库壁和风车脚，临水干岸可达', () => {

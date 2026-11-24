@@ -39,9 +39,11 @@ const desert={
   paved_road_4:[66,335,'lane'], paved_road_5:[66,231,'lane'], paved_road_6:[66,123,'lane'],
 };
 const ranch={
-  nw_ranch:[244,162,'gate'], ne_ranch:[615,160,'lane'], front_yard:[661,329,'stairs'],
+  nw_ranch:[244,162,'gate'], ne_ranch:[615,160,'lane'], front_yard:[661,329,'stairs'], front_deck:[521,329,'stairs'],
+  ne_yard:[521,235,'gate'], se_yard:[521,422,'gate'],
   se_ranch:[619,506,'gate'], sw_ranch:[240,508,'gate'],
   north_reservoir:[816,158,'water'], south_reservoir:[816,514,'water'],
+  windmill:[997,222,'windmill'], reservoir:[840,263,'water'], underwater:[844,343,'water'],
   under_windmill:[997,326,'windmill'], edge_reservoir:[816,422,'stairs'],
 };
 const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert,ranch};
@@ -56,6 +58,9 @@ export function illustratedMapNodes(model){
   });
 }
 
+// These painted ground passages also have IN/OUT or UP/DOWN aliases. Keep
+// one ground line regardless of the order in which door directions are read.
+const ranchGroundPairs=new Set(['front_deck|front_yard','front_deck|ne_yard','front_deck|se_yard','se_ranch|se_yard']);
 const vectors={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1]};
 /** A connection is a road only if both source directions agree with the chart.
  * All Wabe connections are schematic: Klein-bottle and vertical passages must
@@ -72,8 +77,10 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
   };
   const reverse=edges.filter(other=>other.from===edge.to&&other.to===edge.from);
   const chartedGround=chapter==='prologue'||(['islet','desert','ranch'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
-  const road=chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
-  const stairs=chapter==='ranch'&&[from.id,to.id].sort().join('|')==='edge_reservoir|south_reservoir'&&reverse.length>0&&!from.unknownVisual&&!to.unknownVisual;
+  const pair=[from.id,to.id].sort().join('|');
+  const ranchLane=chapter==='ranch' && ranchGroundPairs.has(pair) && reverse.length>0;
+  const road=ranchLane || chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
+  const stairs=chapter==='ranch'&&pair==='edge_reservoir|south_reservoir'&&reverse.length>0&&!from.unknownVisual&&!to.unknownVisual;
   return {from,to,road:!!road,schematic:!road,stairs};
 }
 

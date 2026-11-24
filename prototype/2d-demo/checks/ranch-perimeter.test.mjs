@@ -166,3 +166,34 @@ test('图上支路能走到近端，关闭的门止步、敞开的门可走到�
     }
   }
 });
+
+test('前院每条来路都能经石墙缺口到同一坡道，回前院时落在坡脚右侧', () => {
+  const yard = RANCH_PERIMETER_LAYOUT.front_yard;
+  const ramp = exits('front_yard').filter(exit => exit.target === 'front_deck');
+  assert.equal(ramp.length, 1);
+  assert.equal(ramp[0].dir, 'w');
+  assert.deepEqual(yard.interactionExitDirs, ['w']);
+  const landing = roomArrival(yard, {fromRoom:'front_deck',direction:'e',exits:ramp});
+  assert.deepEqual([landing.x,landing.y,landing.face], [183,124,'right']);
+  assert.ok(Math.hypot(landing.x - ramp[0].x, landing.y - ramp[0].y) > yard.passageVisuals.w.radius);
+  assert.ok(isSegmentWalkable(yard, landing, [203,126]));
+  for (const arrival of Object.values(yard.sourceArrivals)) {
+    assert.ok(findPath(yard, arrival, ramp[0]).length);
+  }
+});
+
+test('牧场东南的敞开铁门只有一个穿门口，回外墙时向场内走不会折返', () => {
+  const scene = RANCH_PERIMETER_LAYOUT.se_ranch;
+  const routes = exits('se_ranch');
+  const gates = routes.filter(exit => exit.target === 'se_yard');
+  assert.equal(gates.length, 1);
+  const gate = gates[0];
+  assert.equal(gate.dir, 'nw');
+  const landing = roomArrival(scene, {fromRoom:'se_yard',direction:'se',exits:routes});
+  assert.deepEqual([landing.x,landing.y,landing.face], [230,119,'down']);
+  assert.ok(Math.hypot(landing.x - gate.x, landing.y - gate.y) > gate.radius + 8);
+  assert.ok(isSegmentWalkable(scene, landing, gate));
+  assert.equal(approachingExit(gate, {x:209,y:91}, gate), true);
+  assert.equal(approachingExit(gate, gate, {x:209,y:91}), false);
+  for (const post of [[190,103],[222,76]]) assert.equal(isBlocked(scene, ...post), true);
+});

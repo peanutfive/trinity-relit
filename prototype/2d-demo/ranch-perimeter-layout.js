@@ -76,14 +76,19 @@ export const RANCH_PERIMETER_LAYOUT = {
         [389,217,239],[428,235,255],[456,250,274],[480,265,288]]),
       [[105,98],[135,104],[159,111],[182,113],[201,116],[201,134],[174,129],[151,124],[128,118],[105,113]],
     ],
-    exitAnchors: { n:[209,16], s:[199,275], ne:[431,14], se:[462,267] },
+    exitAnchors: { n:[209,16], s:[199,275], ne:[431,14], se:[462,267], w:[151,117] },
     exitApproaches: { ne:[1,-0.55], se:[1,0.6] },
-    hiddenExitDirs: ['e','sw','w','nw','u','in'],
+    hiddenExitDirs: ['e','sw','nw','u','in'],
+    interactionExitDirs: ['w'],
+    passageVisuals: {w: {label:'上坡',navigationHint:'上坡',radius:24,pointerShape:{
+      kind:'polygon',points:[[106,97],[146,105],[178,112],[182,128],[147,123],[106,113]],priority:3,
+    }}},
     sourceArrivals: {
       ne_ranch:{x:201,y:56,face:'down',entrance:'n'},
       se_ranch:{x:206,y:236,face:'up',entrance:'s'},
       north_reservoir:{x:308,y:46,face:'left',entrance:'ne'},
       south_reservoir:{x:425,y:245,face:'left',entrance:'se'},
+      front_deck:{x:183,y:124,face:'right',entrance:'w'},
     },
     blockedPolygons: [
       [[139,0],[147,0],[147,52],[156,103],[149,105],[141,62]],
@@ -91,9 +96,7 @@ export const RANCH_PERIMETER_LAYOUT = {
       [[327,164],[330,80],[360,54],[480,37],[480,202],[397,196]],
     ],
     occluders: [],
-    reservedFeatures: [
-      {kind:'ramp',dirs:['w','u','in'],target:'front_deck',at:[151,117]},
-    ],
+    reservedFeatures: [],
   },
   se_ranch: {
     spawn: [244,131], looseAnchor: [144,154],
@@ -106,12 +109,14 @@ export const RANCH_PERIMETER_LAYOUT = {
       [[245,118],[230,101],[217,88],[207,78],[197,70],[184,77],
         [195,94],[208,111],[230,132]],
     ],
-    exitAnchors: { w:[16,163], n:[275,16], e:[460,136] },
-    hiddenExitDirs: ['ne','nw','in'],
+    exitAnchors: { w:[16,163], n:[275,16], e:[460,136], nw:[207,89] },
+    exitApproaches: {nw:[-0.8,-1]},
+    hiddenExitDirs: ['ne','in'],
     sourceArrivals: {
       sw_ranch:{x:56,y:163,face:'right',entrance:'w'},
       front_yard:{x:276,y:56,face:'down',entrance:'n'},
       south_reservoir:{x:419,y:136,face:'left',entrance:'e'},
+      se_yard:{x:230,y:119,face:'down',entrance:'nw'},
     },
     blockedPolygons: [
       [[0,115],[125,114],[156,111],[185,101],[194,103],[193,115],[158,123],[120,126],[0,127]],
@@ -120,9 +125,7 @@ export const RANCH_PERIMETER_LAYOUT = {
       [[323,101],[355,0],[480,0],[480,115]],
     ],
     occluders: [],
-    reservedFeatures: [
-      {kind:'open-gate',dirs:['nw','in'],target:'se_yard',at:[207,89]},
-    ],
+    reservedFeatures: [],
   },
   sw_ranch: {
     spawn: [164,149], looseAnchor: [166,154],

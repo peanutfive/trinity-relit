@@ -1,0 +1,4 @@
+Registered movable deck layer for Trinity Relit. Extracted directly from the project-owned ranch-windmill-landing-v1.png, preserving its color, perspective and texture. No new image generation was used for this material.
+
+Delivery
+The full 1600 × 960 transparent frame matches ranch-windmill-landing-open-v1.png. The polygon excludes the stationary mast mount and the tips of the ladder. At zero rotation, drawing this layer over the exposed frame restores the original RGB plate pixel for pixel. The far wooden edge provides a pivot line near (159,83) to (289,64) in game coordinates.

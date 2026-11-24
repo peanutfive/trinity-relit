@@ -6,6 +6,9 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
+  if(object.kind==='binoculars' && object.physicalHint)return find('take ');
+  if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
+  if(object.kind==='ranch_view')return find('look at ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');

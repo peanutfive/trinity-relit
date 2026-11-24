@@ -13,6 +13,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-ranch-journey');
 const gatewayOnly = process.argv.includes('--gateway-only');
+const windmillCheckpoint = process.argv.includes('--windmill-checkpoint');
 const prelude = join(output, 'fresh-prologue');
 await mkdir(output, { recursive: true });
 const smoke = fileURLToPath(new URL('./browser-smoke.mjs', import.meta.url));
@@ -184,6 +185,7 @@ async function reachCrater() {
   await pressF('enter door', 'shallow_crater');
   assert.equal((await state()).chapter, 'desert');
   assert.ok((await state()).inventory.includes('gnomon'));
+  assert.ok((await state()).inventory.includes('splinter'), '正常序章路线应已从南沼泽拾到发光木片');
   await shot('crater-from-islet');
 }
 
@@ -379,7 +381,7 @@ async function exerciseStairs(visited) {
   await climbStairs('u', 'edge_reservoir', { point: [237, 151], face: 'w' }, 'edge_reservoir');
   await walkTo([236, 152]);
   const dry = await state();
-  assert.equal(dry.exits.some(exit => exit.target === 'reservoir'), false);
+  assert.ok(dry.exits.filter(exit => exit.target === 'reservoir').every(exit => exit.interactionOnly));
   await page.keyboard.down('w');
   try { await tick(820); }
   finally { await page.keyboard.up('w'); }
@@ -435,17 +437,35 @@ async function windmillPixels() {
   }, regions);
 }
 
-async function captureWindmillBaseline() {
-  const pristine = join(output, 'windmill-normal-save.json');
-  const pixels = await windmillPixels();
+async function exportProgress(path) {
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: '探索进度' }).click();
   await page.locator('#save-now').click();
   const download = page.waitForEvent('download');
   await page.locator('#export-save').click();
-  await (await download).saveAs(pristine);
+  await (await download).saveAs(path);
   await page.keyboard.press('Escape');
-  return { pixels, save: JSON.parse(await readFile(pristine, 'utf8')) };
+  return JSON.parse(await readFile(path, 'utf8'));
+}
+
+async function captureWindmillBaseline() {
+  const pixels = await windmillPixels();
+  const save = await exportProgress(join(output, 'windmill-normal-save.json'));
+  return { pixels, save };
+}
+
+async function exportWindmillCheckpoint() {
+  for (const [dir, target] of [['e', 'ne_ranch'], ['s', 'front_yard'], ['se', 'south_reservoir'], ['ne', 'under_windmill']]) {
+    const exit = (await state()).exits.find(candidate => candidate.dir === dir && candidate.target === target);
+    assert.ok(exit, `未找到通往 ${target} 的正常道路`);
+    await crossRanchRoad(exit);
+  }
+  assert.ok((await state()).inventory.includes('splinter'));
+  await shot('under-windmill-checkpoint');
+  const packet = await exportProgress(join(output, 'windmill-normal-save.json'));
+  assert.equal(packet.engine.state.room, 'under_windmill');
+  assert.equal(packet.engine.state.itemLoc.splinter, 'inventory');
+  assert.equal(packet.engine.state.flags.includes('binoculars_broken'), false);
 }
 
 function changedPixels(before, after) {
@@ -505,23 +525,26 @@ async function verifyWindmillVariant() {
 try {
   await reachCrater();
   await cross(entry);
-  await mapAt('ranch', ['nw_ranch'], 'ranch-map');
-  await reopen('ranch-reopened');
-  await cross(returnRoad);
-  await mapAt('desert', ['shallow_crater'], 'desert-map-after-return');
-  await reopen('crater-reopened');
-  await cross({ ...entry, screenshot: 'ranch-reentry' });
   let windmillPreset;
-  if (!gatewayOnly) {
-    await verifyReservoir();
-    windmillPreset = await verifyWindmillVariant();
+  if (windmillCheckpoint) await exportWindmillCheckpoint();
+  else {
+    await mapAt('ranch', ['nw_ranch'], 'ranch-map');
+    await reopen('ranch-reopened');
+    await cross(returnRoad);
+    await mapAt('desert', ['shallow_crater'], 'desert-map-after-return');
+    await reopen('crater-reopened');
+    await cross({ ...entry, screenshot: 'ranch-reentry' });
+    if (!gatewayOnly) {
+      await verifyReservoir();
+      windmillPreset = await verifyWindmillVariant();
+    }
   }
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({
     start: '独立浏览器从新标题实玩后导出的续档，经普通导入接续；全过程使用已注册的正式游戏页面。',
     checkpoint: exported.engine.state.room, receipts, windmillPreset, errors,
   }, null, 2)}\n`);
-  console.log(gatewayOnly
+  console.log(windmillCheckpoint ? '正常走到风车下并导出带木片的进度' : gatewayOnly
     ? '浅坑与牧场正常双向接入、原路重进、地图和刷新续玩通过'
     : '牧场正常进场往返、两岸步行环、台阶 F、地图和刷新续玩通过');
 } catch (error) {
