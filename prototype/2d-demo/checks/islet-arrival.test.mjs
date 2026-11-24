@@ -22,16 +22,16 @@ test('渡口及白门的来向落点可步行离开，且不创建反向道路',
   }
 });
 
-test('沙漠边界有明确路面但不生成可通行出口，浅坑两侧鞍口能实走', () => {
+test('浅坑两侧鞍口保留原走法，已制作的沙路延伸可通行', () => {
   for (const [room, dir, target] of [['desert_5', 'w', 'desert_4'], ['desert_6', 'e', 'desert_7']]) {
     const scene = SCENES[room];
     const state = new GameState();
     state.room = room;
     state.chapter = 'desert';
-    const [boundary] = sceneBoundaries(room, state);
-    assert.deepEqual({ dir: boundary?.dir, target: boundary?.target }, { dir, target });
-    assert.equal(scene.exits.some(exit => exit.dir === dir), false);
-    assert.ok(findPath(scene, scene.spawn, boundary).length, room);
+    const exit = scene.exits.find(exit => exit.dir === dir);
+    assert.equal(exit?.target, target);
+    assert.equal(sceneBoundaries(room, state).some(boundary => boundary.dir === dir), false);
+    assert.ok(findPath(scene, scene.spawn, exit).length, room);
   }
   const crater = SCENES.shallow_crater;
   assert.equal(isSegmentWalkable(crater, [30, 145], [16, 145]), true);

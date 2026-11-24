@@ -1,6 +1,11 @@
+import {DESERT_TRAILS_LAYOUT} from './desert-trails-layout.js';
+import {DESERT_ROAD_LAYOUT} from './desert-road-layout.js';
+
 // The cliff faces on the delivered crater plate leave two low saddles much
 // higher than the centre of the basin. Coordinates follow those actual gaps.
 export const DESERT_ARRIVAL_LAYOUT = {
+  ...DESERT_TRAILS_LAYOUT,
+  ...DESERT_ROAD_LAYOUT,
   shallow_crater: {
     chapter: 'desert', objectId: 456, image: './assets/desert-shallow-crater-v1.png',
     spawn: [232,169], looseAnchor: [238,177],
@@ -36,6 +41,6 @@ export const DESERT_ARRIVAL_LAYOUT = {
 for (const layout of Object.values(DESERT_ARRIVAL_LAYOUT)) {
   Object.assign(layout, {
     footprint: { rx: 6, ry: 3 }, pathResolution: 0.25,
-    exitApproaches: { e: [1,0], w: [-1,0] }, blockedPolygons: [], obstacles: [], occluders: [],
+    exitApproaches: { e: [1,0], w: [-1,0], ...layout.exitApproaches }, blockedPolygons: [], obstacles: [], occluders: [],
   });
 }

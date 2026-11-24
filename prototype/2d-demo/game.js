@@ -145,7 +145,8 @@ function reset() {
 
 function updateLabels(roomId=engine.state.room) {
   const room = engine.rooms[roomId];
-  if($('#room').textContent!==room.cn)$('#room').textContent = room.cn;
+  const name = scenes[roomId]?.mapLabel || room.cn;
+  if ($('#room').textContent !== name) $('#room').textContent = name;
   if($('#room-en').textContent!==room.name)$('#room-en').textContent = room.name;
 }
 
@@ -358,13 +359,15 @@ function persistProgress({force=false}={}) {
 function paintSaveState() {
   const result = saveStore.read();
   const hasSave = result.ok && Boolean(result.save);
+  const savedScene = hasSave ? scenes[result.save.engine.state.room] : null;
+  const savedName = savedScene?.mapLabel || savedScene?.label;
   $('#continue-save').hidden = !hasSave;
-  $('#continue-save').textContent = hasSave ? '继续探索 · ' + scenes[result.save.engine.state.room].label : '继续上次探索';
+  $('#continue-save').textContent = hasSave ? '继续探索 · ' + savedName : '继续上次探索';
   $('#start').textContent = hasSave ? '重新开始' : '走进花园 →';
   $('#load-save').disabled = !hasSave || busy;
   $('#export-save').disabled = !hasSave;
   $('#save-now').disabled = !started || busy || engine.state.dead;
-  $('#save-summary').textContent = hasSave ? `已保存：${scenes[result.save.engine.state.room].label} · 第${result.save.engine.state.turns}回合` : result.error ? '存档暂不可读取：' + result.error.message : '尚无探索进度。进入游戏后，每次操作都会自动保存。';
+  $('#save-summary').textContent = hasSave ? `已保存：${savedName} · 第${result.save.engine.state.turns}回合` : result.error ? '存档暂不可读取：' + result.error.message : '尚无探索进度。进入游戏后，每次操作都会自动保存。';
 }
 
 async function restoreProgress(input) {
@@ -525,7 +528,9 @@ function update(dt) {
   }
   let remainingDistance=Infinity;
   if(!dx&&!dy&&canWalk&&walkPath.length){
-    while(walkPath.length&&Math.hypot(player.x-walkPath[0][0],player.y-walkPath[0][1])<.45)walkPath.shift();
+    // Each next segment was checked from the exact corner. Turning a fraction
+    // of a pixel early can put the feet outside a narrow lane for its full length.
+    while(walkPath.length && player.x === walkPath[0][0] && player.y === walkPath[0][1]) walkPath.shift();
     if(walkPath.length){dx=walkPath[0][0]-player.x;dy=walkPath[0][1]-player.y;remainingDistance=Math.hypot(dx,dy);}
     else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&withinReach(player,target))interactWith(target);}
     else if(walkExit){
@@ -536,8 +541,11 @@ function update(dt) {
   const oldX = player.x, oldY = player.y;
   if (dx || dy) {
     player.face = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    const step = Math.min(92 * dt,remainingDistance) / Math.hypot(dx, dy);
-    const nx=player.x+dx*step,ny=player.y+dy*step;
+    const stride = 92 * dt;
+    const reachCorner = remainingDistance <= stride;
+    const step = stride / Math.hypot(dx, dy);
+    const nx = reachCorner ? walkPath[0][0] : player.x + dx * step;
+    const ny = reachCorner ? walkPath[0][1] : player.y + dy * step;
     if(walkPath.length&&!solid(nx,ny)){player.x=nx;player.y=ny;}
     else {
       if (!solid(nx, player.y)) player.x = nx;

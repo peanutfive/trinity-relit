@@ -184,7 +184,8 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
     const [x,y]=SCENES[roomId].exitAnchors?.[dir]||anchors[dir];
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
     const approach=SCENES[roomId].exitApproaches?.[dir];
-    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
+    const place = SCENES[target].chapter === 'desert' ? desertLabels[target] : null;
+    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${place||rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
   });
 }
 // Production boundaries remain visible roads, rather than fake traversable
@@ -205,9 +206,17 @@ for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOU
   terrain:{status:'art-ground-trace-v2',sourceImage:layout.image},
   footprint:{rx:6,ry:3},objects:[],exits:[],
 };
+// The shared story calls these places simply Desert or Foothills. Use the
+// landmarks on the delivered plates for the explorer's map and signposts.
+const desertLabels = {
+  desert_1:'沙丘弯', desert_2:'灌木沙地', desert_3:'紫岩坡', desert_4:'斜岩岔口',
+  desert_5:'西侧沙地', desert_6:'东侧沙地', desert_7:'双丘岔口', desert_8:'金岩廊',
+  desert_9:'东端岩壁', foothills_1:'北麓', foothills_2:'中麓', foothills_3:'南麓',
+  paved_road_1:'公路岔口', paved_road_2:'红土路堑', paved_road_3:'荒原弯道',
+  paved_road_4:'干沟路口', paved_road_5:'山口弯道', paved_road_6:'山脊公路',
+};
 for(const [id,scene] of Object.entries(SCENES)){
-  if(id==='desert_5')scene.mapLabel='西侧沙地';
-  if(id==='desert_6')scene.mapLabel='东侧沙地';
+  if (desertLabels[id]) scene.mapLabel = desertLabels[id];
   if(scene.chapter==='tundra')scene.mapLabel=({tundra_1:'冻原 · 西南',tundra_2:'冻原 · 东',tundra_3:'冻原 · 西',tundra_4:'冻原 · 东北',tundra_5:'冻原 · 北',tundra_6:'冻原 · 西北',tundra_7:'冻原 · 东南',tundra_8:'冻原 · 南'})[id]||scene.label;
   const state=new GameState();state.room=id;state.chapter=scene.chapter;
   state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));

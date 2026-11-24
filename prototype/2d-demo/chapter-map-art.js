@@ -181,10 +181,18 @@ function desertChart(){
     ${path('M 0 165 Q 106 132 206 145 Q 342 158 441 123 T 665 97 Q 793 104 886 71 Q 1005 38 1080 53 L 1080 0 H 0 Z','#b09d75','#a28f6c',1.4)}
     ${path('M 0 568 Q 126 515 232 544 Q 362 580 495 543 Q 633 511 766 533 Q 912 552 1080 483 V 680 H 0 Z','#d3bd8d','#bba276',1.6)}
     ${path('M 75 232 C 168 211 221 226 293 209 M 103 241 Q 184 223 233 232 M 772 249 Q 864 229 979 250 M 821 257 Q 897 248 943 258 M 94 461 Q 184 432 279 458 M 127 467 Q 193 456 231 466 M 767 444 Q 886 411 1025 432','none','#ad946d',1.6)}
+    <g class="map-desert-foothills">
+      ${path('M 106 299 Q 125 284 146 304 L 164 326 L 177 322 L 203 358 L 225 367 L 226 391 Q 245 413 250 442 L 268 458 L 266 476 Q 293 494 297 525 L 319 555 L 322 579 Q 349 600 335 622 L 268 634 L 216 620 Q 176 598 169 569 L 158 547 L 162 525 Q 135 495 137 468 L 122 448 L 125 426 Q 106 397 112 361 L 96 335 Z','#bbad85','#a39272',1.5)}
+      ${path('M 109 319 Q 137 316 148 345 L 162 341 Q 175 363 189 368 L 196 393 M 131 387 Q 141 410 154 418 L 150 435 Q 174 459 178 479 M 213 416 L 221 452 L 243 469 L 247 493 M 181 520 Q 196 536 197 554 L 214 561 L 220 582 M 270 521 L 281 548 L 295 560 L 303 590','none','#958b6b',1.5)}
+      ${path('M 111 324 L 127 322 L 143 347 M 147 403 L 162 415 L 159 431 M 206 417 L 215 451 L 233 467 M 191 518 L 201 539 L 207 551 M 272 540 L 288 562 L 294 582','none','#dbca9d',2.5)}
+    </g>
+    <g transform="translate(540 337) scale(.48 .68) translate(-540 -337)">
     ${path(basin,'#b49f78','#998463',2.4)}
     ${path('M 417 331 C 427 292 478 278 531 274 Q 615 270 660 302 M 686 340 Q 653 403 549 406 Q 457 400 420 359','none','#dec997',3)}
     ${path('M 446 330 C 458 301 510 291 551 292 Q 614 292 647 320 Q 664 350 617 370 Q 559 393 489 370 Q 443 354 446 330 Z','#c9b58b','#a18e6b',1.5)}
     ${path('M 455 315 l -9 -8 m 23 -1 l -7 -9 m 22 3 l -6 -11 m 23 5 l -4 -9 M 609 372 l 6 9 m 8 -15 l 7 8 m 5 -15 l 8 6 m 1 -13 l 9 3','none','#928162',1.3)}
+    </g>
+    ${path('M 646 187 Q 685 169 738 175 M 683 186 Q 713 180 749 181 M 753 390 Q 795 374 830 380 M 826 357 Q 885 336 919 344 M 385 500 Q 425 482 456 489','none','#b5a078',1.5)}
     ${path('M 148 377 l 4 -7 l 4 8 m 4 -3 l 6 -4 M 338 290 l 3 -8 l 4 7 l 5 -4 M 759 378 l 4 -10 l 4 9 l 5 -6 M 936 322 l 3 -7 l 2 7 l 6 -4 M 308 488 l 3 -6 l 5 7','none','#85815d',1.4)}
   </g>`;
 }
@@ -211,11 +219,14 @@ export function terrainMarkup(chapter,id,nodes=[]){
   <rect class="map-mist" width="1080" height="680" fill="#d1cfb2" opacity=".38" mask="url(#${safeId}-mist)"/>
   <rect width="1080" height="680" fill="url(#${safeId}-fibres)" pointer-events="none"/>
   <g transform="translate(1003 83)" stroke="#536346" fill="none" stroke-width="1"><circle r="25" opacity=".5"/><path d="M 0 -32 V 32 M -32 0 H 32" opacity=".4"/><path d="M 0 -25 L 6 10 L 0 5 L -6 10 Z" fill="#506145"/><path d="M 0 25 L 6 -10 L 0 -5 L -6 -10 Z" opacity=".5"/><text y="-39" text-anchor="middle" fill="#506145" stroke="none" font-size="13">北</text></g>
-  <path d="M 40 613 v 12 h 100 v -12 M 90 619 v 6" fill="none" stroke="#566346" opacity=".6"/>
-  <text x="40" y="644" font-size="11" fill="#566346" opacity=".8">地形示意 · 非等距</text>`;
+  <g transform="translate(${chapter==='desert'?315:0} 0)">
+    <path d="M 40 613 v 12 h 100 v -12 M 90 619 v 6" fill="none" stroke="#566346" opacity=".6"/>
+    <text x="40" y="644" font-size="11" fill="#566346" opacity=".8">地形示意 · 非等距</text>
+  </g>`;
 }
 
 const icons={
+  lane:'M -7 8 L -4 -8 M 7 8 L 4 -8 M 0 -7 V -3 M 0 1 V 5',
   island:'M -10 4 Q -7 3 -5 0 Q -2 -7 3 -4 Q 5 -4 6 0 Q 8 3 10 4 Z M -7 7 Q -3 5 0 7 T 7 7',
   dune:'M -11 5 Q -4 5 1 -6 Q 4 0 10 2 M -4 6 Q 2 5 5 1',
   basin:'M -10 -3 Q -6 -5 -3 -5 M 2 -5 Q 8 -5 10 -1 Q 9 6 0 6 Q -7 6 -10 2 M -6 -1 Q -3 3 2 2 Q 5 2 7 -1',

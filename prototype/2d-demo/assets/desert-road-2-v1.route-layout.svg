@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288">
+<rect width="480" height="288" fill="#574a40"/>
+<polygon fill="#716a63" stroke="#f8ebc9" points="155,30 148,42 139,75 128,110 113,145 97,195 84,240 71,288 267,288 250,240 237,195 225,145 213,110 190,75 180,42 166,30"/>
+<polygon fill="#c5a66c" stroke="#f8ebc9" points="180,125 232,125 288,123 354,112 400,96 428,84 451,71 480,55 480,78 451,93 428,110 400,126 354,140 288,146 232,147 180,149"/>
+<g><title>n</title><circle cx="164" cy="45" r="4" fill="#ad6246"/></g>
+<g><title>s</title><circle cx="167" cy="275" r="4" fill="#ad6246"/></g>
+<g><title>e</title><circle cx="465" cy="76" r="4" fill="#ad6246"/></g>
+<circle cx="160" cy="160" r="3" fill="#183b32"/>
+</svg>

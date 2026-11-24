@@ -26,7 +26,18 @@ const orbit={orbit_satellite:[380,282,'satellite'],orbit_space:[720,205,'orbit']
 const pacific={mesa:[140,170,'hill'],scaffold:[600,245,'house'],bottom_scaffold:[600,390,'stairs'],north_beach:[600,100,'water'],south_beach:[600,560,'water'],west_beach:[330,350,'water'],east_beach:[870,350,'water']};
 const tundra={tundra_6:[180,180,'hill'],tundra_5:[450,180,'hill'],tundra_4:[720,180,'hill'],tundra_3:[180,350,'place'],under_platform:[450,350,'stairs'],tundra_2:[720,350,'place'],tundra_1:[180,520,'gate'],tundra_8:[450,520,'place'],tundra_7:[720,520,'place'],platform:[965,350,'house'],cliff_edge:[965,170,'hill']};
 const islet={islet:[525,458,'island'],sand_bar:[556,212,'water']};
-const desert={desert_5:[290,337,'dune'],shallow_crater:[540,337,'basin'],desert_6:[790,337,'dune']};
+// The sand track runs west–east. The foothills form a separate north–south
+// chain: two of their east exits return by going south from the desert.
+// The paved road is charted on its own meridian; only visited places are drawn.
+const desert={
+  desert_1:[154,156,'dune'], desert_2:[229,192,'dune'], desert_3:[304,225,'dune'],
+  desert_4:[380,259,'dune'], desert_5:[455,296,'dune'], shallow_crater:[540,337,'basin'],
+  desert_6:[658,321,'dune'], desert_7:[758,300,'dune'], desert_8:[858,272,'dune'],
+  desert_9:[963,245,'dune'],
+  foothills_1:[165,329,'hill'], foothills_2:[205,423,'hill'], foothills_3:[241,540,'hill'],
+  paved_road_1:[66,584,'lane'], paved_road_2:[66,501,'lane'], paved_road_3:[66,418,'lane'],
+  paved_road_4:[66,335,'lane'], paved_road_5:[66,231,'lane'], paved_road_6:[66,123,'lane'],
+};
 const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
@@ -55,7 +66,7 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
   };
   const reverse=edges.filter(other=>other.from===edge.to&&other.to===edge.from);
   const chartedGround=chapter==='prologue'||(['islet','desert'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
-  const road=chartedGround&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
+  const road=chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
   return {from,to,road:!!road,schematic:!road};
 }
 

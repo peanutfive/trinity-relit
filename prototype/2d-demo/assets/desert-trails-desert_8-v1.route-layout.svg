@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288">
+<rect width="480" height="288" fill="#44575a"/>
+<polygon fill="#c5a66c" stroke="#f8ebc9" points="0,126 37,124 86,123 137,128 181,122 231,124 282,123 320,119 359,121 408,125 444,121 480,120 480,164 444,163 408,171 359,173 320,187 282,194 231,202 181,202 137,189 86,178 37,175 0,160"/>
+<g><title>w</title><circle cx="16" cy="145" r="4" fill="#ad6246"/></g>
+<g><title>e</title><circle cx="464" cy="145" r="4" fill="#ad6246"/></g>
+<circle cx="236" cy="155" r="3" fill="#183b32"/>
+</svg>

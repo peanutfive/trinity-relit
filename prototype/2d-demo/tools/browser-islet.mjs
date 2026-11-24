@@ -251,18 +251,15 @@ try {
 
   // The two terrain loops use a real ground approach and then a held key.
   await walkRoad([[116, 174], [55, 155], [30, 145]], 'a', 'desert_5', 'e');
-  assert.deepEqual((await state()).boundaries.map(({ dir, target }) => ({ dir, target })),
-    [{ dir: 'w', target: 'desert_4' }]);
-  await walkTo(80, 177);
-  await walkTo(33, 184);
-  const westBoundary = gameState(await state());
-  await tapDirection('a', 530);
-  assert.deepEqual(gameState(await state()), westBoundary);
+  const west = await state();
+  assert.equal(west.exits.find(exit => exit.dir === 'w')?.target, 'desert_4');
+  assert.equal(west.boundaries.some(boundary => boundary.dir === 'w'), false);
   await shot('desert-west');
   await walkRoad([[426, 136]], 'd', 'shallow_crater', 'w');
   await goEastFromCrater();
-  assert.deepEqual((await state()).boundaries.map(({ dir, target }) => ({ dir, target })),
-    [{ dir: 'e', target: 'desert_7' }]);
+  const east = await state();
+  assert.equal(east.exits.find(exit => exit.dir === 'e')?.target, 'desert_7');
+  assert.equal(east.boundaries.some(boundary => boundary.dir === 'e'), false);
   await walkRoad([[54, 154]], 'a', 'shallow_crater', 'e');
   const desertRooms = ['shallow_crater', 'desert_5', 'desert_6'];
   const desertRoads = [['desert_5', 'shallow_crater'], ['shallow_crater', 'desert_6']];
@@ -283,13 +280,10 @@ try {
   assert.deepEqual(gameState(restored), gameState(saved));
   assert.deepEqual([restored.player.x, restored.player.y, restored.player.facing],
     [saved.player.x, saved.player.y, saved.player.facing]);
-  await tapDirection('d', 800);
-  const frontier = await state();
-  assert.deepEqual(gameState(frontier), gameState(restored));
-  assert.equal(frontier.routeMarker?.exit, null);
-  assert.match(frontier.routeMarker?.text || '', /前方场景制作中/);
-  await shot('desert-boundary-restored');
-  receipts.push({ case: 'main-route', fixture: '现有引擎指令到达的河岸存档', boundary: frontier.boundaries });
+  assert.equal(restored.routeMarker?.exit?.target, 'desert_7');
+  await shot('desert-east-route-restored');
+  await walkRoad([], 'd', 'desert_7', 'w');
+  receipts.push({ case: 'main-route', fixture: '现有引擎指令到达的河岸存档' });
 
   // Silver coin has no acquisition path in the current project data.
   await importSave(await riverSave({ open: true, seedCoin: true }));
@@ -332,7 +326,7 @@ try {
 
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({ receipts, errors }, null, 2)}\n`);
-  console.log('通过河岸条件、单程、付费返航、实路通行、章节地图、沙漠边界与续玩检查');
+  console.log('通过河岸条件、单程、付费返航、实路通行、章节地图、沙漠连接与续玩检查');
 } catch (error) {
   await shot('failure').catch(() => {});
   const current = await state().catch(() => null);
