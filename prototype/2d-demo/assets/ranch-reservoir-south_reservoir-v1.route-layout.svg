@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288" width="480" height="288" data-room="south_reservoir">
+  <title>水库南 · 480×288 构图</title>
+  <rect width="480" height="288" fill="#aa9675" />
+  <g id="reservoir">
+    <polygon points="97,-12 108,29 129,65 158,88 192,101 230,105 273,106 312,98 341,79 367,49 394,-12" fill="#677e79" />
+    <polyline points="97,-12 108,29 129,65 158,88 192,101 230,105 273,106 312,98 341,79 367,49 394,-12" fill="none" stroke="#716e61" stroke-width="10" stroke-linejoin="round" />
+    <polyline points="97,-12 108,29 129,65 158,88 192,101 230,105 273,106 312,98 341,79 367,49 394,-12" fill="none" stroke="#bdb8a3" stroke-width="5" stroke-linejoin="round" />
+  </g>
+  <g id="ground">
+    <polygon points="-12.2,164 60.9,163 109.4,163 156.6,161.1 201.7,155.1 240.4,149.4 272.2,142 308.8,125.6 343.3,109 367.8,83.8 398.4,47.2 433.2,9.8 460.3,-23.6 487.7,-0.4 458.8,32.2 425.6,70.8 394.2,108.2 362.7,137 323.2,156.4 283.8,174 247.6,184.6 206.3,190.9 159.4,194.9 110.6,199 61.1,199 -11.8,200" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+    <polygon points="129.3,193.7 93.8,166.4 72.5,138.8 55.9,106.8 37.3,72.9 13.5,31.8 -8.4,-2.7 22.4,-21.3 42.5,14.2 68.7,55.1 86.1,91.2 101.5,121.2 116.2,143.6 148.7,168.3" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+    <polygon points="223.2,168.6 223.1,154.6 224,138.5 224,126 250,126 250,137.5 252.9,151.4 256.8,163.4" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+  </g>
+  <g data-kind="steps">
+    <polygon points="222,98 252,98 259,131 215,131" fill="#c5bbae" stroke="#787264" stroke-width="2" />
+    <polyline points="221.364,101 252.636,101" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="220.091,107 253.909,107" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="218.818,113 255.182,113" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="217.545,119 256.455,119" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="216.273,125 257.727,125" fill="none" stroke="#928878" stroke-width="2" />
+  </g>
+  <g id="anchors">
+    <circle cx="16" cy="181" r="4" data-dir="w" data-target="se_ranch" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="25" cy="20" r="4" data-dir="nw" data-target="front_yard" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="450" cy="18" r="4" data-dir="ne" data-target="under_windmill" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="237" cy="124" r="4" data-dir="u" data-target="edge_reservoir" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+  </g>
+  <circle id="spawn" cx="224" cy="170" r="3" fill="#263f39" />
+</svg>

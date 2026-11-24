@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288" width="480" height="288" data-room="edge_reservoir">
+  <title>水库边缘 · 480×288 构图</title>
+  <rect width="480" height="288" fill="#aa9675" />
+  <g id="reservoir">
+    <polygon points="-12,-12 492,-12 492,127 420,116 367,113 324,114 277,122 245,127 202,132 145,132 99,125 42,121 -12,122" fill="#677e79" />
+    <polyline points="492,127 420,116 367,113 324,114 277,122 245,127 202,132 145,132 99,125 42,121 -12,122" fill="none" stroke="#716e61" stroke-width="10" stroke-linejoin="round" />
+    <polyline points="492,127 420,116 367,113 324,114 277,122 245,127 202,132 145,132 99,125 42,121 -12,122" fill="none" stroke="#bdb8a3" stroke-width="5" stroke-linejoin="round" />
+  </g>
+  <g id="ground">
+    <polygon points="93,125 144,132 202,132 244,125 277,120 322,112 362,112 372,141 349,168 313,183 277,197 258,216 218,216 195,200 163,195 127,179 101,156" fill="#b9afa0" stroke="#786f60" stroke-width="2" />
+  </g>
+  <g data-kind="steps">
+    <polygon points="223,211 253,211 260,256 216,256" fill="#c5bbae" stroke="#787264" stroke-width="2" />
+    <polyline points="222.533,214 253.467,214" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="221.6,220 254.4,220" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="220.667,226 255.333,226" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="219.733,232 256.267,232" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="218.8,238 257.2,238" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="217.867,244 258.133,244" fill="none" stroke="#928878" stroke-width="2" />
+    <polyline points="216.933,250 259.067,250" fill="none" stroke="#928878" stroke-width="2" />
+  </g>
+  <g id="anchors">
+    <circle cx="238" cy="213" r="4" data-dir="d" data-target="south_reservoir" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+  </g>
+  <circle id="spawn" cx="238" cy="168" r="3" fill="#263f39" />
+</svg>

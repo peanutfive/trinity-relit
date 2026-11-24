@@ -1,4 +1,4 @@
-import { ITEMS } from '../js/data/items.js';
+import { groundItems, carriedItemActions } from './loose-items.js';
 import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
 import { ISLET_LAYOUT, ISLET_POINTS } from './islet-layout.js';
 import { DESERT_ARRIVAL_LAYOUT } from './desert-arrival-layout.js';
@@ -56,22 +56,9 @@ export function getIsletHotspots(state) {
     objects.push(...ferryObjects(state, points.ferry, onIslet ? null : 'out'));
   }
 
-  const [baseX, baseY] = layout.looseAnchor;
-  const looseItems = state.roomItems().filter(id => ITEMS[id] && id !== 'toadstool_islet');
-  looseItems.forEach((id, index) => {
-    const item = ITEMS[id], noun = item.aliases?.[0] || id;
-    const x = baseX + (index % 3 - 1) * 9, y = baseY + Math.floor(index / 3) * 7;
-    objects.push({
-      id: `${chapter}:item:${id}`, kind: id, label: item.cn, itemId: id, x, y, radius: 35,
-      pointerShape: ellipse(x, y - 3, 6, 5, 3),
-      actions: [action('查看', `examine ${noun}`), ...(!item.fixed ? [action('拿取', `take ${noun}`)] : [])],
-    });
-  });
-  return objects;
+  return [...objects, ...groundItems(state, layout.looseAnchor, ['toadstool_islet'])];
 }
 
 export function getIsletInventoryActions(id, state) {
-  if ((!ISLET_LAYOUT[state.room] && !DESERT_ARRIVAL_LAYOUT[state.room]) || !state.has(id) || !ITEMS[id]) return [];
-  const item = ITEMS[id], noun = item.aliases?.[0] || id;
-  return [action('查看', `examine ${noun}`), ...(!item.fixed ? [action('放下', `drop ${noun}`)] : [])];
+  return ISLET_LAYOUT[state.room] || DESERT_ARRIVAL_LAYOUT[state.room] ? carriedItemActions(id, state) : [];
 }

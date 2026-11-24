@@ -46,8 +46,14 @@ export const ROOMS = {
         se: "back_yard",
         s: "sw_ranch",
         nw: {
-          to: "shallow_crater", when: () => true,
-          async act(s2, eng) { await eng.transitionChapter({ to: "desert", roomCandidates: ["shallow_crater"] }); },
+          to: "shallow_crater",
+          text: "You walk for several minutes.\n\n你走了几分钟。",
+          async act(s2, eng) {
+            if (await eng.activateChapter("desert")) {
+              s2.chapter = "desert";
+              s2.setFlag("chapter_desert_entered");
+            }
+          },
         },
         in: "back_yard",
         n: {

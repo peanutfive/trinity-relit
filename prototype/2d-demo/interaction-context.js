@@ -25,4 +25,5 @@ export const chapterObjective=chapter=>({
   tundra:'辨认冻土与山岩间的通路，留意平台和岩缝中的细节。',
   islet:'沿沙岸探索，留意雾中的水线、船与毒菌。',
   desert:'沿沙漠通路辨认浅坑与远处的地形。',
+  ranch:'沿石墙和水库边的小径探索牧场。',
 }[chapter]||'观察周围，再试试手中物品能做什么。');

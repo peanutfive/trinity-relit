@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288" width="480" height="288" data-room="under_windmill">
+  <title>风车下 · 480×288 构图</title>
+  <rect width="480" height="288" fill="#aa9675" />
+  <g id="reservoir">
+    <polygon points="-12,-12 41,-12 90,30 126,65 150,103 161,136 162,168 146,202 121,231 81,263 42,300 -12,300" fill="#677e79" />
+    <polyline points="41,-12 90,30 126,65 150,103 161,136 162,168 146,202 121,231 81,263 42,300" fill="none" stroke="#716e61" stroke-width="10" stroke-linejoin="round" />
+    <polyline points="41,-12 90,30 126,65 150,103 161,136 162,168 146,202 121,231 81,263 42,300" fill="none" stroke="#bdb8a3" stroke-width="5" stroke-linejoin="round" />
+  </g>
+  <g id="ground">
+    <polygon points="20.9,-26 47.6,4.2 83.5,28.1 126.4,47.3 174,66 212.1,92.7 237.9,121.2 258.5,147.1 258.6,184.7 228.4,213.4 195.4,230.2 151.2,248.1 106.6,271.4 60.8,302.1 36,325.7 8,294.3 37.2,269.9 87.4,238.6 134.8,213.9 178.6,193.8 205.6,180.6 221.4,165.3 219.5,162.9 208.1,144.8 187.9,119.3 158,96 113.6,78.7 66.5,59.9 24.4,31.8 -6.9,-0" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+    <polygon points="232.3,131.4 258.9,142.6 279.2,148.1 276.8,177.9 249.1,179.4 217.7,166.6" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+  </g>
+  <g data-kind="windmill">
+    <polyline points="270,64 247,168" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="293,64 319,169" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="280,65 267,146" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="286,65 300,146" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="253,122 310,125" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="253,124 310,150" fill="none" stroke="#57473a" stroke-width="4" />
+    <polyline points="308,124 250,147" fill="none" stroke="#57473a" stroke-width="4" />
+    <polygon points="262,61 301,61 301,70 262,70" fill="#705e4c" stroke="#443b32" stroke-width="2" />
+    <polyline points="280,82 288,82" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,89 288,89" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,96 288,96" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,103 288,103" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,110 288,110" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,117 288,117" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,124 288,124" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,131 288,131" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="280,138 288,138" fill="none" stroke="#5d4c3b" stroke-width="2" />
+    <polyline points="279,75 279,146" fill="none" stroke="#594b39" stroke-width="2" />
+    <polyline points="289,75 289,146" fill="none" stroke="#594b39" stroke-width="2" />
+    <polyline points="281,47 276,15" fill="none" stroke="#927c62" stroke-width="5" />
+    <polyline points="281,47 311,37" fill="none" stroke="#927c62" stroke-width="5" />
+    <polyline points="281,47 294,74" fill="none" stroke="#927c62" stroke-width="5" />
+    <polyline points="281,47 251,61" fill="none" stroke="#927c62" stroke-width="5" />
+    <polyline points="281,47 281,62" fill="none" stroke="#564b3e" stroke-width="4" />
+  </g>
+  <g id="anchors">
+    <circle cx="35" cy="18" r="4" data-dir="nw" data-target="north_reservoir" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="64" cy="276" r="4" data-dir="sw" data-target="south_reservoir" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+  </g>
+  <circle id="spawn" cx="235" cy="161" r="3" fill="#263f39" />
+</svg>

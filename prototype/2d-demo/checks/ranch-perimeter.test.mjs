@@ -2,27 +2,72 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { ROOMS } from '../../js/data/ranch.js';
+import { ROOMS as DESERT_ROOMS } from '../../js/data/desert.js';
 import { RANCH_PERIMETER_LAYOUT } from '../ranch-perimeter-layout.js';
+import { DESERT_ARRIVAL_LAYOUT } from '../desert-arrival-layout.js';
 import { roomArrival } from '../arrivals.js';
 import { approachingExit, findPath, isBlocked, isSegmentWalkable } from '../world.js';
 
 const ring = ['nw_ranch', 'ne_ranch', 'front_yard', 'se_ranch', 'sw_ranch'];
 const directions = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
 
+test('浅坑与牧场的跨章入口各自落在来路内侧，离开路口不会立即折返', () => {
+  const crater = DESERT_ARRIVAL_LAYOUT.shallow_crater;
+  const corner = RANCH_PERIMETER_LAYOUT.nw_ranch;
+  for (const [from, source, rooms, dir, to, destination, back] of [
+    ['shallow_crater', crater, DESERT_ROOMS, 'se', 'nw_ranch', corner, 'nw'],
+    ['nw_ranch', corner, ROOMS, 'nw', 'shallow_crater', crater, 'se'],
+  ]) {
+    const rule = rooms[from].exits({})[dir];
+    assert.equal(rule?.to, to, from);
+    const [x, y] = source.exitAnchors[dir];
+    const route = {dir, x, y, radius:17, approach:source.exitApproaches[dir]};
+    const [dx, dy] = route.approach;
+    assert.ok(findPath(source, source.spawn, route).length, from);
+    const inside = {x:x - 2 * dx, y:y - 2 * dy};
+    assert.equal(isSegmentWalkable(source, inside, route), true);
+    assert.equal(approachingExit(route, inside, route), true);
+    assert.equal(approachingExit(route, route, inside), false);
+    const [rx, ry] = destination.exitAnchors[back];
+    const arrival = roomArrival(destination, {fromRoom:from, direction:dir, exits:[{dir:back,target:from,x:rx,y:ry,radius:17}]});
+    assert.equal(arrival?.entrance, back, to);
+    assert.equal(arrival.matched, true);
+    assert.ok(Math.hypot(arrival.x - rx, arrival.y - ry) > 25);
+    assert.equal(isSegmentWalkable(destination, arrival, [rx,ry]), true);
+    assert.ok(findPath(destination, arrival, destination.spawn).length);
+  }
+});
+
+test('浅坑东南切口与牧场西北铺装路可以沿图走完，岩沿不可横穿', () => {
+  const crater = DESERT_ARRIVAL_LAYOUT.shallow_crater;
+  for (const [scene, points] of [
+    [crater, [[232,169],[286,194],[307,210],[339,219],[362,234],[386,250],[410,266],[422,275]]],
+    [RANCH_PERIMETER_LAYOUT.nw_ranch, [[157,113],[124,99],[94,79],[64,59],[40,44],[18,29]]],
+  ]) {
+    for (let i = 1; i < points.length; i++) {
+      assert.ok(isSegmentWalkable(scene, points[i-1], points[i]), points[i].join(','));
+    }
+  }
+  for (const edge of [[385,227],[365,261],[424,237]]) {
+    assert.equal(isBlocked(crater, ...edge), true, edge.join(','));
+  }
+});
+
 function exits(roomId) {
   const rules = ROOMS[roomId].exits({});
-  return Object.entries(RANCH_PERIMETER_LAYOUT[roomId].exitAnchors).map(([dir, [x, y]]) => ({
-    dir, target: rules[dir], x, y, radius: 17,
+  const scene = RANCH_PERIMETER_LAYOUT[roomId];
+  return Object.entries(scene.exitAnchors).map(([dir, [x, y]]) => ({
+    dir, target: rules[dir]?.to || rules[dir], x, y, radius: 17, approach: scene.exitApproaches?.[dir],
   }));
 }
 
-test('牧场外围只给章节主环提供十个行走出口，后续支路和门另留位置', () => {
+test('牧场外围主环遵循章节的十个行走方向，后续支路和门另留位置', () => {
   assert.deepEqual(Object.keys(RANCH_PERIMETER_LAYOUT).sort(), [...ring].sort());
   for (const [index, id] of ring.entries()) {
     const scene = RANCH_PERIMETER_LAYOUT[id];
     const routes = exits(id);
     const neighbours = [ring[(index + 1) % ring.length], ring[(index + ring.length - 1) % ring.length]];
-    assert.deepEqual(routes.map(route => route.target).sort(), neighbours.sort(), id);
+    assert.deepEqual(routes.map(route => route.target).filter(target => ring.includes(target)).sort(), neighbours.sort(), id);
     const rules = ROOMS[id].exits({});
     const shown = Object.keys(rules).filter(dir => !scene.hiddenExitDirs.includes(dir));
     assert.deepEqual(shown.sort(), routes.map(route => route.dir).sort(), id);
@@ -43,7 +88,7 @@ test('主环各去向和真实来向的足底都能通行，走回场内不会�
   for (const fromRoom of ring) {
     const scene = RANCH_PERIMETER_LAYOUT[fromRoom];
     assert.equal(isBlocked(scene, ...scene.spawn), false, fromRoom);
-    for (const route of exits(fromRoom)) {
+    for (const route of exits(fromRoom).filter(exit => ring.includes(exit.target))) {
       const mark = fromRoom + ' ' + route.dir;
       assert.ok(findPath(scene, scene.spawn, route).length > 0, mark);
       const next = RANCH_PERIMETER_LAYOUT[route.target];

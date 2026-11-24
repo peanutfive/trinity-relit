@@ -154,7 +154,7 @@ export async function restoreVisualSave(engine, input, options = {}) {
   // Existing engine preflight validates lazy chapter/timer registration without
   // replacing active progress. deserialize is itself atomic and never onEnters.
   if (typeof engine.validateSave === 'function') await engine.validateSave(prepared.save.engine);
-  if (options.prepareRoom) await options.prepareRoom(prepared.save.visual.room);
+  if (options.prepareRoom) await options.prepareRoom(prepared.save.visual.room, prepared.save.engine.state);
   await engine.deserialize(prepared.save.engine);
   restorePrologueTime(engine.state);
   return { ...prepared, visual: { ...prepared.save.visual } };

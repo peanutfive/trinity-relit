@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 288" width="480" height="288" data-room="north_reservoir">
+  <title>水库北 · 480×288 构图</title>
+  <rect width="480" height="288" fill="#aa9675" />
+  <g id="reservoir">
+    <polygon points="93,304 124,238 147,198 168,170 201,147 244,138 285,141 320,153 349,181 375,226 411,304" fill="#677e79" />
+    <polyline points="93,304 124,238 147,198 168,170 201,147 244,138 285,141 320,153 349,181 375,226 411,304" fill="none" stroke="#716e61" stroke-width="10" stroke-linejoin="round" />
+    <polyline points="93,304 124,238 147,198 168,170 201,147 244,138 285,141 320,153 349,181 375,226 411,304" fill="none" stroke="#bdb8a3" stroke-width="5" stroke-linejoin="round" />
+  </g>
+  <g id="ground">
+    <polygon points="-12.2,85 72.1,84 128.5,87 175.8,88 214.7,91 247,91 298.7,96.4 344.6,112.2 376.1,137.6 401.8,170.4 427.1,209.6 456.3,255.7 475.6,289.7 434.4,310.3 419.7,276.3 392.9,230.4 370.2,191.6 349.9,162.4 327.4,143.8 291.3,129.6 245,125 213.3,125 174.2,122 127.5,121 71.9,120 -11.8,121" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+    <polygon points="162.5,120.6 138.6,130.8 122.2,151.4 103,188.1 82.9,226.5 64.3,264.8 48.5,309.8 9.5,294.2 29.7,249.2 51.1,209.5 73,171.9 93.8,132.6 119.4,105.2 149.5,91.4" fill="#dfc79c" stroke="#f1deb8" stroke-width="1" />
+  </g>
+  <g id="anchors">
+    <circle cx="16" cy="103" r="4" data-dir="w" data-target="ne_ranch" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="42" cy="274" r="4" data-dir="sw" data-target="front_yard" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+    <circle cx="440" cy="270" r="4" data-dir="se" data-target="under_windmill" fill="#386b57" stroke="#eee4c9" stroke-width="1" />
+  </g>
+  <circle id="spawn" cx="217" cy="106" r="3" fill="#263f39" />
+</svg>

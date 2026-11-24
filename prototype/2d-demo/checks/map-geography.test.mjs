@@ -24,6 +24,25 @@ test('牧场地图先显示石墙地形，五段外围道路只在相邻地点�
   }
 });
 
+test('风车在两岸以东，岸路沿水库外缘，台阶的原版别名保留高低关系',()=>{
+  const visited=['ne_ranch','front_yard','se_ranch','north_reservoir','south_reservoir','under_windmill','edge_reservoir'];
+  const model=buildChapterMap({state:{room:'edge_reservoir',chapter:'ranch',visited},scenes:SCENES});
+  const nodes=illustratedMapNodes(model);
+  for (const shore of ['north_reservoir','south_reservoir']) {
+    const from=nodes.find(node=>node.id===shore),mill=nodes.find(node=>node.id==='under_windmill');
+    assert.equal(mill.icon,'windmill');
+    assert.ok(mill.x>from.x);
+    assert.ok(chartRoadPath(from,mill,'ranch').includes(' C '));
+    for (const edge of model.edges.filter(edge=>edge.from===shore&&edge.to!=='edge_reservoir')) {
+      assert.ok(chartConnection(edge,nodes,'ranch',model.edges).road,edge.id);
+    }
+  }
+  const steps=model.edges.filter(edge=>[edge.from,edge.to].includes('edge_reservoir'));
+  assert.deepEqual(steps.map(edge=>edge.direction).sort(),['d','n','s','u']);
+  for(const edge of steps)assert.ok(chartConnection(edge,nodes,'ranch',model.edges).stairs,edge.id);
+  assert.equal(nodes.some(node=>node.id==='reservoir'),false);
+});
+
 test('新档已有地形轮廓，探索只增加地点标记，不会移动已知地点或披露其他名称',()=>{
   const first=buildChapterMap(input(['palace_gate'])),full=buildChapterMap(input(Object.keys(ROOMS)));
   const start=illustratedMapNodes(first),all=illustratedMapNodes(full);

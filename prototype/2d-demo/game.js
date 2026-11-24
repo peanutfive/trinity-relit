@@ -299,7 +299,7 @@ async function command(input, actions = [], observedId = null) {
       if (source.timer) source.timer.perTurn = timerCallback;
       engine.state = source;
       applyingCommand = false;
-      await ensureSceneArt(destination.room);
+      await ensureSceneArt(destination.room,destination);
       engine.state = destination;
       previousScene = before;
     }
@@ -666,7 +666,7 @@ function render() {
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
   for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
   if (!story.hidePlayer&&!inPram) actors.push({ y: player.y, draw: () => {if(renderState.chapter==='orbit')renderOrbitPlayer(ctx,player,preferences.video.effects?clock:0);else drawActor(ctx, player.x, player.y, '#bca071', player.face, player.walk, false, animationState());if(renderRoom.startsWith('underground_')&&engine.state.has('lantern'))renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);} });
-  actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y);});
+  actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y,renderState);});
   director.draw(ctx, renderRoom, engine.state, clock);
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
   if(focusedItem==='paper_bird'&&pages.length){

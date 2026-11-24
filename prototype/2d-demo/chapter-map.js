@@ -7,13 +7,15 @@ import { ROOMS as ORBIT_ROOMS } from '../js/data/orbit.js';
 import { ROOMS as PACIFIC_ROOMS } from '../js/data/pacific.js';
 import { ROOMS as TUNDRA_ROOMS } from '../js/data/tundra.js';
 import { ROOMS as ISLET_ROOMS } from '../js/data/islet.js';
+import { ROOMS as RANCH_ROOMS } from '../js/data/ranch.js';
 import { ROOMS as DESERT_ROOMS } from '../js/data/desert.js';
 
 import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
-const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS,orbit:ORBIT_ROOMS,pacific:PACIFIC_ROOMS,tundra:TUNDRA_ROOMS,islet:ISLET_ROOMS,desert:DESERT_ROOMS};
+const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS,orbit:ORBIT_ROOMS,pacific:PACIFIC_ROOMS,tundra:TUNDRA_ROOMS,islet:ISLET_ROOMS,desert:DESERT_ROOMS,ranch:RANCH_ROOMS};
 const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场',underground:'地下洞室',orbit:'地球轨道',pacific:'太平洋小岛',tundra:'北极冻原',islet:'雾中小岛',desert:'新墨西哥沙漠',ranch:'牧场'};
 const DIRECTIONS={n:'北',ne:'东北',e:'东',se:'东南',s:'南',sw:'西南',w:'西',nw:'西北',u:'上',d:'下',in:'进入',out:'出去'};
 const DIRECTION_ORDER=Object.keys(DIRECTIONS);
+const groupPassages=chapter=>chapter==='orbit'||chapter==='ranch';
 const list=value=>value instanceof Set?[...value]:Array.isArray(value)?[...value]:[];
 const own=(object,key)=>Object.hasOwn(object||{},key);
 const compare=(a,b)=>String(a).localeCompare(String(b),'en');
@@ -132,6 +134,8 @@ export function buildChapterMap({state={},rooms,scenes={},chapter,chapterRooms=D
 }
 
 const VIEW_STYLE=`
+.chapter-map .map-stairway{stroke:#687553;stroke-width:9;stroke-dasharray:2 5;fill:none}
+.chapter-map .map-stairway[data-active=true]{stroke:#465e47}
 .chapter-map[hidden]{display:none!important}
 .chapter-map{position:absolute;inset:0;z-index:50;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;background:#1b2a23;color:#eee2c5;font-family:Georgia,'Songti SC',serif;isolation:isolate;border:1px solid #a58e59;box-shadow:inset 0 0 0 5px #1a2920,inset 0 0 0 6px #82754e}
 .chapter-map *{box-sizing:border-box}.chapter-map button,.chapter-map select{font:inherit;color:inherit;border:1px solid #a38d5b88;background:#26392c;border-radius:0;min-height:32px;padding:4px 10px;cursor:pointer}.chapter-map button:hover,.chapter-map button:focus-visible,.chapter-map select:focus-visible{outline:1px solid #e2c58c;outline-offset:2px;background:#3a4932}.chapter-map-heading{display:flex;align-items:center;gap:14px;padding:11px 20px 10px;border-bottom:1px solid #9a895457;min-width:0;background:linear-gradient(90deg,#21352a,#18291f)}.chapter-map h2{margin:0;font-size:17px;letter-spacing:.12em;font-weight:500;white-space:nowrap}.chapter-map .chapter-map-chapter{font-size:13px;max-width:130px}.chapter-map .chapter-map-chapter:disabled{opacity:1;appearance:none;border:0;padding-left:0;background:transparent}.chapter-map-status{font-size:11px;color:#bdb692;margin-left:auto;white-space:nowrap}.chapter-map-close{font-size:12px!important}.chapter-map-viewport{position:relative;min-width:0;min-height:0;overflow:hidden;background:#a7ab87;touch-action:none;cursor:grab}.chapter-map-viewport[data-dragging=true]{cursor:grabbing}.chapter-map-viewport:focus-visible{outline:2px solid #e2c58c;outline-offset:-3px}.chapter-map svg{display:block;width:100%;height:100%;user-select:none;-webkit-user-select:none}.chapter-map .map-chart{transform-box:view-box;transform-origin:0 0}.chapter-map .map-roads{pointer-events:none}.chapter-map .map-road-border{fill:none;stroke:#687553;stroke-width:10;opacity:.62;stroke-linecap:round;stroke-linejoin:round}.chapter-map .map-road{fill:none;stroke:#ddd0a1;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}.chapter-map .map-road[data-active=true]{stroke:#f4e1a2;stroke-width:7}.chapter-map .map-connection{fill:none;stroke:#435d4d;stroke-width:2;stroke-dasharray:4 6;opacity:0;pointer-events:none}.chapter-map .map-connection[data-active=true]{opacity:.9}.chapter-map .map-node{cursor:pointer;outline:none}.chapter-map .map-node .map-marker{fill:#344d38;stroke:#e6dcaf;stroke-width:1.3}.chapter-map .map-node .map-symbol{fill:none;stroke:#ece3ba;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.chapter-map .map-node:hover .map-marker,.chapter-map .map-node:focus-visible .map-marker,.chapter-map .map-node[aria-pressed=true] .map-marker{fill:#526846;stroke:#fff0bc;stroke-width:2.5}.chapter-map .map-node .map-label{font-size:15px;fill:#263d2c;stroke:#c3c4a0;stroke-width:5;paint-order:stroke;stroke-linejoin:round;text-anchor:middle;pointer-events:none}.chapter-map .map-node[data-current=true] .map-label{font-weight:bold}.chapter-map .map-current-ring{fill:none;stroke:#f9e7a9;stroke-width:2}.chapter-map .map-player{fill:#ffe8a2;stroke:#47553b;stroke-width:1.2}.chapter-map .map-current-halo{fill:none;stroke:#5a7351;stroke-width:1;opacity:.55}.chapter-map .map-unknown{stroke-dasharray:2 3}.chapter-map-tools{position:absolute;right:16px;bottom:16px;display:flex;align-items:center;gap:1px;box-shadow:0 2px 10px #1f352433}.chapter-map-tools button{background:#23392de8;min-width:34px;height:32px;font:16px Georgia,serif;border-color:#8a916f}.chapter-map-tools .map-recenter{font-size:11px;padding:3px 10px}.chapter-map-legend{position:absolute;left:18px;top:14px;display:flex;align-items:center;gap:8px;font-size:11px;color:#46583c;pointer-events:none}.chapter-map-legend span:first-child::before{content:'◆';color:#40583a;margin-right:5px}.chapter-map-legend span:last-child::before{content:'➤';color:#746439;margin:0 5px 0 6px}.chapter-map-detail{display:flex;align-items:center;gap:18px;min-height:51px;padding:8px 20px;background:linear-gradient(90deg,#21352a,#18291f);border-top:1px solid #9a895457;min-width:0}.chapter-map-detail h3{font-size:14px;font-weight:500;margin:0;white-space:nowrap;color:#f0dfb0}.chapter-map-detail small{font-size:10px;color:#afa989;font-weight:normal;display:block;line-height:1.4}.chapter-map-detail p{font-size:11px;color:#bdb99b;margin:0;line-height:1.5}.chapter-map-detail .map-route-summary{display:flex;gap:5px 13px;flex-wrap:wrap;align-items:center;font-size:11px;color:#bdb99b}.chapter-map .map-note{font-size:10px;color:#d6c48f;margin-left:auto;max-width:220px}.chapter-map .map-touch-hint{position:absolute;right:17px;top:14px;color:#526244;font-size:10px;pointer-events:none}
@@ -199,14 +203,17 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     const name=el('h3',node.cn+(node.current?' · 你在这里':''));if(node.name)name.append(el('small',node.name));detail.replaceChildren(name);
     const summary=el('div');summary.className='map-route-summary';
     if(node.exits.length){
-      // Keep every legal direction in the read-only model; the orbit's many
-      // aliases share one destination and need not repeat its name 11 times.
-      const groups=model.chapter==='orbit'?Object.values(node.exits.reduce((all,exit)=>{(all[exit.to]??=[]).push(exit);return all;},{})):node.exits.map(exit=>[exit]);
+      // Orbit movement and the reservoir steps use several commands for one passage.
+      const groups=groupPassages(model.chapter)?Object.values(node.exits.reduce((all,exit)=>{(all[exit.to]??=[]).push(exit);return all;},{})):node.exits.map(exit=>[exit]);
       for(const group of groups){const item=el('span',`${group.length>=8?'漂行':group.map(exit=>exit.label).join(' / ')} · ${group[0].cn}`);if(group.length>1)item.title=group.map(exit=>exit.label).join(' / ');summary.append(item);}
     }
     else summary.append(el('span','沿途探索后，路线会逐渐记下。'));
     detail.append(summary);
-    const atypical=model.edges.some(edge=>edge.from===id&&chartConnection(edge,nodes,model.chapter,model.edges)?.schematic);
+    const atypical=model.edges.some(edge=>{
+      if(edge.from!==id)return false;
+      const connection=chartConnection(edge,nodes,model.chapter,model.edges);
+      return connection?.schematic&&!connection.stairs;
+    });
     if(atypical){const note=el('p',model.chapter==='orbit'?'虚线记录漂行关系，不表示距离。':'虚线为方位变化或高低连接，请以出口方向为准。');note.className='map-note';detail.append(note);}
     onSelect({id,chapter:model.chapter});return true;
   }
@@ -219,10 +226,19 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     const roads=svgEl('g',{class:'map-roads','aria-hidden':true}),connections=svgEl('g',{class:'map-connections','aria-hidden':true}),seen=new Set();
     for(const edge of model.edges){
       const connection=chartConnection(edge,nodes,model.chapter,model.edges);if(!connection)continue;
-      const {from,to,road}=connection,key=[from.id,to.id].sort(compare).join('|');
+      const {from,to,road,stairs}=connection,key=[from.id,to.id].sort(compare).join('|');
+      if(road||groupPassages(model.chapter)){
+        if(seen.has(key))continue;
+        seen.add(key);
+      }
       const path=from===to?`M ${from.x+8} ${from.y-8} c 45 -45 -45 -45 -16 0`:chartRoadPath(from,to,model.chapter);
-      if(road){if(seen.has(key))continue;seen.add(key);roads.append(svgEl('path',{d:path,class:'map-road-border'}),svgEl('path',{d:path,class:'map-road','data-from':from.id,'data-to':to.id}));}
-      else {if(model.chapter==='orbit'){if(seen.has(key))continue;seen.add(key);}connections.append(svgEl('path',{d:path,class:'map-connection','data-edge-id':edge.id,'data-from':from.id,'data-to':to.id}));}
+      if(stairs){
+        roads.append(svgEl('path',{d:path,class:'map-stairway','data-from':from.id,'data-to':to.id}));
+      }else if(road){
+        roads.append(svgEl('path',{d:path,class:'map-road-border'}),svgEl('path',{d:path,class:'map-road','data-from':from.id,'data-to':to.id}));
+      }else{
+        connections.append(svgEl('path',{d:path,class:'map-connection','data-edge-id':edge.id,'data-from':from.id,'data-to':to.id}));
+      }
     }
     chart.append(roads,connections);
     for(const node of nodes){

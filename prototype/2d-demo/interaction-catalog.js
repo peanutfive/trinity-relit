@@ -1,3 +1,5 @@
+import { getRanchHotspots } from './ranch-actions.js';
+import { carriedItemActions } from './loose-items.js';
 import {getOrbitHotspots,getOrbitInventoryActions} from './orbit-actions.js';
 import {getPacificHotspots,getPacificInventoryActions} from './pacific-actions.js';
 import {getPacificPassages} from './pacific-passages.js';
@@ -16,6 +18,7 @@ export function getHotspots(state,options={}) {
       :state.chapter==='underground'?getUndergroundHotspots(state)
       :state.chapter==='orbit'?getOrbitHotspots(state)
       :state.chapter==='pacific'?[...getPacificHotspots(state),...getPacificPassages(state)]
+      :state.chapter==='ranch'?getRanchHotspots(state)
       :state.chapter==='tundra'?getTundraHotspots(state,options)
       :['islet','desert'].includes(state.chapter)?getIsletHotspots(state)
       :state.chapter==='prologue'?getPrologueHotspots(state):[];
@@ -28,6 +31,7 @@ export function getInventoryActions(id, state) {
   if (state.chapter === 'japan') return getJapanInventoryActions(id, state);
   if(state.chapter==='orbit')return getOrbitInventoryActions(id,state);
   if(state.chapter==='pacific')return getPacificInventoryActions(id,state);
+  if(state.chapter==='ranch')return carriedItemActions(id,state);
   if(state.chapter==='tundra')return getTundraInventoryActions(id,state);
   if(['islet','desert'].includes(state.chapter))return getIsletInventoryActions(id,state);
   if (state.chapter === 'prologue') return getPrologueInventoryActions(id, state);

@@ -410,10 +410,24 @@ export const ROOMS = {
     name: "Shallow Crater",
     cn: "浅坑",
     desc(s) {
-      return "You are in a shallow crater. The desert lies to the west and east.\n\n你在浅坑中。沙漠在西面与东面。";
+      // The southeast clause describes the stretch of paved road available here.
+      return "You're standing at the edge of a shallow depression in the desert floor, a few hundred feet across. The ground within is gray and pulverized, as if by a powerful explosion.\n\nA paved road leads southeast into the desert.\n\n你站在沙漠里一处浅坑的边缘。坑有几百英尺宽，坑底灰白，泥土碎成了粉末，仿佛这里曾发生过猛烈的爆炸。\n\n一条铺装公路向东南伸入沙漠。";
     },
     exits() {
-      return { w: "desert_5", e: "desert_6" };
+      return {
+        w: "desert_5", e: "desert_6",
+        se: {
+          to: "nw_ranch",
+          text: "You walk along for several minutes.\n\n你沿路走了几分钟。",
+          async act(s2, eng) {
+            // The direction handler enters the room after this hook returns.
+            if (await eng.activateChapter("ranch")) {
+              s2.chapter = "ranch";
+              s2.setFlag("chapter_ranch_entered");
+            }
+          },
+        },
+      };
     },
     events: [],
   },

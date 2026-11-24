@@ -1,23 +1,28 @@
-import {DESERT_TRAILS_LAYOUT} from './desert-trails-layout.js';
+import {along, DESERT_TRAILS_LAYOUT} from './desert-trails-layout.js';
 import {DESERT_ROAD_LAYOUT} from './desert-road-layout.js';
 
-// The cliff faces on the delivered crater plate leave two low saddles much
-// higher than the centre of the basin. Coordinates follow those actual gaps.
+// The saddles lie above the basin. The ranch trail follows a separate cut
+// through its southeastern rim and reaches the bottom of the picture.
 export const DESERT_ARRIVAL_LAYOUT = {
   ...DESERT_TRAILS_LAYOUT,
   ...DESERT_ROAD_LAYOUT,
   shallow_crater: {
-    chapter: 'desert', objectId: 456, image: './assets/desert-shallow-crater-v1.png',
+    chapter: 'desert', objectId: 456, image: './assets/desert-shallow-crater-v2.png',
     spawn: [232,169], looseAnchor: [238,177],
     sourceArrivals: {
       islet: {x:222,y:174,face:'right',entrance:'door'},
       sand_bar: {x:222,y:174,face:'right',entrance:'door'},
+      nw_ranch: {x:388,y:252,face:'left',entrance:'se'},
     },
     walkablePolygons: [[[0,137],[19,136],[35,137],[50,146],[78,152],[108,155],[138,148],
       [177,126],[219,119],[271,110],[307,114],[351,122],[385,131],[414,130],[437,124],[461,121],[480,118],
       [480,132],[460,133],[448,138],[430,152],[412,164],[425,173],[408,191],[375,201],[349,211],
-      [340,224],[291,237],[248,237],[211,230],[172,226],[131,217],[113,203],[79,196],[56,180],[32,166],[16,154],[0,149]]],
-    exitAnchors: { w: [16,144], e: [464,126] },
+      [340,224],[291,237],[248,237],[211,230],[172,226],[131,217],[113,203],[79,196],[56,180],[32,166],[16,154],[0,149]],
+      along([[193,273,305],[205,281,328],[214,305,352],[222,329,365],[233,346,376],
+        [244,360,392],[254,372,408],[267,384,430],[278,393,449],[288,400,466]]),
+    ],
+    exitAnchors: { w:[16,144], e:[464,126], se:[422,275] },
+    exitApproaches: { se:[1,0.6] },
   },
   desert_5: {
     chapter: 'desert', image: './assets/desert-west-v1.png',

@@ -198,7 +198,7 @@ function desertChart(){
 }
 function ranchChart(id){
   const yard='M 307 208 Q 370 195 496 199 L 558 203 Q 589 204 592 239 L 597 404 Q 597 449 554 454 L 330 463 Q 289 462 285 429 L 279 250 Q 277 215 307 208 Z';
-  const reservoir='M 738 295 C 754 256 810 235 857 241 C 912 243 957 275 961 316 C 967 359 920 396 863 404 C 801 413 749 385 735 348 C 729 327 731 312 738 295 Z';
+  const reservoir='M 774 251 L 914 246 L 950 278 L 960 355 L 924 394 L 780 403 L 745 370 L 736 295 Z';
   return `<g class="map-ranch-perimeter">
     <rect width="1080" height="680" fill="#c3ae80"/>
     ${path('M 0 0 H 1080 V 141 Q 906 88 780 118 T 491 129 Q 315 154 204 122 Q 91 96 0 143 Z','#af9f7a','#a69672',1.5)}
@@ -255,6 +255,7 @@ const icons={
   bench:'M -9 -4 H 9 V 1 H -9 Z M -10 3 H 10 M -7 4 V 8 M 7 4 V 8',
   tree:'M 0 8 V 0 M -6 2 Q -12 -3 -5 -6 Q -1 -14 4 -7 Q 12 -7 9 0 Q 6 6 0 2 Z',
   water:'M -9 -3 q 5 -4 9 0 t 9 0 M -9 3 q 5 -4 9 0 t 9 0',
+  windmill:'M -5 9 L 0 -5 L 5 9 M -3 4 H 3 M 0 -5 l -6 -5 l -2 2 Z M 0 -5 l 5 -6 l 2 2 Z M 0 -5 l 7 3 l -1 3 Z M 0 -5 l -6 4 l -2 -2 Z',
   hill:'M -10 6 L -1 -9 L 10 6 Z M -4 -3 L 0 -1 L 3 -3',
   bog:'M -8 6 H 8 M -5 6 V -5 M 1 6 V -9 M 6 6 V -3 M -8 -2 L -5 2 M 4 -5 L 1 0',
   stairs:'M -9 8 H -4 V 3 H 1 V -2 H 6 V -7 H 10',

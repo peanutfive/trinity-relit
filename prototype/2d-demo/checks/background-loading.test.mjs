@@ -15,3 +15,17 @@ test('背景只按进入房间请求，同图多面板复用；失败允许重�
  assert.equal(requestedSceneArt().length,1);ensureSceneArt('orbit_satellite');assert.equal(requests.length,base+3);
  await assert.rejects(ensureSceneArt('unmade'),/尚未制作/);
 });
+
+test('读档、实时场景和过场快照按同一破损标志选择风车画面',async()=>{
+  const before=requests.length;
+  const room='under_windmill', flag='binoculars_broken';
+  const broken=ensureSceneArt(room,{flags:[flag]});
+  assert.equal(ensureSceneArt(room,{flags:new Set([flag])}),broken);
+  assert.ok(requests.at(-1).endsWith('under_windmill-damaged-v1.png'));
+  images.at(-1).onload();await broken;
+  const intact=ensureSceneArt(room,{flags:new Set()});
+  assert.ok(requests.at(-1).endsWith('under_windmill-v1.png'));
+  images.at(-1).onload();await intact;
+  assert.equal(ensureSceneArt(room),intact);
+  assert.equal(requests.length,before+2);
+});

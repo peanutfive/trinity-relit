@@ -1,7 +1,7 @@
 import { across, along } from './desert-trails-layout.js';
 
-// Coordinates are feet on the 480 × 288 background. Chapter targets of the
-// ten ring exits are resolved by ranch.js. Reserved scenery has no exit sensor.
+// Coordinates are feet on the 480 × 288 background. Chapter rules supply the
+// destinations. Reserved scenery has no exit sensor.
 export const RANCH_PERIMETER_LAYOUT = {
   nw_ranch: {
     spawn: [161, 121], looseAnchor: [151, 153],
@@ -14,11 +14,13 @@ export const RANCH_PERIMETER_LAYOUT = {
       [[157,119],[171,123],[187,128],[197,126],[212,117],[226,112],[237,113],[237,122],
         [219,133],[208,140],[198,146],[183,150],[166,144],[157,136]],
     ],
-    exitAnchors: { e:[464,88], s:[150,275] },
-    hiddenExitDirs: ['n','nw','se','in'],
+    exitAnchors: { e:[464,88], s:[150,275], nw:[18,29] },
+    exitApproaches: { nw:[-1,-0.6] },
+    hiddenExitDirs: ['n','se','in'],
     sourceArrivals: {
       ne_ranch:{x:424,y:88,face:'left',entrance:'e'},
       sw_ranch:{x:148,y:237,face:'up',entrance:'s'},
+      shallow_crater:{x:82,y:71,face:'right',entrance:'nw'},
     },
     blockedPolygons: [
       [[186,288],[187,213],[184,178],[188,160],[197,148],[209,139],[216,140],[217,148],
@@ -31,7 +33,6 @@ export const RANCH_PERIMETER_LAYOUT = {
       {depthY:132,points:[[248,114],[275,106],[330,103],[480,106],[480,128],[332,127],[274,128],[249,135]]},
     ],
     reservedFeatures: [
-      {kind:'road',dirs:['nw'],target:'shallow_crater',at:[21,30]},
       {kind:'closed-gate',dirs:['se','in'],target:'back_yard',at:[227,129],approach:[215,126]},
       {kind:'unresolved',dirs:['n'],target:'behind_shed'},
     ],
@@ -45,11 +46,12 @@ export const RANCH_PERIMETER_LAYOUT = {
         [220,232,281],[242,230,279],[266,226,276],[288,223,273]]),
       across([[248,104,121],[271,99,114],[309,93,107],[355,90,104],[410,90,103],[480,89,102]]),
     ],
-    exitAnchors: { w:[16,88], s:[249,275] },
-    hiddenExitDirs: ['e','se','sw','in'],
+    exitAnchors: { w:[16,88], s:[249,275], e:[461,96] },
+    hiddenExitDirs: ['se','sw','in'],
     sourceArrivals: {
       nw_ranch:{x:57,y:88,face:'right',entrance:'w'},
       front_yard:{x:255,y:236,face:'up',entrance:'s'},
+      north_reservoir:{x:422,y:97,face:'left',entrance:'e'},
     },
     blockedPolygons: [
       [[0,106],[104,111],[150,116],[183,129],[202,147],[214,172],[214,210],
@@ -60,7 +62,7 @@ export const RANCH_PERIMETER_LAYOUT = {
       {depthY:126,points:[[0,103],[104,107],[150,113],[150,125],[104,117],[0,114]]},
       {depthY:138,points:[[150,113],[179,124],[187,130],[185,141],[178,135],[150,125]]},
     ],
-    reservedFeatures: [{kind:'road',dirs:['e'],target:'north_reservoir',at:[461,96]}],
+    reservedFeatures: [],
   },
   front_yard: {
     spawn: [218,145], looseAnchor: [215,145],
@@ -74,11 +76,14 @@ export const RANCH_PERIMETER_LAYOUT = {
         [389,217,239],[428,235,255],[456,250,274],[480,265,288]]),
       [[105,98],[135,104],[159,111],[182,113],[201,116],[201,134],[174,129],[151,124],[128,118],[105,113]],
     ],
-    exitAnchors: { n:[209,16], s:[199,275] },
-    hiddenExitDirs: ['ne','e','se','sw','w','nw','u','in'],
+    exitAnchors: { n:[209,16], s:[199,275], ne:[431,14], se:[462,267] },
+    exitApproaches: { ne:[1,-0.55], se:[1,0.6] },
+    hiddenExitDirs: ['e','sw','w','nw','u','in'],
     sourceArrivals: {
       ne_ranch:{x:201,y:56,face:'down',entrance:'n'},
       se_ranch:{x:206,y:236,face:'up',entrance:'s'},
+      north_reservoir:{x:308,y:46,face:'left',entrance:'ne'},
+      south_reservoir:{x:425,y:245,face:'left',entrance:'se'},
     },
     blockedPolygons: [
       [[139,0],[147,0],[147,52],[156,103],[149,105],[141,62]],
@@ -87,8 +92,6 @@ export const RANCH_PERIMETER_LAYOUT = {
     ],
     occluders: [],
     reservedFeatures: [
-      {kind:'road',dirs:['ne'],target:'north_reservoir',at:[431,14]},
-      {kind:'road',dirs:['se'],target:'south_reservoir',at:[462,267]},
       {kind:'ramp',dirs:['w','u','in'],target:'front_deck',at:[151,117]},
     ],
   },
@@ -103,11 +106,12 @@ export const RANCH_PERIMETER_LAYOUT = {
       [[245,118],[230,101],[217,88],[207,78],[197,70],[184,77],
         [195,94],[208,111],[230,132]],
     ],
-    exitAnchors: { w:[16,163], n:[275,16] },
-    hiddenExitDirs: ['e','ne','nw','in'],
+    exitAnchors: { w:[16,163], n:[275,16], e:[460,136] },
+    hiddenExitDirs: ['ne','nw','in'],
     sourceArrivals: {
       sw_ranch:{x:56,y:163,face:'right',entrance:'w'},
       front_yard:{x:276,y:56,face:'down',entrance:'n'},
+      south_reservoir:{x:419,y:136,face:'left',entrance:'e'},
     },
     blockedPolygons: [
       [[0,115],[125,114],[156,111],[185,101],[194,103],[193,115],[158,123],[120,126],[0,127]],
@@ -117,7 +121,6 @@ export const RANCH_PERIMETER_LAYOUT = {
     ],
     occluders: [],
     reservedFeatures: [
-      {kind:'road',dirs:['e'],target:'south_reservoir',at:[460,136]},
       {kind:'open-gate',dirs:['nw','in'],target:'se_yard',at:[207,89]},
     ],
   },

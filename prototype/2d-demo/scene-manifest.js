@@ -6,6 +6,9 @@ import {PACIFIC_LAYOUT} from './pacific-layout.js';
 import {TUNDRA_LAYOUT} from './tundra-layout.js';
 import {ISLET_LAYOUT} from './islet-layout.js';
 import {DESERT_ARRIVAL_LAYOUT} from './desert-arrival-layout.js';
+import {RANCH_PERIMETER_LAYOUT} from './ranch-perimeter-layout.js';
+import {RANCH_RESERVOIR_LAYOUT} from './ranch-reservoir-layout.js';
+import {ROOMS as RANCH_ROOMS} from '../js/data/ranch.js';
 import {ROOMS as ISLET_ROOMS} from '../js/data/islet.js';
 import {ROOMS as DESERT_ROOMS} from '../js/data/desert.js';
 import {ROOMS as TUNDRA_ROOMS} from '../js/data/tundra.js';
@@ -29,7 +32,7 @@ const extraA = './assets/gardens-extra-a.png';
 const extraB = './assets/gardens-extra-b.png';
 const wabeA = './assets/wabe-a.png';
 const wabeB = './assets/wabe-b.png';
-const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS,...PACIFIC_ROOMS,...TUNDRA_ROOMS,...ISLET_ROOMS,...DESERT_ROOMS };
+const DEFAULT_ROOMS = { ...PROLOGUE_ROOMS, ...WABE_ROOMS, ...JAPAN_ROOMS,...UNDERGROUND_ROOMS,...ORBIT_ROOMS,...PACIFIC_ROOMS,...TUNDRA_ROOMS,...ISLET_ROOMS,...DESERT_ROOMS,...RANCH_ROOMS };
 const sceneSpecs = {
   palace_gate: [base,0,3,236,[238,218]],
   broad_walk: [base,1,3,354,[240,250]],
@@ -185,7 +188,7 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
     const approach=SCENES[roomId].exitApproaches?.[dir];
     const place = SCENES[target].chapter === 'desert' ? desertLabels[target] : null;
-    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${place||rooms[target]?.cn||target}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
+    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${place||rooms[target]?.cn||SCENES[target].label}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
   });
 }
 // Production boundaries remain visible roads, rather than fake traversable
@@ -195,16 +198,21 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   const room=rooms[roomId],exits=typeof room.exits==='function'?room.exits(state):room.exits||{};
   return Object.entries(exits).flatMap(([dir,value])=>{
     const target=typeof value==='string'?value:value?.to,anchor=scene.exitAnchors?.[dir];
-    return target&&!SCENES[target]&&anchor?[{dir,target,x:anchor[0],y:anchor[1]}]:[];
+    if(!target||SCENES[target]||!anchor||scene.hiddenExitDirs?.includes(dir))return [];
+    if(value?.when===false||(typeof value?.when==='function'&&!value.when(state)))return [];
+    return [{dir,target,x:anchor[0],y:anchor[1]}];
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT,...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},
   terrain:{status:'art-ground-trace-v2',sourceImage:layout.image},
   footprint:{rx:6,ry:3},objects:[],exits:[],
+};
+SCENES.under_windmill.background.variant = {
+  flag: 'binoculars_broken', image: './assets/ranch-reservoir-under_windmill-damaged-v1.png',
 };
 // The shared story calls these places simply Desert or Foothills. Use the
 // landmarks on the delivered plates for the explorer's map and signposts.

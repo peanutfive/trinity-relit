@@ -41,6 +41,8 @@ const desert={
 const ranch={
   nw_ranch:[244,162,'gate'], ne_ranch:[615,160,'lane'], front_yard:[661,329,'stairs'],
   se_ranch:[619,506,'gate'], sw_ranch:[240,508,'gate'],
+  north_reservoir:[816,158,'water'], south_reservoir:[816,514,'water'],
+  under_windmill:[997,326,'windmill'], edge_reservoir:[816,422,'stairs'],
 };
 const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert,ranch};
 
@@ -71,7 +73,8 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
   const reverse=edges.filter(other=>other.from===edge.to&&other.to===edge.from);
   const chartedGround=chapter==='prologue'||(['islet','desert','ranch'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
   const road=chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
-  return {from,to,road:!!road,schematic:!road};
+  const stairs=chapter==='ranch'&&[from.id,to.id].sort().join('|')==='edge_reservoir|south_reservoir'&&reverse.length>0&&!from.unknownVisual&&!to.unknownVisual;
+  return {from,to,road:!!road,schematic:!road,stairs};
 }
 
 // Draw the park's approaches along the shore, never across the water. Each
@@ -83,6 +86,11 @@ const gardenCurves={
   'inverness_terrace|lancaster_walk':'M 463 115 C 552 150 620 184 635 248 Q 649 298 730 322',
   'broad_walk|inverness_terrace':'M 186 322 Q 278 256 342 194 Q 400 143 463 115',
 };
+// Follow the dry bank outside the concrete wall drawn on the ranch chart.
+const ranchCurves={
+  'north_reservoir|under_windmill':'M 816 158 C 906 160 984 215 997 326',
+  'south_reservoir|under_windmill':'M 816 514 C 922 508 988 430 997 326',
+};
 export function chartRoadPath(from,to,chapter){
   if(chapter==='orbit'){
     // Two authored floating viewpoints, not compass-aligned ground locations.
@@ -90,8 +98,8 @@ export function chartRoadPath(from,to,chapter){
     const [left,right]=[from,to].sort((a,b)=>a.x-b.x);
     return `M ${left.x} ${left.y} C ${left.x+90} ${left.y-95} ${right.x-100} ${right.y-60} ${right.x} ${right.y}`;
   }
-  if(chapter==='prologue'){
-    const curve=gardenCurves[[from.id,to.id].sort().join('|')];if(curve)return curve;
-  }
+  const curves=chapter==='prologue'?gardenCurves:chapter==='ranch'?ranchCurves:null;
+  const curve=curves?.[[from.id,to.id].sort().join('|')];
+  if(curve)return curve;
   return `M ${from.x} ${from.y} Q ${(from.x+to.x)/2} ${(from.y+to.y)/2-6} ${to.x} ${to.y}`;
 }

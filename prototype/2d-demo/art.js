@@ -3,10 +3,17 @@ import { paintCharacter } from './character.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
 const sceneArtError = message => Object.assign(new Error(message), { name: 'SceneArtError' });
+function backgroundSource(background, state) {
+  const variant = background?.variant;
+  if (!variant) return background?.image;
+  const flags = state?.flags;
+  const active = flags instanceof Set ? flags.has(variant.flag) : flags?.includes(variant.flag);
+  return active ? variant.image : background.image;
+}
 // Background plates are large. Load the current room only; retain its source
 // scene during a crossing until the destination painting is decoded.
-export function ensureSceneArt(room){
-  const src=SCENES[room]?.background?.image;if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
+export function ensureSceneArt(room,state){
+  const src=backgroundSource(SCENES[room]?.background,state);if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
   if(pending.has(src))return pending.get(src);
   const image=new Image();backgrounds.set(src,image);
   const promise=new Promise((resolve,reject)=>{
@@ -20,8 +27,8 @@ const dust = Array.from({length:22},(_,i)=>({x:(i*79+31)%480,y:(i*47+19)%288,pha
 function box(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);}
 export function drawScene(c,room,time,effects=true,state={}){
   c.imageSmoothingEnabled=true;
-  const background=SCENES[room]?.background;const atlas=backgrounds.get(background?.image);
-  if(!atlas)ensureSceneArt(room).catch(()=>{});
+  const background=SCENES[room]?.background;const atlas=backgrounds.get(backgroundSource(background,state));
+  if(!atlas)ensureSceneArt(room,state).catch(()=>{});
   if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();if(room==='arboretum'&&state.flipped){c.translate(480,0);c.scale(-1,1);}c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   // Very restrained atmospheric movement; keep the interactive ground crisp.
@@ -54,8 +61,8 @@ function ironMask(cover, atlas, background) {
   context.putImageData(pixels,0,0);entry={canvas,x,y,w,h};ironMasks.set(cover,entry);return entry;
 }
 // Repaint only traced foreground silhouettes over actors standing behind them.
-export function drawOcclusion(c,room,footY){
-  const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(background?.image);
+export function drawOcclusion(c,room,footY,state){
+  const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(backgroundSource(background,state));
   if(!atlas?.complete||!atlas.naturalWidth)return;
   for(const cover of scene.occluders||[]){
     if(footY>=cover.depthY)continue;

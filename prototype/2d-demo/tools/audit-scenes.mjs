@@ -30,7 +30,9 @@ const objectIds = new Set();
 for (const [id,scene] of Object.entries(SCENES)) {
   assert.ok(rooms[id], `未知房间 ${id}`);
   assert.equal(scene.roomId,id);
-  assert.ok(existsSync(fileURLToPath(new URL(scene.background.image,new URL('../',import.meta.url)))), `${id} 美术缺失`);
+  for(const image of [scene.background.image,scene.background.variant?.image].filter(Boolean)){
+    assert.ok(existsSync(fileURLToPath(new URL(image,new URL('../',import.meta.url)))), `${id} 美术缺失 ${image}`);
+  }
   assert.ok(!blocked(scene,...scene.spawn),`${id} 出生点不可达`);
   const state=new GameState();state.room=id;state.chapter=scene.chapter;
   state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));
