@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="288" viewBox="0 0 480 288" data-room="nw_ranch">
+  <title>牧场西北 · 围墙外步行灰盒</title>
+  <desc>浅沙色实线为本批环路，绿点为路口，空圈为返程落点。灰黄色虚线为后续支路。</desc>
+  <rect width="480" height="288" fill="#b1a182" />
+  <g id="landmarks">
+    <polygon points="208,304 207,212 211,190 219,172 253,150 276,145 315,143 490,148 490,304" fill="#998d76" />
+    <polygon points="335,218 430,218 430,250 335,250" fill="#9e8b71" stroke="#706553" stroke-width="1" />
+    <polygon points="331,218 340,209 425,209 434,218" fill="#80725d" stroke="#706553" stroke-width="1" />
+  </g>
+  <g id="reserved">
+    <g data-dirs="nw" data-target="shallow_crater" data-kind="road">
+      <title>向西北弯去的铺装路</title>
+      <polygon points="169.2,152.4 118.4,114.5 69.5,79.1 28.7,54.6 -12.6,31.9 -3.4,14.1 39.3,35.4 82.5,58.9 133.6,93.5 184.8,131.6" fill="#bcac8d" />
+      <polyline points="177,142 126,104 76,69 34,45 -8,23" fill="none" stroke="#88775c" stroke-dasharray="6 5" stroke-width="1.5" />
+    </g>
+    <g data-dirs="se in" data-target="back_yard" data-kind="road">
+      <title>院门前短径</title>
+      <polygon points="185,129 205.2,139 235.8,157 228.2,171 196.8,155 177,145" fill="#bcac8d" />
+      <polyline points="181,137 201,147 232,164" fill="none" stroke="#88775c" stroke-dasharray="6 5" stroke-width="1.5" />
+    </g>
+    <g data-dirs="n" data-target="behind_shed" data-kind="unresolved">
+      <title>现行返程桥；方向待核，仅作记录</title>
+    </g>
+  </g>
+  <g id="ring">
+    <polygon points="139,304 140,250.9 136,206.8 138.5,164.6 155.7,127.8 187.5,103.3 231.5,89.3 287.7,87 354.7,88 420.8,92 496.5,94 495.5,132 419.2,130 353.3,126 288.3,125 238.5,128.7 206.5,140.7 188.3,154.2 179.5,173.4 180,205.2 184,249.1 185,304" id="ring-ground" fill="#ddc89c" stroke="#f3dfb4" stroke-width="2" stroke-linejoin="round" />
+  </g>
+  <g id="barriers">
+    <g data-kind="wall">
+      <title>低矮的石墙</title>
+      <polygon points="208,304 207,212 211,190 219,172 219,163 211,181 207,203 208,295" fill="#6d675b" stroke="#514b40" stroke-width="1" />
+      <polyline points="208,295 207,203 211,181 219,163" fill="none" stroke="#514b40" stroke-width="6" stroke-linejoin="round" />
+      <polyline points="208,295 207,203 211,181 219,163" fill="none" stroke="#a9a394" stroke-width="4" stroke-linejoin="round" />
+      <polygon points="253,150 276,145 315,143 412,144 490,148 490,139 412,135 315,134 276,136 253,141" fill="#6d675b" stroke="#514b40" stroke-width="1" />
+      <polyline points="253,141 276,136 315,134 412,135 490,139" fill="none" stroke="#514b40" stroke-width="6" stroke-linejoin="round" />
+      <polyline points="253,141 276,136 315,134 412,135 490,139" fill="none" stroke="#a9a394" stroke-width="4" stroke-linejoin="round" />
+    </g>
+    <g data-kind="closed-gate" data-dirs="se in">
+      <title>关闭的铁门</title>
+      <polyline points="219,172 219,157" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="224.44,168.48 224.44,153.48" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="229.88,164.96 229.88,149.96" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="236,161 236,146" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="241.78,157.26 241.78,142.26" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="247.56,153.52 247.56,138.52" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="253,150 253,135" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="219,168 253,146" fill="none" stroke="#454840" stroke-width="2" />
+      <polyline points="219,159 253,137" fill="none" stroke="#454840" stroke-width="2" />
+      <polygon points="216,171 222,171 222,157 216,157" fill="#6d675b" stroke="#514b40" stroke-width="1" />
+      <polygon points="250,149 256,149 256,135 250,135" fill="#6d675b" stroke="#514b40" stroke-width="1" />
+    </g>
+  </g>
+  <g id="anchors">
+    <circle cx="162" cy="275" r="4.6" fill="#275d4b" stroke="#eee1ba" stroke-width="1.5" data-dir="s" data-target="sw_ranch" data-arrival-x="162" data-arrival-y="236" data-face="up">
+      <title>sw_ranch</title>
+    </circle>
+    <circle cx="465" cy="113" r="4.6" fill="#275d4b" stroke="#eee1ba" stroke-width="1.5" data-dir="e" data-target="ne_ranch" data-arrival-x="423" data-arrival-y="111" data-face="left">
+      <title>ne_ranch</title>
+    </circle>
+  </g>
+  <g id="feet">
+    <circle cx="162" cy="236" r="3.2" fill="none" stroke="#32624f" stroke-width="1.4" />
+    <circle cx="423" cy="111" r="3.2" fill="none" stroke="#32624f" stroke-width="1.4" />
+    <circle id="spawn" cx="183" cy="134" r="2.6" fill="#514b40" />
+  </g>
+</svg>

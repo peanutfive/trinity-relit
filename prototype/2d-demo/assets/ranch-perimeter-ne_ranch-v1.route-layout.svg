@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="288" viewBox="0 0 480 288" data-room="ne_ranch">
+  <title>牧场东北 · 围墙外步行灰盒</title>
+  <desc>浅沙色实线为本批环路，绿点为路口，空圈为返程落点。灰黄色虚线为后续支路。</desc>
+  <rect width="480" height="288" fill="#b1a182" />
+  <g id="landmarks">
+    <polygon points="-8,150 113,153 169,158 200,169 216,186 224,210 209,304 -8,304" fill="#998d76" />
+    <polygon points="62,213 157,213 157,242 62,242" fill="#9e8b71" stroke="#706553" stroke-width="1" />
+    <polygon points="58,213 67,204 152,204 161,213" fill="#80725d" stroke="#706553" stroke-width="1" />
+  </g>
+  <g id="reserved">
+    <g data-dirs="e" data-target="north_reservoir" data-kind="road">
+      <title>沿水库北侧弯去的小径</title>
+      <polygon points="242.3,114.3 290.4,102.3 344.6,92.1 411.9,90 496.3,92 495.7,116 412.1,114 347.4,117.9 295.6,127.7 247.7,137.7" fill="#bcac8d" />
+      <polyline points="245,126 293,115 346,105 412,102 496,104" fill="none" stroke="#88775c" stroke-dasharray="6 5" stroke-width="1.5" />
+    </g>
+  </g>
+  <g id="ring">
+    <polygon points="-15.5,84 63.5,86 130.8,88 201.5,91.2 242.9,101.6 271.7,121.5 288.8,150.1 295,180.2 292.8,212.3 285.6,251.1 277.7,307.7 230.3,300.3 240.4,242.9 249.2,205.7 251,181.8 249.2,163.9 242.3,148.5 227.1,138.4 196.5,128.8 129.2,124 62.5,122 -16.5,120" id="ring-ground" fill="#ddc89c" stroke="#f3dfb4" stroke-width="2" stroke-linejoin="round" />
+  </g>
+  <g id="barriers">
+    <g data-kind="wall" data-blocked-dirs="sw">
+      <title>低矮的石墙</title>
+      <polygon points="-8,150 113,153 169,158 200,169 216,186 224,210 222,236 209,304 209,295 222,227 224,201 216,177 200,160 169,149 113,144 -8,141" fill="#6d675b" stroke="#514b40" stroke-width="1" />
+      <polyline points="-8,141 113,144 169,149 200,160 216,177 224,201 222,227 209,295" fill="none" stroke="#514b40" stroke-width="6" stroke-linejoin="round" />
+      <polyline points="-8,141 113,144 169,149 200,160 216,177 224,201 222,227 209,295" fill="none" stroke="#a9a394" stroke-width="4" stroke-linejoin="round" />
+    </g>
+    <g data-kind="reservoir" data-blocked-dirs="se">
+      <title>混凝土水库边墙</title>
+      <polygon points="493,138 425,140 381,153 349,175 326,204 314,244 312,302 493,302" fill="#84988e" stroke="#6b756c" stroke-width="2" />
+      <polyline points="493,138 425,140 381,153 349,175 326,204 314,244 312,302" fill="none" stroke="#aaa99b" stroke-width="5" stroke-linejoin="round" />
+    </g>
+    <g data-kind="ambiguous" data-blocked-dirs="in">
+      <title>进入需明确方位</title>
+    </g>
+  </g>
+  <g id="anchors">
+    <circle cx="16" cy="102" r="4.6" fill="#275d4b" stroke="#eee1ba" stroke-width="1.5" data-dir="w" data-target="nw_ranch" data-arrival-x="56" data-arrival-y="104" data-face="right">
+      <title>nw_ranch</title>
+    </circle>
+    <circle cx="256" cy="275" r="4.6" fill="#275d4b" stroke="#eee1ba" stroke-width="1.5" data-dir="s" data-target="front_yard" data-arrival-x="265" data-arrival-y="235" data-face="up">
+      <title>front_yard</title>
+    </circle>
+  </g>
+  <g id="feet">
+    <circle cx="56" cy="104" r="3.2" fill="none" stroke="#32624f" stroke-width="1.4" />
+    <circle cx="265" cy="235" r="3.2" fill="none" stroke="#32624f" stroke-width="1.4" />
+    <circle id="spawn" cx="255" cy="139" r="2.6" fill="#514b40" />
+  </g>
+</svg>
