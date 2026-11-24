@@ -31,7 +31,7 @@ import { ITEMS } from '../js/data/items.js';
 import { getHotspots } from './interaction-catalog.js';
 import { applyRemainingTerrain } from './terrain.js';
 export const SCENE_SCHEMA_VERSION = 2;
-export const LOGICAL_SIZE = { width: 480, height: 288 };
+export { LOGICAL_SIZE } from './world.js';
 export const BACKGROUND_ATLAS = './assets/gardens-hd2d.png';
 const base = './assets/gardens-hd2d.png';
 const extraA = './assets/gardens-extra-a.png';

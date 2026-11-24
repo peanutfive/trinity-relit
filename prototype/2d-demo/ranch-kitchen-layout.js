@@ -9,9 +9,14 @@ export const RANCH_KITCHEN_LAYOUT = {
       [[420,145],[441,137],[449,161],[449,176],[423,176]],
     ],
     exitAnchors:{n:[225,67],e:[438,158],w:[44,185]},showUnmadeExits:true,
+    exitPointerPolygons:{e:[[429,95],[447,115],[447,168],[429,165]]},
     exitApproaches:{w:[-1,0.15]},
     hiddenExitDirs:['in','out'],omitSelfExitDirs:['w'],
-    sourceArrivals:{nw_room:{x:225,y:107,face:'down',entrance:'n'},hallway:{x:85,y:185,face:'right',entrance:'w'}},
+    sourceArrivals:{
+      nw_room:{x:225,y:107,face:'down',entrance:'n'},
+      hallway:{x:85,y:185,face:'right',entrance:'w'},
+      se_room:{x:397,y:158,face:'left',entrance:'e'},
+    },
     preloadArt:['./assets/ranch-tableware-v1.png'],
     doorPlacement:{
       id:'kitchen:outer-door',flag:'hallway_outer_door_open',noun:'outer door',label:'外门',dir:'w',
@@ -28,6 +33,34 @@ export const RANCH_KITCHEN_LAYOUT = {
     pipesPlacement:{
       approach:[117,97],pointerShape:{kind:'polygons',polygons:[[[75,29],[99,29],[113,41],[119,60],[109,64],[99,50],[75,46]],
         [[104,60],[147,69],[145,82],[101,77]]],priority:2},
+    },
+  },
+  se_room:{
+    objectId:460,spawn:[231,157],looseAnchor:[241,177],
+    walkablePolygons:[
+      [[50,83],[417,83],[431,161],[450,187],[466,264],[13,264],[27,172],[42,154]],
+      [[205,57],[249,57],[251,88],[204,88]],
+      [[23,150],[40,140],[47,152],[40,173],[23,178]],
+      [[425,157],[433,155],[454,181],[454,192],[443,193],[426,175]],
+    ],
+    exitAnchors:{w:[35,164],n:[228,78],e:[440,175]},
+    exitPointerPolygons:{w:[[24,125],[39,103],[39,158],[24,168]]},
+    exitApproaches:{w:[-1,0],e:[1,-0.05]},
+    exitSpans:{n:[[214,78],[241,78]]},
+    hiddenExitDirs:['in','out'],omitSelfExitDirs:['e'],showUnmadeExits:true,
+    sourceArrivals:{
+      kitchen:{x:78,y:164,face:'right',entrance:'w'},
+      front_deck:{x:398,y:175,face:'left',entrance:'e'},
+    },
+    doorPlacement:{
+      id:'se_room:front-door',flag:'front_deck_left_door_open',noun:'front door',label:'前门',dir:'e',
+      openOverlay:'ranch-se_room-door-open',at:[440,175],approach:[417,177],openLeafApproach:[408,197],
+      pointerShape:{kind:'polygon',points:[[431,120],[452,145],[452,188],[431,165]],priority:3},
+      openingShape:{kind:'polygon',points:[[435,131],[448,146],[435,146]],priority:4},
+      openLeafShape:{kind:'polygon',points:[[420,147],[451,148],[451,189],[420,187]],priority:5},
+      openLeafDepthY:188,
+      closedObstacles:[{x:429,y:159,w:6,h:7},{x:435,y:166,w:6,h:7},{x:441,y:173,w:6,h:7},{x:447,y:180,w:6,h:7}],
+      openObstacles:[{x:420,y:186,w:15,h:2},{x:435,y:187,w:17,h:3}],
     },
   },
   nw_room:{

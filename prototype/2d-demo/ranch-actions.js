@@ -9,6 +9,7 @@ import { RANCH_PERIMETER_LAYOUT } from './ranch-perimeter-layout.js';
 import { RANCH_RESERVOIR_LAYOUT } from './ranch-reservoir-layout.js';
 import { CUPBOARD_ITEM_NAMES, cupboardSlots, ROOMS, reservoirBottomLit, windmillBinocularsLocation } from './ranch-story.js';
 import { groundItems } from './loose-items.js';
+import { indoorFloorPoint } from './ranch-floor-items.js';
 import { passageHotspots } from './scene-passages.js';
 
 const layouts = {...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,
@@ -115,6 +116,12 @@ export function getRanchHotspots(state) {
   }
   const loose=groundItems(state,layout.looseAnchor,placement?['binoculars']:[]);
   for(const object of loose){
+    const point=indoorFloorPoint(state,object.itemId,layout.looseAnchor);
+    if(point){
+      object.x=point.x;
+      object.y=point.y;
+      object.pointerShape={...object.pointerShape,x:point.x,y:point.y-3};
+    }
     if(object.itemId==='knife'){
       object.kind='ranch_tableware';
       object.label='牛排刀';

@@ -44,6 +44,7 @@ const ranch={
   bedroom:[467,252,'house'], spare_room:[383,255,'house'], back_yard:[302,239,'gate'],
   hallway:[327,354,'house'], sw_yard:[329,422,'gate'],
   kitchen:[404,355,'house'], nw_room:[402,305,'house'], bathroom:[389,207,'house'], icehouse:[298,305,'stairs'],
+  se_room:[463,365,'house'],
   se_ranch:[619,506,'gate'], sw_ranch:[240,508,'gate'],
   north_reservoir:[816,158,'water'], south_reservoir:[816,514,'water'],
   windmill:[997,222,'windmill'], reservoir:[840,263,'water'], underwater:[844,343,'water'],
@@ -63,7 +64,7 @@ export function illustratedMapNodes(model){
 
 // These painted ground passages also have IN/OUT or UP/DOWN aliases. Keep
 // one ground line regardless of the order in which door directions are read.
-const ranchGroundPairs=new Set(['front_deck|front_yard','front_deck|ne_yard','front_deck|se_yard','se_ranch|se_yard',
+const ranchGroundPairs=new Set(['front_deck|front_yard','front_deck|ne_yard','front_deck|se_yard','front_deck|se_room','se_ranch|se_yard',
   'bedroom|ne_yard','bedroom|spare_room','back_yard|spare_room','back_yard|nw_ranch',
   'back_yard|hallway','hallway|sw_yard','sw_ranch|sw_yard','hallway|kitchen','bathroom|spare_room']);
 const vectors={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1]};

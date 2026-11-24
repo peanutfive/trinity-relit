@@ -200,6 +200,8 @@ const southGate = {flag:'sw_yard_iron_gate_open',name:'iron gate',cn:'铁门',no
 const northGate = {...southGate,flag:'back_yard_iron_gate_open'};
 const screenDoor = {flag:'back_yard_screen_door_open',name:'screen door',cn:'纱门',nouns:['screen door','door','纱门','门']};
 const hallDoor = {flag:'hallway_outer_door_open',name:'outer door',cn:'外门',nouns:['outer door','door','外门','门']};
+const frontDoor = {flag:'front_deck_left_door_open',name:'front door',cn:'前门',nouns:['front door','door','前门','门']};
+const deckLeftDoor = {...frontDoor,name:'left door',cn:'左边的门',nouns:['left door','左门','左边的门']};
 
 function doorEvents(roomId, door) {
   const {flag, name, cn, nouns} = door;
@@ -425,6 +427,8 @@ const hallway = roomWithDoors('hallway', [[hallDoor,['e']]], [{
 
 export const RANCH_STORY_ROOMS = {
   ...RANCH,
+  front_deck:roomWithDoors('front_deck', [[deckLeftDoor,['sw']]]),
+  se_room:roomWithDoors('se_room', [[frontDoor,['e']]]),
   ne_yard:roomWithDoors('ne_yard', [[outsideDoor,['w','in']]]),
   bedroom:roomWithDoors('bedroom', [[outsideDoor,['e']]], [{
     id:'bedroom_inspect_corner', match:{verb:['examine'],noun:['corner','area','角落','印迹','痕迹']},

@@ -115,6 +115,8 @@ test('新路口从对应来向入场，玩家可从落脚点走进房间，也�
     ['back_yard','s','hallway','n'],
     ['hallway','s','sw_yard','n'],
     ['sw_yard','sw','sw_ranch','ne',southGate],
+    ['kitchen','e','se_room','w'],
+    ['se_room','e','front_deck','sw','front_deck_left_door_open'],
   ];
   for (const [left,forward,right,reverse,flag] of links) {
     const open = flag ? [flag] : [];
@@ -156,6 +158,7 @@ test('地图只记住穿过的门，合门后保留闭门标记且存读后不�
   for (const [a,forward,b,reverse,flag] of [
     ['ne_yard','w','bedroom','e',yardDoor],
     ['sw_yard','sw','sw_ranch','ne',southGate],
+    ['se_room','e','front_deck','sw','front_deck_left_door_open'],
     ['back_yard','nw','nw_ranch','se',northGate],
     ['back_yard','e','spare_room','w',screenDoor],
   ]) {

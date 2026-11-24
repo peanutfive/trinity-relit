@@ -40,6 +40,14 @@ export function propImage(src){
 export function requestedSceneArt(){return [...backgrounds.keys()];}
 const dust = Array.from({length:22},(_,i)=>({x:(i*79+31)%480,y:(i*47+19)%288,phase:i*2.1}));
 function box(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);}
+function shadeSceneEdges(c) {
+  const gradient=c.createRadialGradient(242,130,85,240,140,285);
+  gradient.addColorStop(0,'#14252100');
+  gradient.addColorStop(.7,'#14252108');
+  gradient.addColorStop(1,'#07191563');
+  c.fillStyle=gradient;
+  c.fillRect(0,0,480,288);
+}
 export function drawScene(c,room,time,effects=true,state={}){
   c.imageSmoothingEnabled=true;
   const background=SCENES[room]?.background;const atlas=backgrounds.get(backgroundSource(background,state));
@@ -56,7 +64,7 @@ export function drawScene(c,room,time,effects=true,state={}){
   const polar=SCENES[room]?.chapter==='tundra';
   for(const p of effects && SCENES[room]?.chapter!=='orbit' ? dust : []){const x=polar?(p.x+time*8+4800)%480:p.x+Math.sin(time*.17+p.phase)*4,y=polar?(p.y+Math.sin(time*.2+p.phase)*2+2880)%288:(p.y-time*1.7+2880)%288;c.fillStyle=`rgba(${polar?'210,224,225':'255,225,159'},${.14+.15*(1+Math.sin(time+p.phase))/2})`;c.beginPath();c.arc(x,y,.4+.25*Math.sin(p.phase),0,Math.PI*2);c.fill();}
   c.restore();
-  const shade=c.createRadialGradient(242,130,85,240,140,285);shade.addColorStop(0,'#14252100');shade.addColorStop(.7,'#14252108');shade.addColorStop(1,'#07191563');c.fillStyle=shade;c.fillRect(0,0,480,288);
+  shadeSceneEdges(c);
 }
 export function drawActor(c,x,y,color='#b99b6b',facing='down',walk=0,elder=false,animation={}) {
   paintCharacter(c,x,y,color,facing,walk,elder,animation);
@@ -80,15 +88,31 @@ function ironMask(cover, atlas, background) {
   }
   context.putImageData(pixels,0,0);entry={canvas,x,y,w,h};ironMasks.set(cover,entry);return entry;
 }
+function clipOutline(c,points) {
+  c.beginPath();
+  points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));
+  c.closePath();
+  c.clip();
+}
 // Repaint only traced foreground silhouettes over actors standing behind them.
 export function drawOcclusion(c,room,footY,state){
   const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(backgroundSource(background,state));
   if(!atlas?.complete||!atlas.naturalWidth)return;
   for(const cover of scene.occluders||[]){
     if(footY>=cover.depthY)continue;
-    c.save();c.beginPath();cover.points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
+    c.save();clipOutline(c,cover.points);
     if(cover.material==='iron-bars'){const mask=ironMask(cover,atlas,background);c.globalAlpha*=.72;c.drawImage(mask.canvas,mask.x,mask.y,mask.w,mask.h);}
     else{const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);}c.restore();
+  }
+  for(const door of ranchDoors(scene)){
+    if(door.openLeafDepthY==null || footY>=door.openLeafDepthY || !flagActive(state,door.flag))continue;
+    const leaf=backgrounds.get(doorImage(door));
+    if(!leaf?.complete || !leaf.naturalWidth)continue;
+    c.save();
+    clipOutline(c,door.openLeafShape.points);
+    c.drawImage(leaf,0,0,480,288);
+    shadeSceneEdges(c);
+    c.restore();
   }
 }
 export function drawProp(c,o,time){

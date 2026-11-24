@@ -1,5 +1,6 @@
 import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt } from './ranch-art.js';
 import { positionWaterTarget, ranchDoors } from './ranch-actions.js';
+import { rememberIndoorDrops } from './ranch-floor-items.js';
 import { restoreKitchenState, restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
@@ -28,7 +29,7 @@ import { roomArrival } from './arrivals.js';
 import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
-import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryExit, nearestExitPoint, exitDistance } from './world.js';
+import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryExit, nearestExitPoint, exitDistance, pointInPolygon } from './world.js';
 import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
@@ -301,6 +302,7 @@ async function command(input, actions = [], observedId = null) {
     await engine.processInput(input);
     const destination = engine.state;
     const moved = before.room !== destination.room;
+    if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
     if (moved) {
       // Keep the source room and live timer available while its destination loads.
       const source = GameState.deserialize(before);
@@ -768,9 +770,14 @@ function pointedObject(point,padding=0){
   const target=pointerTarget(objects(),point,{padding});
   return target && (target.shoreline||target.approachSpan) ? positionWaterTarget(target,point) : target;
 }
+function pointedOpenPassage(point){
+  const outlines=scenes[engine.state.room]?.exitPointerPolygons;
+  if(!outlines)return null;
+  return exits().find(exit=>!exit.locked && outlines[exit.dir] && pointInPolygon(point.x,point.y,outlines[exit.dir]));
+}
 canvas.addEventListener('pointermove',event=>{
   const p=pointerPoint(event),active=started&&!paused&&!chapterMap.isOpen()&&!busy&&!director.getState().busy;
-  canvas.style.cursor=active&&(pages.length?pointedPaperDetail(p):pointedObject(p)||pointedExitLabel(p))?'pointer':'default';
+  canvas.style.cursor=active&&(pages.length?pointedPaperDetail(p):pointedObject(p)||pointedExitLabel(p)||pointedOpenPassage(p))?'pointer':'default';
 });
 canvas.addEventListener('pointerdown',event=>{
   if(!started||paused||busy||chapterMap.isOpen()||event.button!==0)return;
@@ -788,8 +795,8 @@ canvas.addEventListener('pointerdown',event=>{
   // A ferry's shore point is for approaching its hull. Clicking the sand walks there.
   const layout=scenes[engine.state.room];
   const propOnlyDirs=[...(layout.propOnlyExitDirs||[]), ...ranchDoors(layout).map(door=>door.dir)];
-  const requestedExit = labelExit || (!target && exits().find(exit =>
-    !propOnlyDirs.includes(exit.dir) && exitDistance(exit,point) < 13));
+  const requestedExit = labelExit || (!target && (pointedOpenPassage(point) || exits().find(exit =>
+    !propOnlyDirs.includes(exit.dir) && exitDistance(exit,point) < 13)));
   if(requestedExit&&!engine.state.hasFlag('in_pram')){
     const navigation=navigationScene(), landing=nearestExitPoint(requestedExit,labelExit?player:point);
     walkPath=findPath(navigation,player,landing,{nearest:true});walkTarget=null;walkExit=walkPath.length?requestedExit.dir:null;canvas.focus({preventScroll:true});return;

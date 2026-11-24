@@ -1,4 +1,4 @@
-import { LOGICAL_SIZE } from './scene-manifest.js';
+export const LOGICAL_SIZE = { width: 480, height: 288 };
 
 const EPSILON = 1e-7;
 // navigationScene() can return a fresh wrapper for the same ground geometry.

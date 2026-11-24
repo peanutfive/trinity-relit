@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { SCENES } from '../scene-manifest.js';
 import { VISUAL_SAVE_KEY } from '../save.js';
+import { testRanchFloorItems } from './browser-ranch-floor-items.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
@@ -16,6 +17,8 @@ const southWingOnly = process.argv.includes('--south-wing-only');
 const kitchen = process.argv.includes('--kitchen');
 const kitchenOnly = process.argv.includes('--kitchen-only');
 const icehouse = process.argv.includes('--icehouse');
+const southeastRoom = process.argv.includes('--southeast-room');
+const floorItems = process.argv.includes('--floor-items');
 const prelude = join(output, 'normal-route');
 const playedSave = process.env.PLAYED_RANCH_SAVE || join(prelude, 'windmill-normal-save.json');
 await mkdir(output, { recursive: true });
@@ -270,6 +273,9 @@ const southGate = { noun: 'iron gate', flag: 'sw_yard_iron_gate_open', label: '�
 const northGate = { noun: 'iron gate', flag: 'back_yard_iron_gate_open', label: '铁门' };
 const screenDoor = { noun: 'screen door', flag: 'back_yard_screen_door_open', label: '纱门' };
 const kitchenDoor = { noun: 'outer door', flag: 'hallway_outer_door_open', label: '外门' };
+const deckLeftDoor = { noun: 'left door', flag: 'front_deck_left_door_open', label: '左门' };
+const roomFrontDoor = { noun: 'front door', flag: deckLeftDoor.flag, label: '前门' };
+const rightDeckFlag = 'front_deck_right_door_open';
 
 function doorHandle(current, { noun }, open) {
   const command = `${open ? 'close' : 'open'} ${noun}`;
@@ -588,6 +594,96 @@ async function testKitchenWing() {
   await shot('hallway-return-with-knife');
 }
 
+async function checkOtherDeckDoor() {
+  const before = await drain();
+  assert.equal(before.room,'front_deck');
+  assert.ok(before.flags.includes(deckLeftDoor.flag));
+  assert.ok(!before.flags.includes(rightDeckFlag));
+  assert.ok(!before.exits.some(exit=>['w','in'].includes(exit.dir)));
+  const right = [101,85];
+  await point(right,true);
+  await until(s=>!s.processing&&!s.navigation.path.length,'点击右门后未结算');
+  await tick(180);
+  const after = await drain();
+  assert.deepEqual(story(after),story(before),'点右门改动了左门或故事状态');
+  steps.push({from:before.room,to:after.room,command:'right-door-touch',input:'touch',point:right,foot:feet(after)});
+  await shot('phone-right-door-untouched');
+}
+
+async function checkRoomDoorOcclusion() {
+  const before = await drain();
+  await walkUnderSign([416,137],'se_room');
+  for (let step = 0; step < 16; step++) {
+    const current = await state();
+    assert.equal(current.room,'se_room');
+    if (current.player.x >= 430) break;
+    await hold(['s','d'],20);
+  }
+  assert.ok((await state()).player.x >= 430);
+  for (let step = 0; step < 16 && (await state()).player.y < 174; step++) await hold(['s'],20);
+  const behind = await drain();
+  assert.ok(behind.player.y >= 174 && behind.player.y < 188);
+  assert.deepEqual(story(behind),story(before));
+  await shot('room-open-leaf-behind-player-view');
+  for (const point of [[410,181],[409,203],[433,198]]) await walkUnderSign(point,'se_room');
+  const inFront = await drain();
+  assert.deepEqual(story(inFront),story(before));
+  await shot('room-open-leaf-in-front-player-view');
+  steps.push({command:'open-leaf-depth',room:'se_room',behind:feet(behind),inFront:feet(inFront)});
+}
+
+async function testSoutheastRoom() {
+  await testKitchenDoor();
+  await checkMap('ranch',['hallway','kitchen','front_deck'],[],'southeast-room-unvisited-map', {concealed:['se_room']});
+  await road('e','se_room','w',[[401,158]]);
+  await shot('southeast-room-from-kitchen');
+  await page.setViewportSize({width:390,height:844});
+  await touchRoad('w','kitchen','e',[32,131]);
+  await touchRoad('e','se_room','w',[437,128]);
+  await page.setViewportSize({width:1440,height:900});
+
+  await staysPut(['d'], {point:[398,175],route:'e',target:'front_deck',label:'东南房间前门关闭'});
+  await approach(roomFrontDoor.label,['d'],[386,176]);
+  await toggleDoor(roomFrontDoor,true,{screenshot:'southeast-room-front-door-open'});
+  await checkRoomDoorOcclusion();
+  await road('e','front_deck','sw',[[400,175]]);
+  await shot('front-deck-from-southeast-room');
+  assert.ok(doorHandle(await state(),deckLeftDoor,true));
+
+  await page.setViewportSize({width:390,height:844});
+  await checkOtherDeckDoor();
+  await toggleDoor(deckLeftDoor,false,{point:[68,199],touch:true,screenshot:'phone-front-deck-left-leaf'});
+  await page.setViewportSize({width:1440,height:900});
+  await reopen('front-deck-left-closed-reopened');
+  let latest = await state();
+  assert.equal(latest.flags.includes(rightDeckFlag),false);
+  await checkMap('ranch',['front_deck','se_room'],[['front_deck','se_room']], 'front-deck-left-closed-map', {closed:true,concealed:['assembly_room']});
+  await staysPut(['s','a'], {point:[109,190],route:'sw',target:'se_room',label:'前廊左门关闭'});
+  await approach(deckLeftDoor.label,['a'],[118,211]);
+  await toggleDoor(deckLeftDoor,true,{screenshot:'front-deck-left-open'});
+
+  await page.setViewportSize({width:390,height:844});
+  await action('sw','se_room',{point:[78,190],touch:true,entrance:'e',screenshot:'phone-southeast-room-doorway'});
+  await page.setViewportSize({width:1440,height:900});
+  latest = await state();
+  assert.ok(latest.flags.includes(roomFrontDoor.flag));
+  assert.equal(latest.flags.includes(rightDeckFlag),false);
+  assert.ok(doorHandle(latest,roomFrontDoor,true));
+  await reopen('southeast-room-reopened');
+  await page.setViewportSize({width:390,height:844});
+  await toggleDoor(roomFrontDoor,false,{point:[435,165],touch:true,screenshot:'phone-room-front-door-leaf'});
+  await page.setViewportSize({width:1440,height:900});
+  await approach(roomFrontDoor.label,['d'],[386,176]);
+  await toggleDoor(roomFrontDoor,true);
+  await road('w','kitchen','e',[[82,163]]);
+  await road('e','se_room','w',[[401,158]]);
+  await page.setViewportSize({width:390,height:844});
+  await action('e','front_deck',{point:[437,141],touch:true,entrance:'sw',screenshot:'phone-room-front-doorway-return'});
+  await page.setViewportSize({width:1440,height:900});
+  await checkMap('ranch',['front_deck','se_room','kitchen','hallway'],
+    [['front_deck','se_room'],['se_room','kitchen'],['kitchen','hallway']], 'southeast-room-loop-map', {concealed:['assembly_room']});
+}
+
 function staircase(current, target) {
   const exits = current.exits.filter(exit=>exit.target===target);
   assert.equal(exits.length,1,'同一楼梯只显示一个出口');
@@ -652,7 +748,13 @@ try {
   await importPlayedProgress();
   await reachNorthYard();
   if (!checkpointOnly) {
-    if (icehouse) await testIcehouse();
+    if (floorItems) {
+      await testKitchenDoor();
+      await testRanchFloorItems({ page,state,until,drain,shot,steps,feet,checkArrival,walkTo,road,action,reopen,
+        holdInventoryItem,shelfPoint });
+    }
+    else if (southeastRoom) await testSoutheastRoom();
+    else if (icehouse) await testIcehouse();
     else if (kitchen || kitchenOnly) await testKitchenWing();
     else {
       await testBedroom();
@@ -664,6 +766,8 @@ try {
   await writeFile(join(output, 'result.json'), `${JSON.stringify({ source: saved.engine.state.room,
     sourceTurn:saved.engine.state.turns, steps, animationFrames, errors }, null, 2)}\n`);
   if (checkpointOnly) console.log('经正式道路和坡道到达东北院');
+  else if (floorItems) console.log('两间屋内地面拾放、往返刷新与同位置触摸拾取通过');
+  else if (southeastRoom) console.log('东南房间双向通行、前廊左门和触摸命中通过');
   else if (icehouse) console.log('短廊西阶、暗处无木片、手机上下楼、地图与刷档通过');
   else if (kitchen || kitchenOnly) console.log('厨房外门、敞柜、北侧房间、触摸与存档通过');
   else console.log('牧场双侧门、触摸门洞、走廊、刷新与地图通过');
