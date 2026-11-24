@@ -170,7 +170,7 @@ async function boardFromRiver() {
   await tapDirection('d', 350);
   assert.deepEqual(gameState(await state()), gameState(before));
   await approach('islet_ferry', [306, 165], 'd');
-  await pressF('examine river');
+  await pressF('examine dory');
   const oneWay = !before.flags.includes('ferry_paid') && !before.inventory.includes('silver_coin');
   if (oneWay) {
     await page.locator('#hint').filter({ hasText: '单程' }).waitFor();

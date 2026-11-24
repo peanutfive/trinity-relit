@@ -11,7 +11,8 @@ function ferryObjects(state, mooring, passage) {
   const river = room === 'the_river';
   const paid = state.hasFlag('ferry_paid');
   const hasCoin = state.has('silver_coin');
-  const fare = !river && hasCoin && !paid ? [action('递交银币', 'give silver coin to oarsman')] : [];
+  const offerCoin = action('递交银币', 'give silver coin to oarsman');
+  const fare = !river && hasCoin && !paid ? [offerCoin] : [];
   const { drawAt } = mooring;
   let navigationHint = '登船';
   if (river && !paid && !hasCoin) navigationHint = '前往小岛 · 单程';
@@ -22,13 +23,14 @@ function ferryObjects(state, mooring, passage) {
       id: `${room}:ferry`, kind: 'islet_ferry', label: '渡船', ...mooring, radius: 35,
       depthY: drawAt.y, visualOptions: { drawAt }, navigationHint,
       pointerShape: ellipse(drawAt.x, drawAt.y - 10, 43, 13, 2),
-      ...(river ? { eventId: 'examine_river' } : {}),
-      actions: [action('观察', river ? 'examine river' : 'look'), ...(passage ? [action('乘船', passage)] : []), ...fare],
+      ...(river ? { eventId: 'river_examine_dory' } : {}),
+      actions: [action('观察', river ? 'examine dory' : 'look'), ...(passage ? [action('乘船', passage)] : []), ...fare],
     },
     {
       id: `${room}:oarsman`, kind: 'islet_oarsman', label: '船夫', ...mooring, radius: 35,
-      baked: true, pointerOnly: true, pointerShape: ellipse(drawAt.x + 18, drawAt.y - 32, 9, 20, 4),
-      actions: [action('观察', 'look'), ...fare],
+      baked: true, pointerOnly: !river, pointerShape: ellipse(drawAt.x + 18, drawAt.y - 32, 9, 20, 4),
+      ...(river ? {y:mooring.y-12, radius:24, eventId:'river_examine_oarsman'} : {}),
+      actions: [action('观察', river ? 'examine oarsman' : 'look'), ...(river && hasCoin ? [offerCoin] : fare)],
     },
   ];
 }

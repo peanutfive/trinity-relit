@@ -249,7 +249,7 @@ test('河岸渡口只在开启的符号下显示，观察和看地图保持进�
     const boats = getHotspots(engine.state).filter(object => object.kind === 'islet_ferry');
     assert.equal(boats.length, Number(open));
     if (open) {
-      assert.equal(resolveInteraction(engine.state, boats[0]), 'examine river');
+      assert.equal(resolveInteraction(engine.state, boats[0]), 'examine dory');
       assert.equal(resolveInteraction(engine.state, boats[0], {observed: new Set([boats[0].id])}), 'in');
     }
     const map = buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});

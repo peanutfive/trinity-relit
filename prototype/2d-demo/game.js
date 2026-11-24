@@ -1,3 +1,5 @@
+import { createCryptInspection, tombArtView } from './cemetery-inspection.js';
+import { drawCemeteryTomb, renderCemeteryItem, cemeteryShroudAtlas } from './cemetery-art.js';
 import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt } from './ranch-art.js';
 import { positionWaterTarget, ranchDoors } from './ranch-actions.js';
 import { rememberIndoorDrops } from './ranch-floor-items.js';
@@ -42,7 +44,19 @@ const ctx = canvas.getContext('2d');
 // Art-route review removes both painted labels and their pointer targets, so
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
-setStorySpriteRenderer((ctx,object,state,time)=>drawRanchProp(ctx,object)||renderIsletSprite(ctx,object,state,time)||renderTundraSprite(ctx,object,state,time)||renderPacificSprite(ctx,object,state,time)||renderCompletionSprite(ctx,object,state,time)||renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time));
+setStorySpriteRenderer((ctx,object,state,time)=>{
+  if(object.kind==='cemetery_tomb'){drawCemeteryTomb(ctx,tombArtView(state));return true;}
+  if(renderCemeteryItem(ctx,object))return true;
+  return drawRanchProp(ctx,object)||renderIsletSprite(ctx,object,state,time)||renderTundraSprite(ctx,object,state,time)||renderPacificSprite(ctx,object,state,time)||renderCompletionSprite(ctx,object,state,time)||renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time);
+});
+const cryptInspection = createCryptInspection($('#crypt-inspection'), input => {
+  if (!busy && !paused && !pages.length) command(input);
+}, leaveCrypt);
+function leaveCrypt() {
+  cryptInspection.hide();
+  closeDialog();
+  render();
+}
 const keys = new Set();
 const chapterMap = createChapterMapView({host:$('.stage'),onClose:()=>{stopMovement();sound.setPaused(paused);canvas.focus({preventScroll:true});}});
 const scenes = SCENES;
@@ -131,6 +145,7 @@ function reset() {
   engine = createPrologueSession({ ui });
   director = createNarrativeDirector();
   resetWabeArt();
+  cryptInspection.hide();
   discovery = createDiscovery(); observedObjects = new Set(); heldItem = null;
   previousScene = null;
   lastArrival = null;
@@ -166,7 +181,7 @@ function updateHud() {
   $('#menu-help').disabled = !started || busy;
   $('#menu-map').disabled = !started || busy;
   $('#replay-umbrella').hidden = !started || engine.state.room!=='lancaster_gate'||!engine.state.hasFlag('umbrella_woman_done');
-  const near = started && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
+  const near = started && !cryptInspection.open && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
   const decision=started&&!reading&&!hintOpen&&!paused&&!director.getState().busy?keyboardInteraction(engine.state,near,{heldItem,observed:observedObjects}):null;
   const darkTouch=decision?.command==='u' && engine.state.room==='underwater'
@@ -174,7 +189,7 @@ function updateHud() {
   $('#surface-water').hidden=!darkTouch;
   const control=near?.actorRelative && matchMedia('(pointer: coarse)').matches ? '轻触人物' : keyLabel(preferences.bindings.interact);
   $('#hint').textContent=decision&&!darkTouch?`${control} · ${decision.hint}`:'';
-  $('#hand-kit').hidden = !heldItem || !started || paused || reading;
+  $('#hand-kit').hidden = !heldItem || !started || paused || reading || cryptInspection.open;
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
 
@@ -304,6 +319,7 @@ async function command(input, actions = [], observedId = null) {
     const moved = before.room !== destination.room;
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
     if (moved) {
+      cryptInspection.hide();
       // Keep the source room and live timer available while its destination loads.
       const source = GameState.deserialize(before);
       if (source.timer) source.timer.perTurn = timerCallback;
@@ -341,6 +357,11 @@ async function command(input, actions = [], observedId = null) {
     director.onCommand(before, after, input);
     const landing=director.getState(engine.state).playerLanding;
     if(landing){player.x=landing.x;player.y=landing.y;player.face=landing.face;stopMovement();}
+    if (input==='look in crypt' && destination.room==='cemetery' && tombArtView(destination).open) {
+      cryptInspection.show(destination,heldItem);
+    } else if (cryptInspection.open) {
+      cryptInspection.update(destination,heldItem);
+    }
     updateLabels();
     if (output.length) show(output.join('\n\n'), actions);
     $('#objective').textContent=chapterObjective(engine.state.chapter);
@@ -406,6 +427,7 @@ async function restoreProgress(input) {
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
     previousScene=null;
     lastArrival=null;
+    cryptInspection.hide();
     discovery=createDiscovery(restored.visual.knowledge.paper);observedObjects=new Set(restored.visual.knowledge.observed);heldItem=null;
     player = {x:restored.visual.x,y:restored.visual.y,face:restored.visual.face,walk:0};
     motion = {moving:false,blend:0,action:'idle',elapsed:0,duration:0};
@@ -449,6 +471,7 @@ function interact() {
   if (!started || busy || paused) return;
   if (pages.length) { next(); return; }
   if (director.getState().busy) return;
+  if (cryptInspection.open) { cryptInspection.interact(); return; }
   if (!$('#quest').hidden) { back(); return; }
   const object = nearby();
   const decision=keyboardInteraction(engine.state,object,{heldItem,observed:observedObjects});
@@ -491,7 +514,17 @@ function inventory() {
   for (const { id } of engine.state.inventoryList()) {
     const button = document.createElement('button');
     button.textContent = ITEMS[id].cn;
-    button.onclick = () => {heldItem=id;closeDialog();$('#hand-status').textContent='';updateHud();};
+    button.onclick = () => {heldItem=id;closeDialog();if(cryptInspection.open)cryptInspection.update(engine.state,heldItem);$('#hand-status').textContent='';updateHud();};
+    $('#choices').append(button);
+  }
+  if(['shroud','bandage'].includes(heldItem) && engine.state.has(heldItem)
+      && engine.currentRoom()?.events?.some(event=>event.id==='wear_'+heldItem)){
+    const item=heldItem;
+    const worn=engine.state.wearing(item);
+    const button=document.createElement('button');
+    button.id='inventory-wear-'+item;
+    button.textContent=item==='shroud'?(worn?'脱下裹尸布':'穿上裹尸布'):(worn?'解下绷带':'缠上绷带');
+    button.onclick=()=>{closeDialog();command((worn?'remove ':'wear ')+item);};
     $('#choices').append(button);
   }
   if(heldItem==='binoculars' && engine.state.has(heldItem)
@@ -548,7 +581,7 @@ async function transition(exit) {
 }
 
 function canMovePlayer() {
-  return started && !pages.length && !busy && !paused && !chapterMap.isOpen()
+  return started && !pages.length && !busy && !paused && !cryptInspection.open && !chapterMap.isOpen()
     && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram')
     && $('#quest').hidden;
 }
@@ -727,7 +760,9 @@ function render() {
       }else if(renderState.chapter==='orbit'){
         renderOrbitPlayer(ctx,player,time);
       }else{
-        drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animationState());
+        const animation=animationState();
+        if(renderState.itemLoc.shroud==='worn')animation.costumeAtlas=cemeteryShroudAtlas();
+        drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animation);
       }
       if(renderRoom.startsWith('underground_')&&engine.state.has('lantern')){
         renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);
@@ -940,6 +975,25 @@ window.addEventListener('keydown', event => {
     $('#binding-message').textContent = '新键位已保存。';
     return;
   }
+  if (cryptInspection.open && !paused && !chapterMap.isOpen()) {
+    if (key==='Escape') { event.preventDefault(); if(!event.repeat)leaveCrypt(); return; }
+    if (key==='m') leaveCrypt();
+    else if (!pages.length && key==='Tab') {
+      event.preventDefault();
+      if (!event.repeat) cryptInspection.tab(event.shiftKey?-1:1);
+      return;
+    } else if (!pages.length && isMovementKey(key)) {
+      event.preventDefault();
+      if (!event.repeat) {
+        const reverse=['ArrowLeft','ArrowUp',preferences.bindings.left,preferences.bindings.up].includes(key);
+        cryptInspection.step(reverse?-1:1);
+      }
+      return;
+    } else if (!pages.length && key===preferences.bindings.interact) {
+      event.preventDefault(); if(!event.repeat)interact(); return;
+    }
+    if (!pages.length && [preferences.bindings.look,preferences.bindings.hint,preferences.bindings.wait,preferences.bindings.watch].includes(key)) return;
+  }
   if ((key === 'm' && !paused && started && !busy) || (key === 'Escape' && chapterMap.isOpen())) {
     event.preventDefault();if(event.repeat)return;
     if(chapterMap.isOpen())chapterMap.close('key');else{stopMovement();sound.setPaused(true);chapterMap.open({state:engine.state,rooms:engine.rooms,scenes});}return;
@@ -1049,7 +1103,8 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : 'exploring',
+  art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
+  cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), routeMarker:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,

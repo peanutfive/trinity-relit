@@ -178,7 +178,7 @@ async function reachCrater() {
   await pointerAction('vertex:stairs', [200, 222], 'd', 'bottom_of_stairs');
   await clickExit('se', 'the_river');
   await approachF([306, 165], 'd', 'the_river:ferry');
-  await pressF('examine river');
+  await pressF('examine dory');
   await pressF('in', 'islet');
   await approachF([343, 166], 'd', 'islet:gate');
   await pressF('examine toadstool');

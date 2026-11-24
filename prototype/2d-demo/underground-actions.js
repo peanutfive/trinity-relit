@@ -1,4 +1,5 @@
 import {ITEMS} from '../js/data/items.js';
+import {cemeteryView} from './cemetery-state.js';
 import {UG_POINTS as P} from './underground-points.js';
 export const UG_WABE_ROOMS=Object.freeze(['bluff','cottage','cemetery','barrow','ossuary']);
 export const UG_ROOMS=Object.freeze(['underground_1','underground_2','underground_3']);
@@ -14,7 +15,15 @@ export function getUndergroundHotspots(s){
     prop('cottage:cauldron',P.cauldron,'大锅','ug_cauldron',[a('观察大锅','examine cauldron')],{baked:true,eventId:'examine_cauldron',pointerShape:ellipse(239,140,34,33)}),
     prop('cottage:cage',P.cage,'鸟笼','ug_cage',[a('观察鸟笼','examine birdcage')],{baked:true,eventId:'examine_birdcage',radius:48,pointerShape:ellipse(321,43,13,20)})
   );
-  if(s.room==='cemetery')objects.push(prop('cemetery:crypt',{x:240,y:95},'墓穴入口','passage',[a('进入墓穴','n')],{baked:true,pointerShape:ellipse(240,62,22,29)}));
+  if(s.room==='cemetery'){
+    const view=cemeteryView(s);
+    objects.push(prop('cemetery:crypt',{x:240,y:95},'古墓入口','passage',[a('进入古墓','n')],{baked:true,pointerShape:ellipse(240,62,22,29)}));
+    const actions=view.open ? [a('近看','look in crypt')] : [a('观察','examine crypt'),a('推开','open crypt')];
+    if(!view.open && s.has('spade'))actions.push(a('用铲子','open crypt with spade'));
+    objects.push(prop('cemetery:stone-crypt',{x:197,y:151},'石棺','cemetery_tomb',actions,{
+      depthY:140,radius:24,pointerShape:{kind:'polygon',priority:3,points:[[149,120],[175,110],[205,114],[211,130],[192,140],[155,138]]},
+    }));
+  }
   if(s.room==='barrow')objects.push(prop('barrow:door',P.barrowDoor,'石门','ug_barrow_door',[
     a('观察门洞','examine door'),a('穿过门洞','in'),...(s.has('key_barrow')?[a('试用钥匙','put key in hole')]:[])
   ],{baked:true,eventId:'examine_door_barrow',pointerShape:ellipse(240,65,30,36)}),

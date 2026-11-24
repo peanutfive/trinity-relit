@@ -1,3 +1,4 @@
+import { CEMETERY_SCENE_ART } from './cemetery-assets.js';
 // Delivered paintings were inspected before tracing these foot-level floors.
 const strip=(points,width)=>{
   const left=[],right=[];points.forEach(([x,y],i)=>{
@@ -14,9 +15,12 @@ export const UG_ROUTE_LAYOUT={
     blockedPolygons:[],obstacles:[{x:207,y:146,w:66,h:29}],
     occluders:[{depthY:173,points:[[204,136],[211,109],[228,102],[252,102],[270,111],[277,144],[268,162],[249,172],[224,173],[205,158]]}],
     exitAnchors:{w:[16,135],out:[16,135],e:[464,135],s:[241,275]},exitApproaches:{w:[-1,-.2],out:[-1,-.2],e:[1,-.2],s:[0,1]},hiddenExitDirs:['out'],showUnmadeExits:true},
-  cemetery:{chapter:'wabe',objectId:414,image:'./assets/cemetery-v1.png',spawn:[260,219],
-    walkablePolygons:[strip([[242,288],[274,240],[254,204],[222,164],[193,135],[222,110],[238,75]],34)],
-    blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{n:[238,85],in:[238,85],s:[249,275]},exitApproaches:{n:[.4,-1],in:[.4,-1],s:[-.5,1]},hiddenExitDirs:['in'],interactionExitDirs:['n']},
+  cemetery:{chapter:'wabe',objectId:414,image:'./assets/cemetery-v1.png',preloadArt:CEMETERY_SCENE_ART,spawn:[260,219],
+    walkablePolygons:[[[193,288],[197,256],[205,231],[228,205],[212,181],[195,164],[215,143],[224,123],[221,104],[228,77],
+        [260,77],[262,103],[278,123],[267,145],[260,161],[292,181],[302,202],[281,231],[275,257],[300,288]],
+      [[232,146],[230,174],[213,171],[193,159],[172,153],[150,148],[124,140],[103,135],[107,122],[136,126],[158,134],[183,139],[202,136],[215,140]]],
+    blockedPolygons:[[[150,126],[170,130],[205,123],[209,132],[186,141],[153,138]]],
+    obstacles:[],occluders:[],exitAnchors:{n:[243,85],in:[243,85],s:[249,275]},exitApproaches:{n:[.4,-1],in:[.4,-1],s:[-.5,1]},hiddenExitDirs:['in'],interactionExitDirs:['n']},
   barrow:{chapter:'wabe',objectId:353,image:'./assets/barrow-v1.png',spawn:[240,211],
     walkablePolygons:[[[226,92],[257,92],[272,109],[313,130],[352,156],[363,188],[327,214],[298,237],[281,288],[199,288],[191,246],[161,221],[125,195],[119,167],[160,134],[209,111]]],
     blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{s:[240,275],out:[240,275],in:[240,103]},exitApproaches:{s:[0,1],out:[0,1],in:[0,-1]},hiddenExitDirs:['out'],interactionExitDirs:['in']},

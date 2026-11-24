@@ -4,19 +4,29 @@ import { ITEMS } from '../js/data/items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
 
 const VISUAL_CHAPTER_LOADERS = Object.freeze({
-  wabe: () => import('../js/data/wabe.js'),
+  wabe: () => import('./cemetery-story.js'),
   japan: () => import('../js/data/japan.js'),
   underground: () => import('../js/data/underground.js'),
   orbit: () => import('../js/data/orbit.js'),
   pacific: () => import('../js/data/pacific.js'),
   tundra: () => import('../js/data/tundra.js'),
-  islet: () => import('../js/data/islet.js'),
+  islet: async () => {
+    const [islet, cemetery] = await Promise.all([import('../js/data/islet.js'),import('./cemetery-story.js')]);
+    return {...islet,ROOMS:cemetery.withCemeteryItems(islet.ROOMS)};
+  },
   desert: () => import('../js/data/desert.js'),
   ranch: () => import('./ranch-story.js'),
 });
 
 class ExplorationParser extends Parser {
   parse(input){
+    const text=input.trim().toLowerCase();
+    if (/^用(?:小)?(?:铲子?|铁铲|锹)(?:撬开|打开)(?:石棺|棺盖)$/.test(text))
+      return super.parse('open crypt with spade');
+    if (/^(?:untie (?:the )?bandage|解开(?:绷带|布条))$/.test(text))return super.parse('take bandage');
+    const clothing=text.match(/^(put on|take off) (?:the )?((?:burial )?shroud|bandage)$/);
+    if (clothing)return super.parse((clothing[1]==='put on'?'wear ':'remove ')+clothing[2]);
+    if (/^脱下裹尸布$/.test(text))return super.parse('remove shroud');
     const command=super.parse(input);
     if(command)return command;
     if(/^(?:(?:touch|feel) (?:the )?walls?|(?:摸|触摸)(?:墙|墙壁|墙面))$/i.test(input.trim()))

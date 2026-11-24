@@ -9,7 +9,11 @@ import { ITEMS } from '../../js/data/items.js';
 import { getHotspots } from '../interaction-catalog.js';
 import { ranchDoors } from '../ranch-actions.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
-const modules = await Promise.all(chapters.map(id => id === 'ranch' ? import('../ranch-story.js') : import(`../../js/data/${id}.js`)));
+const modules = await Promise.all(chapters.map(id => {
+  if (id === 'wabe') return import('../cemetery-story.js');
+  if (id === 'ranch') return import('../ranch-story.js');
+  return import(`../../js/data/${id}.js`);
+}));
 const rooms = Object.assign({}, ...modules.map(module => module.ROOMS));
 const ids = modules.flatMap(module => Object.keys(module.ROOMS));
 assert.equal(new Set(ids).size, ids.length, '运行时房间 ID 重复');

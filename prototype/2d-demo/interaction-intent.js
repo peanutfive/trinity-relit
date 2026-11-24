@@ -11,6 +11,11 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='ranch_floor_mark')return find('examine ');
   if(object.kind==='ranch_cold_wall')return find('touch ');
   if(object.kind==='ranch_wall_map')return seen?find('take '):find('examine ');
+  if(object.kind==='cemetery_tomb'){
+    if(find('look in crypt'))return 'look in crypt';
+    if(heldItem==='spade' && find('open crypt with spade'))return 'open crypt with spade';
+    return seen?'open crypt':'examine crypt';
+  }
   if(object.kind==='ranch_cupboard'){
     const deposit=heldItem && actions.find(action=>action.itemId===heldItem && action.command.startsWith('put '));
     return deposit?.command||(heldItem && find('put '+heldItem+' in cupboard'))||find('examine ');

@@ -22,7 +22,7 @@ export function paintHeroSprite(c,facing,phase,pose,animation){
   const flip=facing==='left'&&column!==2;
   c.save();c.imageSmoothingEnabled=true;if(flip)c.scale(-1,1);
   c.scale(1,1+pose.breathe/35);
-  c.drawImage(atlas,column*256,row*256,256,256,-fx*scale,-fy*scale,256*scale,256*scale);
+  c.drawImage(animation.costumeAtlas || atlas,column*256,row*256,256,256,-fx*scale,-fy*scale,256*scale,256*scale);
   c.restore();return true;
 }
 export function heroArtStatus(){return atlas?.complete&&atlas.naturalWidth?'loaded':'loading';}
