@@ -5,6 +5,10 @@ const rule=(id,rooms,kinds,en,cn)=>({id,rooms:rooms.split('|'),kinds:kinds.split
 export const VISUAL_PRESENCE_RULES=Object.freeze([
   {when:context=>!context.lanternLit,...rule('underwater-lantern-phrase','underwater','passage',
     'Suspended particles of muck swirl in the beam of the lantern.','悬浮的污泥颗粒在灯笼光束里旋转。'),sentence:true},
+  {...rule('bedroom-mattress-mark','bedroom','ranch_floor_mark',
+    'Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.',
+    '只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。'),sentence:true},
+  rule('spare-room-hanging-map','spare_room','ranch_wall_map','A large map is hanging on the wall.','墙上挂着一幅大地图。'),
   rule('windmill-binoculars-presence','windmill','binoculars',
     "Somebody has left a nice pair of binoculars at the landing's edge.",'有人把一副不错的双筒望远镜留在了木台边缘。'),
   rule('islet-toadstool-presence','islet','islet_gate','A lone toadstool grows here.','一株孤零零的毒菌生长在这里。'),

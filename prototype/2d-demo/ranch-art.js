@@ -15,11 +15,6 @@ export function warmWindmillArt(room) {
     for (const name of ['ranch-binoculars','ranch-windmill-landing-open','ranch-windmill-landing-planks']) plate(name);
   }
 }
-export function drawYardDoor(c,state){
-  if(state.room!=='ne_yard')return;
-  const open=plate('ranch-ne_yard-door-open');
-  if(open&&state.hasFlag('ne_yard_outside_door_open'))c.drawImage(open,0,0,480,288);
-}
 export function drawRanchProp(c,object) {
   if (object.kind!=='binoculars') return false;
   const image=plate('ranch-binoculars');

@@ -1,9 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SCENES } from '../scene-manifest.js';
-import { isBlocked, isSegmentWalkable, nearestWalkable, findPath, approachingExit } from '../world.js';
+import { isBlocked, isSegmentWalkable, nearestWalkable, findPath, approachingExit, leavingBoundaryExit, nearestExitPoint } from '../world.js';
 
 const calibrated = ['palace_gate', 'broad_walk', 'flower_walk', 'round_pond'];
+
+test('短廊与院墙的整段敞口均能直走，沿墙横走或回头不会误切场',()=>{
+  for(const [room,dir] of [['hallway','n'],['hallway','s'],['back_yard','s'],['ne_yard','s'],['se_yard','n']]){
+    const scene=SCENES[room],exit=scene.exits.find(route=>route.dir===dir);
+    const [[left,y],[right]]=exit.span,dy=dir==='n'?-1:1;
+    assert.ok(right-left>80,room);
+    for(const x of [left,(left+right)/2,right]){
+      const at={x,y},inside={x,y:y-10*dy};
+      assert.ok(!isBlocked(scene,x,y));
+      assert.deepEqual(nearestExitPoint(exit,inside),at);
+      assert.equal(approachingExit(exit,inside,{x,y:inside.y+dy}),true,room);
+      assert.equal(approachingExit(exit,inside,{x:x+1,y:inside.y}),false);
+      assert.equal(approachingExit(exit,inside,{x,y:inside.y-dy}),false);
+      assert.equal(leavingBoundaryExit(exit,at,{x:0,y:dy}),true);
+    }
+    assert.equal(approachingExit(exit,{x:right+22,y:y-dy},{x:right+22,y}),false);
+  }
+});
 
 test('实景地面限制：池塘水面、花坛、门柱、雕像及长椅不能穿过', () => {
   assert.ok(isBlocked(SCENES.round_pond, 310, 125), '湖心水面不可行走');

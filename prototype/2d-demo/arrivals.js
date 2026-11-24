@@ -1,4 +1,4 @@
-import { findPath, isBlocked } from './world.js';
+import { findPath, isBlocked, exitDistance } from './world.js';
 
 const opposite={n:'s',ne:'sw',e:'w',se:'nw',s:'n',sw:'ne',w:'e',nw:'se',u:'d',d:'u',in:'out',out:'in'};
 const edges={n:[240,12],ne:[468,12],e:[468,162],se:[468,276],s:[240,276],sw:[12,276],w:[12,162],nw:[12,12],u:[240,12],d:[240,276],in:[468,162],out:[12,162]};
@@ -32,7 +32,7 @@ export function roomArrival(scene,{fromRoom,direction,exits=[]}={}){
   let distance=Math.min(32,total),landing=atDistance(path,distance);
   // A newly arrived foot must clear all exit sensors, including neighbouring
   // internal junctions, before manual movement is allowed to trigger one again.
-  while(distance+4<=total&&exits.some(exit=>Math.hypot(landing.x-exit.x,landing.y-exit.y)<exit.radius+8)){
+  while(distance+4<=total&&exits.some(exit=>exitDistance(exit,landing)<exit.radius+8)){
     distance+=4;landing=atDistance(path,distance);
   }
   if(isBlocked(scene,landing.x,landing.y))return null;

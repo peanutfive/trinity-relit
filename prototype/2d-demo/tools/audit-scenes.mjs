@@ -7,6 +7,7 @@ import { SCENES, SCENE_SCHEMA_VERSION, LOGICAL_SIZE } from '../scene-manifest.js
 import { GameState } from '../../js/engine.js';
 import { ITEMS } from '../../js/data/items.js';
 import { getHotspots } from '../interaction-catalog.js';
+import { ranchDoors } from '../ranch-actions.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
 const modules = await Promise.all(chapters.map(id => id === 'ranch' ? import('../ranch-story.js') : import(`../../js/data/${id}.js`)));
 const rooms = Object.assign({}, ...modules.map(module => module.ROOMS));
@@ -30,7 +31,8 @@ const objectIds = new Set();
 for (const [id,scene] of Object.entries(SCENES)) {
   assert.ok(rooms[id], `未知房间 ${id}`);
   assert.equal(scene.roomId,id);
-  for(const image of [scene.background.image,scene.background.variant?.image].filter(Boolean)){
+  const doorLayers=ranchDoors(scene).map(door=>`./assets/${door.openOverlay}-v1.png`);
+  for(const image of [scene.background.image,scene.background.variant?.image,...doorLayers].filter(Boolean)){
     assert.ok(existsSync(fileURLToPath(new URL(image,new URL('../',import.meta.url)))), `${id} 美术缺失 ${image}`);
   }
   assert.ok(!blocked(scene,...scene.spawn),`${id} 出生点不可达`);
@@ -44,6 +46,10 @@ for (const [id,scene] of Object.entries(SCENES)) {
     assert.ok(!blocked(SCENES[exit.target],...exit.spawn),`${id} 出口落点被阻挡`);
     assert.ok(reachable(SCENES[exit.target]).some(([x,y])=>Math.hypot(x-exit.spawn[0],y-exit.spawn[1])<=6),`${id} 出口落点不在目标可达区域`);
     assert.ok(points.some(([x,y])=>Math.hypot(x-exit.x,y-exit.y)<exit.radius),`${id} 出口无法走到`);
+    if(exit.span){
+      const [[ax,ay],[bx,by]]=exit.span;
+      assert.ok(isSegmentWalkable(scene,[ax,ay],[bx,by]),`${id}.${exit.dir} 敞口端点之间被挡住`);
+    }
   }
   for(const object of scene.objects) {
     assert.ok(!objectIds.has(object.id),`重复互动 ID ${object.id}`);objectIds.add(object.id);

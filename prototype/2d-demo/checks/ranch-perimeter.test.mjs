@@ -139,13 +139,32 @@ test('沿成图路心连续行走，院墙、闭门和蓄水池墙挡住脚底',
     for (let i = 1; i < path.length; i++) {
       assert.equal(isSegmentWalkable(scene, path[i-1], path[i]), true, `${id} ${path[i-1]} → ${path[i]}`);
     }
+    const closed = scene.doorPlacement ? {...scene,obstacles:scene.doorPlacement.closedObstacles} : scene;
     for (const point of blocked) {
-      assert.equal(isBlocked(scene, ...point), true, `${id} ${point}`);
+      assert.equal(isBlocked(closed, ...point), true, `${id} ${point}`);
+    }
+    if (scene.doorPlacement) {
+      const door = scene.doorPlacement;
+      const opened = {...scene,obstacles:door.openObstacles};
+      assert.equal(isBlocked(closed, ...door.at), true, id+' 关门');
+      assert.equal(isBlocked(closed, ...door.approach), false, id+' 门前');
+      assert.ok(findPath(opened, scene.spawn, door.at).length, id+' 开门');
+      assert.ok(findPath(opened, scene.spawn, door.openLeafApproach).length, id+' 打开的门扇旁可站');
+      assert.equal(isBlocked(closed,...door.openLeafApproach),false,id+' 合门后仍有落脚处');
     }
   }
 });
 
 test('图上支路能走到近端，关闭的门止步、敞开的门可走到门槛', () => {
+  const northwest = RANCH_PERIMETER_LAYOUT.nw_ranch;
+  const gate = northwest.doorPlacement;
+  for (const obstacles of [gate.closedObstacles,gate.openObstacles]) {
+    const ground = {...northwest,obstacles};
+    const arrival = northwest.sourceArrivals.back_yard;
+    assert.ok(isSegmentWalkable(ground,arrival,[209,124]));
+    assert.ok(isSegmentWalkable(ground,[209,124],gate.approach));
+    assert.ok(isSegmentWalkable(ground,arrival,gate.openLeafApproach));
+  }
   for (const [id, scene] of Object.entries(RANCH_PERIMETER_LAYOUT)) {
     for (const feature of scene.reservedFeatures) {
       if (feature.kind === 'unresolved') {

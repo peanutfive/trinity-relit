@@ -11,7 +11,7 @@ export function keyboardInteraction(state,target,{heldItem=null,observed=new Set
   if(!target)return null;
   const command=resolveInteraction(state,target,{heldItem,observed});
   const inspecting=/^(examine |read |look$)/.test(command||'');
-  const physical=command==='open box'?'打开':/^push (switch|button)$/.test(command||'')?'按下':null;
+  const physical=command==='take map'?'试着取下':command==='open box'?'打开':/^push (switch|button)$/.test(command||'')?'按下':null;
   const hint=target.physicalHint|| (navigation.test(command||'')?target.navigationHint||'通行':command==='wait'?'等候':inspecting?'观察':physical|| (heldItem?'使用手中物品':observed.has(target.id)?target.label:'观察'));
   return {type:'target',target,command,hint};
 }

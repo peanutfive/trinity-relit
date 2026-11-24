@@ -1,3 +1,4 @@
+import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
 import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
 import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
 import { RANCH_WATER_LAYOUT } from './ranch-water-layout.js';
@@ -191,8 +192,9 @@ export function sceneExits(roomId,state,rooms=DEFAULT_ROOMS) {
     const [x,y]=SCENES[roomId].exitAnchors?.[dir]||anchors[dir];
     const locked=typeof value==='object'&&value.when?!value.when(state):false;
     const approach=SCENES[roomId].exitApproaches?.[dir];
+    const span=SCENES[roomId].exitSpans?.[dir];
     const place = SCENES[target].chapter === 'desert' ? desertLabels[target] : null;
-    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${place||rooms[target]?.cn||SCENES[target].label}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{})}];
+    return [{dir,x,y,target,radius:17,label:SCENES[roomId].exitLabels?.[dir]||`${labels[dir]} · ${place||rooms[target]?.cn||SCENES[target].label}`,locked,spawn:SCENES[target].spawn,interactionOnly:!!SCENES[roomId].interactionExitDirs?.includes(dir),...(approach?{approach:[...approach]}:{}),...(span?{span}:{})}];
   });
 }
 // Production boundaries remain visible roads, rather than fake traversable
@@ -208,7 +210,7 @@ export function sceneBoundaries(roomId,state,rooms=DEFAULT_ROOMS){
   });
 }
 applyRemainingTerrain(SCENES);
-for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT,...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT}))SCENES[id]={
+for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOUT,...ARBOR_ROUTE_LAYOUT,...ORBIT_ROUTE_LAYOUT,...WABE_COMPLETION_LAYOUT,...PACIFIC_LAYOUT,...TUNDRA_LAYOUT,...ISLET_LAYOUT,...DESERT_ARRIVAL_LAYOUT,...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT,...RANCH_HOUSE_ACCESS_LAYOUT}))SCENES[id]={
   ...SCENES[id],...layout,roomId:id,label:DEFAULT_ROOMS[id].cn,
   background:{image:layout.image,panelIndex:0,panels:1,layout:'single-scene'},
   evidence:{runtimeReferencesChecked:true,originalObjectId:layout.objectId,originalBranchesVerified:false,finalArtApproved:false},

@@ -29,3 +29,19 @@ test('读档、实时场景和过场快照按同一破损标志选择风车画�
   assert.equal(ensureSceneArt(room),intact);
   assert.equal(requests.length,before+2);
 });
+
+test('后院从两侧进门或刷新都等两扇独立的门叶载入，缺图能单独重试',async()=>{
+  const start=images.length;
+  const first=ensureSceneArt('back_yard',{flags:['back_yard_screen_door_open']});
+  const [base,...doors]=images.slice(start);
+  assert.equal(doors.length,2);
+  assert.notEqual(doors[0].url,doors[1].url);
+  base.onload();doors[0].onload();
+  const failure=assert.rejects(first,/加载失败/);
+  doors[1].onerror();await failure;
+  const next=ensureSceneArt('back_yard',{flags:new Set(['back_yard_iron_gate_open'])});
+  assert.equal(images.length,start+4);
+  assert.equal(images.at(-1).url,doors[1].url);
+  images.at(-1).onload();
+  assert.equal(await next,base);
+});

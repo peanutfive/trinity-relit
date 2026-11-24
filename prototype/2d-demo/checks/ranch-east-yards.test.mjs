@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { GameState } from '../../js/engine.js';
 import { ROOMS } from '../ranch-story.js';
 import { getRanchHotspots } from '../ranch-actions.js';
-import { SCENES, sceneBoundaries, sceneExits } from '../scene-manifest.js';
+import { SCENES, sceneExits } from '../scene-manifest.js';
 import { roomArrival } from '../arrivals.js';
 import { findPath, isBlocked, isSegmentWalkable } from '../world.js';
 
@@ -19,6 +19,7 @@ test('前廊两端和东南铁门都是双向步行路口，通过后落在正�
     ['front_deck','n','ne_yard','s'],
     ['front_deck','s','se_yard','n'],
     ['se_yard','se','se_ranch','nw'],
+    ['se_yard','w','sw_yard','e'],
   ]) {
     for (const [from, dir, to, reverse] of [
       [first,firstDir,second,secondDir], [second,secondDir,first,firstDir],
@@ -40,7 +41,7 @@ test('前廊两端和东南铁门都是双向步行路口，通过后落在正�
   }
 });
 
-test('东北院外门初始闭合，开门状态可以存读，东南院西侧保留室外制作边界', () => {
+test('东北院外门初始闭合，开门存读后与卧室共用同一个门口', () => {
   const id = 'ne_yard', flag = 'ne_yard_outside_door_open';
   const closed = ranchState(id);
   for (const dir of ['w','in']) {
@@ -51,14 +52,14 @@ test('东北院外门初始闭合，开门状态可以存读，东南院西侧�
   const actions = state => getRanchHotspots(state).filter(object => object.kind==='ranch_outside_door')
     .flatMap(object => object.actions.map(action => action.command));
   assert.deepEqual(actions(closed),['open outside door']);
+  assert.ok(!sceneExits(id,closed,ROOMS).some(exit=>exit.target==='bedroom'));
   closed.setFlag(flag);
   const reopened = GameState.deserialize(closed.serialize());
   assert.deepEqual(actions(reopened),['close outside door']);
-  for (const route of sceneExits(id,reopened,ROOMS)) assert.notEqual(route.target,'bedroom');
-  const boundary = sceneBoundaries('se_yard',ranchState('se_yard'),ROOMS).filter(exit=>exit.dir==='w');
-  assert.equal(boundary.length,1);
-  assert.equal(boundary[0].target,'sw_yard');
-  assert.ok(findPath(SCENES.se_yard,SCENES.se_yard.spawn,boundary[0]).length);
+  assert.deepEqual(sceneExits(id,reopened,ROOMS).filter(exit=>exit.target==='bedroom').map(exit=>exit.dir), ['w']);
+  reopened.room = 'bedroom';
+  assert.deepEqual(actions(reopened),['close outside door']);
+  assert.deepEqual(sceneExits('bedroom',reopened,ROOMS).filter(exit=>exit.target===id).map(exit=>exit.dir), ['e']);
 });
 
 test('两幅庭院图上能穿过门洞、走上木台，到达墙边后在实墙前停下', () => {

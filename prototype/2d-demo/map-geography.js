@@ -40,7 +40,9 @@ const desert={
 };
 const ranch={
   nw_ranch:[244,162,'gate'], ne_ranch:[615,160,'lane'], front_yard:[661,329,'stairs'], front_deck:[521,329,'stairs'],
-  ne_yard:[521,235,'gate'], se_yard:[521,422,'gate'],
+  ne_yard:[554,235,'gate'], se_yard:[521,422,'gate'],
+  bedroom:[467,252,'house'], spare_room:[383,255,'house'], back_yard:[302,239,'gate'],
+  hallway:[327,322,'house'], sw_yard:[329,422,'gate'],
   se_ranch:[619,506,'gate'], sw_ranch:[240,508,'gate'],
   north_reservoir:[816,158,'water'], south_reservoir:[816,514,'water'],
   windmill:[997,222,'windmill'], reservoir:[840,263,'water'], underwater:[844,343,'water'],
@@ -60,7 +62,9 @@ export function illustratedMapNodes(model){
 
 // These painted ground passages also have IN/OUT or UP/DOWN aliases. Keep
 // one ground line regardless of the order in which door directions are read.
-const ranchGroundPairs=new Set(['front_deck|front_yard','front_deck|ne_yard','front_deck|se_yard','se_ranch|se_yard']);
+const ranchGroundPairs=new Set(['front_deck|front_yard','front_deck|ne_yard','front_deck|se_yard','se_ranch|se_yard',
+  'bedroom|ne_yard','bedroom|spare_room','back_yard|spare_room','back_yard|nw_ranch',
+  'back_yard|hallway','hallway|sw_yard','sw_ranch|sw_yard']);
 const vectors={n:[0,-1],ne:[1,-1],e:[1,0],se:[1,1],s:[0,1],sw:[-1,1],w:[-1,0],nw:[-1,-1]};
 /** A connection is a road only if both source directions agree with the chart.
  * All Wabe connections are schematic: Klein-bottle and vertical passages must

@@ -121,12 +121,14 @@ export function buildChapterMap({state={},rooms,scenes={},chapter,chapterRooms=D
     try{exits=typeof room?.exits==='function'?room.exits(view):room?.exits||{};}
     catch{warnings.push({room:id,reason:'exits-unavailable'});continue;}
     for(const direction of DIRECTION_ORDER){
-      const exit=exits?.[direction],to=typeof exit==='string'?exit:exit?.to;
+      const exit=exits?.[direction],closed=typeof exit?.rememberedTo==='string';
+      const to=closed?exit.rememberedTo:typeof exit==='string'?exit:exit?.to;
       if(typeof to!=='string'||!known.has(to)||owners[to]!==selected)continue;
-      try{if(typeof exit?.when==='function'&&!exit.when(view))continue;if(exit?.when===false)continue;}
+      try{if(!closed && (exit?.when===false || typeof exit?.when==='function'&&!exit.when(view)))continue;}
       catch{warnings.push({room:id,reason:'condition-unavailable'});continue;}
-      const edge={id:`${id}:${direction}:${to}`,from:id,to,direction,label:DIRECTIONS[direction]};
-      edges.push(edge);byId.get(id).exits.push({direction,label:edge.label,to,cn:byId.get(to).cn,name:byId.get(to).name});
+      const doorState=closed?{closed:true}:{};
+      const edge={id:`${id}:${direction}:${to}`,from:id,to,direction,label:DIRECTIONS[direction],...doorState};
+      edges.push(edge);byId.get(id).exits.push({direction,label:edge.label,to,cn:byId.get(to).cn,name:byId.get(to).name,...doorState});
     }
   }
   return {chapter:selected,chapterLabel:labels[selected]||'已探索章节',chapters,currentRoom:raw.room||null,
@@ -205,7 +207,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     if(node.exits.length){
       // Orbit movement and the reservoir steps use several commands for one passage.
       const groups=groupPassages(model.chapter)?Object.values(node.exits.reduce((all,exit)=>{(all[exit.to]??=[]).push(exit);return all;},{})):node.exits.map(exit=>[exit]);
-      for(const group of groups){const item=el('span',`${group.length>=8?'漂行':group.map(exit=>exit.label).join(' / ')} · ${group[0].cn}`);if(group.length>1)item.title=group.map(exit=>exit.label).join(' / ');summary.append(item);}
+      for(const group of groups){const item=el('span',`${group.length>=8?'漂行':group.map(exit=>exit.label).join(' / ')} · ${group[0].cn}${group.every(exit=>exit.closed)?'（门已关）':''}`);if(group.length>1)item.title=group.map(exit=>exit.label).join(' / ');summary.append(item);}
     }
     else summary.append(el('span','沿途探索后，路线会逐渐记下。'));
     detail.append(summary);
@@ -235,7 +237,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
       if(stairs){
         roads.append(svgEl('path',{d:path,class:'map-stairway','data-from':from.id,'data-to':to.id}));
       }else if(road){
-        roads.append(svgEl('path',{d:path,class:'map-road-border'}),svgEl('path',{d:path,class:'map-road','data-from':from.id,'data-to':to.id}));
+        roads.append(svgEl('path',{d:path,class:'map-road-border'}),svgEl('path',{d:path,class:'map-road','data-from':from.id,'data-to':to.id,...(edge.closed?{'stroke-dasharray':'4 5'}:{})}));
       }else{
         connections.append(svgEl('path',{d:path,class:'map-connection','data-edge-id':edge.id,'data-from':from.id,'data-to':to.id}));
       }

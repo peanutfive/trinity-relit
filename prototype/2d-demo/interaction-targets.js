@@ -1,5 +1,5 @@
 import { actorHitShape } from './actor-layout.js';
-import { pointInPolygon } from './world.js';
+import { closestOnSegment, pointInPolygon } from './world.js';
 
 const directions = { up: [0, -1], right: [1, 0], down: [0, 1], left: [-1, 0] };
 // Measured in world pixels, with a little pointer tolerance around the artwork.
@@ -35,6 +35,7 @@ export function nearbyTarget(objects, player) {
 
 export function pointerTarget(objects, point, { padding = 0 } = {}) {
   const hits = [];
+  let nearLeaf, nearestEdge = Infinity;
   for (const object of objects.filter(isInteractive)) {
     const custom = object.pointerShape;
     let shape = custom || actorHitShape(object), priority = custom?.priority ?? 1;
@@ -48,10 +49,18 @@ export function pointerTarget(objects, point, { padding = 0 } = {}) {
     const polygons=shape.kind==='polygons'?shape.polygons:shape.kind==='polygon'?[shape.points]:null;
     const distance = polygons ? (polygons.some(polygon=>pointInPolygon(point.x,point.y,polygon))?0:Infinity)
       : ((point.x - shape.x) / (shape.rx + padding)) ** 2 + ((point.y - shape.y) / (shape.ry + padding)) ** 2;
+    if(polygons && distance===Infinity && padding>0 && shape.touchPadding){
+      const tolerance=Math.min(padding,shape.touchPadding);
+      for(const polygon of polygons)for(let i=0;i<polygon.length;i++){
+        const nearest=closestOnSegment(point,polygon[i],polygon[(i+1)%polygon.length]);
+        const gap=Math.hypot(nearest.x-point.x,nearest.y-point.y);
+        if(gap<=tolerance && gap<nearestEdge){nearLeaf=object;nearestEdge=gap;}
+      }
+    }
     if (!Number.isFinite(distance) || distance > 1) continue;
     if (shape.kind === 'annulus' && ((point.x - shape.x) / Math.max(.01, shape.innerRx - padding)) ** 2
       + ((point.y - shape.y) / Math.max(.01, shape.innerRy - padding)) ** 2 < 1) continue;
     hits.push({ object, priority, distance });
   }
-  return hits.sort((a, b) => b.priority - a.priority || a.distance - b.distance || b.object.y - a.object.y)[0]?.object;
+  return hits.sort((a, b) => b.priority - a.priority || a.distance - b.distance || b.object.y - a.object.y)[0]?.object ?? nearLeaf;
 }

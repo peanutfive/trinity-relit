@@ -5,8 +5,6 @@ const strain = 'windmill_strain';
 const breath = 'reservoir_breath';
 const scored = 'scored_binoculars';
 const broken = 'binoculars_broken';
-const outsideDoor = 'ne_yard_outside_door_open';
-const outsideDoorNouns = ['door', 'outside door', '门', '外门'];
 
 function itemLocation(state, id) {
   return typeof state.itemAt === 'function' ? state.itemAt(id) : state.itemLoc?.[id];
@@ -196,51 +194,102 @@ const dive = {
   },
 };
 
-export const RANCH_STORY_ROOMS = {
-  ...RANCH,
-  ne_yard: {
-    ...RANCH.ne_yard,
+const outsideDoor = {flag:'ne_yard_outside_door_open', name:'outside door', cn:'外门', nouns:['outside door','door','外门','门']};
+const southGate = {flag:'sw_yard_iron_gate_open',name:'iron gate',cn:'铁门',nouns:['iron gate','gate','铁门','大门']};
+const northGate = {...southGate,flag:'back_yard_iron_gate_open'};
+const screenDoor = {flag:'back_yard_screen_door_open',name:'screen door',cn:'纱门',nouns:['screen door','door','纱门','门']};
+const hallDoor = {flag:'hallway_outer_door_open',name:'outer door',cn:'外门',nouns:['outer door','door','外门','门']};
+
+function doorEvents(roomId, door) {
+  const {flag, name, cn, nouns} = door;
+  const key = roomId + '_' + name.replaceAll(' ', '_');
+  return [
+    {
+      id:key+'_examine', match:{verb:['examine'],noun:nouns},
+      text:s => s.hasFlag(flag)
+        ? `It looks as if the ${name} is open.\n\n${cn}开着。`
+        : `It looks as if the ${name} is closed.\n\n${cn}关着。`,
+    },
+    {
+      id:key+'_open', match:{verb:['open'],noun:nouns},
+      act(s, eng) {
+        if (s.hasFlag(flag)) eng.print("It's already open.\n\n门已经开着了。");
+        else {
+          s.setFlag(flag);
+          eng.print(`You open the ${name}.\n\n你打开了${cn}。`);
+        }
+      }, text:'',
+    },
+    {
+      id:key+'_close', match:{verb:['close'],noun:nouns},
+      act(s, eng) {
+        if (!s.hasFlag(flag)) eng.print("It's already closed.\n\n门已经关着了。");
+        else {
+          s.clearFlag(flag);
+          eng.print(`You close the ${name}.\n\n你关上了${cn}。`);
+        }
+      }, text:'',
+    },
+  ];
+}
+
+// Exits, narration and both sides' commands read the same physical door flag.
+// Each direction still uses the original room's destination when open.
+function roomWithDoors(roomId, passages, observations=[], roomNote='') {
+  const room = RANCH[roomId];
+  return {
+    ...room,
     desc(s) {
-      const text = RANCH.ne_yard.desc(s);
-      return s.hasFlag(outsideDoor)
-        ? text.replace('a closed outside door', 'an open outside door').replace('一扇关闭的外门', '一扇敞开的外门')
-        : text;
+      let text = room.desc(s);
+      for (const [door] of passages) {
+        if (s.hasFlag(door.flag)) {
+          text = text.replace('a closed '+door.name, 'an open '+door.name)
+            .replace('A closed '+door.name, 'An open '+door.name)
+            .replace('关闭的'+door.cn, '敞开的'+door.cn);
+        }
+      }
+      return roomNote ? text + '\n\n' + roomNote : text;
     },
     exits(s) {
-      const original = RANCH.ne_yard.exits(s);
-      if (s.hasFlag(outsideDoor)) return original;
-      const closedDoor = { to:'ne_yard', when:() => false, fail:'The outside door is closed.\n\n外门关着。' };
-      return { ...original, w:closedDoor, in:closedDoor };
+      const exits = {...room.exits(s)};
+      for (const [door, dirs] of passages) {
+        if (s.hasFlag(door.flag)) continue;
+        const closed = {to:roomId, when:() => false, fail:`The ${door.name} is closed.\n\n${door.cn}关着。`};
+        const crossed = s.hasFlag(door.flag + '_crossed');
+        for (const dir of dirs) {
+          const route = exits[dir];
+          const target = typeof route === 'string' ? route : route?.to;
+          exits[dir] = crossed && target && target !== roomId ? {...closed,rememberedTo:target} : closed;
+        }
+      }
+      return exits;
     },
-    events: [
-      {
-        id:'ne_yard_examine_outside_door', match:{verb:['examine'],noun:outsideDoorNouns},
-        text:s => s.hasFlag(outsideDoor)
-          ? 'It looks as if the outside door is open.\n\n外门开着。'
-          : 'It looks as if the outside door is closed.\n\n外门关着。',
-      },
-      {
-        id:'ne_yard_open_outside_door', match:{verb:['open'],noun:outsideDoorNouns},
-        act(s, eng) {
-          if (s.hasFlag(outsideDoor)) eng.print("It's already open.\n\n门已经开着了。");
-          else {
-            s.setFlag(outsideDoor);
-            eng.print('You open the outside door.\n\n你打开了外门。');
-          }
-        }, text:'',
-      },
-      {
-        id:'ne_yard_close_outside_door', match:{verb:['close'],noun:outsideDoorNouns},
-        act(s, eng) {
-          if (!s.hasFlag(outsideDoor)) eng.print("It's already closed.\n\n门已经关着了。");
-          else {
-            s.clearFlag(outsideDoor);
-            eng.print('You close the outside door.\n\n你关上了外门。');
-          }
-        }, text:'',
-      },
-    ],
-  },
+    events:[...observations,...passages.flatMap(([door]) => doorEvents(roomId,door)),...(room.events || [])],
+  };
+}
+
+export const RANCH_STORY_ROOMS = {
+  ...RANCH,
+  ne_yard:roomWithDoors('ne_yard', [[outsideDoor,['w','in']]]),
+  bedroom:roomWithDoors('bedroom', [[outsideDoor,['e']]], [{
+    id:'bedroom_inspect_corner', match:{verb:['examine'],noun:['corner','area','角落','印迹','痕迹']},
+    text:'Only a rectangular area in the corner, lighter than the floor around it, belies the former presence of a mattress.\n\n只有角落里一块比周围地板颜色浅的矩形区域，表明这里曾放过床垫。',
+  }]),
+  sw_yard:roomWithDoors('sw_yard', [[southGate,['sw','out']]]),
+  sw_ranch:roomWithDoors('sw_ranch', [[southGate,['ne','in']]]),
+  hallway:roomWithDoors('hallway', [[hallDoor,['e']]]),
+  back_yard:roomWithDoors('back_yard', [[screenDoor,['e']],[northGate,['nw','out']]]),
+  spare_room:roomWithDoors('spare_room', [[screenDoor,['w']]], [
+    {
+      id:'spare_room_inspect_map', match:{verb:['examine'],noun:['map','wall map','地图','挂图']},
+      text:'[This is the map included in your TRINITY package.]\n\n[这就是《Trinity》原版盒装附带的地图。]',
+    },
+    {
+      id:'spare_room_take_map', match:{verb:['take'],noun:['map','wall map','地图','挂图']},
+      text:'The map is firmly attached to the wall.\n\n这张地图牢牢固定在墙上。',
+    },
+  ], 'A large map is hanging on the wall.\n\n墙上挂着一幅大地图。'),
+  nw_ranch:roomWithDoors('nw_ranch', [[northGate,['se','in']]]),
   south_reservoir: {
     ...RANCH.south_reservoir,
     onTurn(s, eng) {

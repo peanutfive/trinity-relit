@@ -1,5 +1,5 @@
-import { drawSwimmer, drawBottomVisibility, drawRanchProp, drawYardDoor, warmWindmillArt } from './ranch-art.js';
-import { positionWaterTarget } from './ranch-actions.js';
+import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt } from './ranch-art.js';
+import { positionWaterTarget, ranchDoors } from './ranch-actions.js';
 import { restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
@@ -28,7 +28,7 @@ import { roomArrival } from './arrivals.js';
 import { createVisualSaveStore } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
-import { isBlocked, findPath, nearestWalkable, approachingExit,leavingBoundaryExit } from './world.js';
+import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryExit, nearestExitPoint, exitDistance } from './world.js';
 import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
@@ -321,6 +321,8 @@ async function command(input, actions = [], observedId = null) {
       if (scene) [player.x, player.y] = scene.spawn;
       const arrivalDirection=before.chapter==='japan'&&engine.state.room==='moor'?'out':input;
       lastArrival=roomArrival(navigationScene(),{fromRoom:before.room,direction:arrivalDirection,exits:exits()});
+      const crossedDoor=ranchDoors(scene).find(door=>door.dir && door.dir===lastArrival?.entrance);
+      if(crossedDoor && lastArrival.matched)engine.state.setFlag(crossedDoor.flag+'_crossed');
       if(lastArrival){player.x=lastArrival.x;player.y=lastArrival.y;player.face=lastArrival.face;}
       if (['reservoir','underwater'].includes(before.room) && ['reservoir','underwater'].includes(destination.room)) {
         const {x,y,face}=before.visual.player;
@@ -506,7 +508,15 @@ function bodyObstacles(){return objects().filter(o=>['woman','umbrella_woman','b
   const rx=o.kind==='pram'?20:o.kind==='sundial'?16:['door','japan_door'].includes(o.kind)?11:o.kind==='mushroom_gate'?16:o.kind==='japan_girl'?4:6,ry=['pram','sundial'].includes(o.kind)?7:o.kind==='mushroom_gate'?5:o.kind==='japan_girl'?2.5:3;
   return {x:o.x-rx,y:o.y-ry,w:rx*2,h:ry*2};
 });}
-function navigationScene(){return cachedNavigationScene(scenes[engine.state.room],bodyObstacles());}
+function navigationScene(){
+  const scene=scenes[engine.state.room];
+  const bodies=bodyObstacles();
+  for(const door of ranchDoors(scene)){
+    const doorBody=engine.state.hasFlag(door.flag)?door.openObstacles:door.closedObstacles;
+    if(doorBody)bodies.push(...doorBody);
+  }
+  return cachedNavigationScene(scene,bodies);
+}
 function solid(x, y) { return isBlocked(navigationScene(), x, y); }
 function normalizePlayerLocation(){
   if(engine.state.hasFlag('in_pram')||!solid(player.x,player.y))return;
@@ -560,7 +570,7 @@ function update(dt) {
     else if(walkTarget){const target=objects().find(o=>o.id===walkTarget);walkTarget=null;if(target&&withinReach(player,target))interactWith(target);}
     else if(walkExit){
       const exit=exits().find(candidate=>candidate.dir===walkExit);walkExit=null;
-      if(exit&&Math.hypot(exit.x-player.x,exit.y-player.y)<exit.radius){command(exit.dir);return;}
+      if(exit&&exitDistance(exit,player)<exit.radius){command(exit.dir);return;}
     }
   }
   const oldX = player.x, oldY = player.y;
@@ -620,9 +630,10 @@ function visibleRouteMarker() {
   let route = null, exit = null, bestDistance = Infinity;
   for (const candidate of routes) {
     if (candidate.interactionOnly) continue;
-    const distance = Math.hypot(candidate.x - player.x, candidate.y - player.y);
+    const distance = exitDistance(candidate, player);
     if (distance >= 55 || distance >= bestDistance) continue;
-    route = exit = candidate;
+    exit = candidate;
+    route = {...candidate,...nearestExitPoint(candidate,player)};
     bestDistance = distance;
   }
   for (const boundary of sceneBoundaries(engine.state.room, engine.state, engine.rooms)) {
@@ -653,6 +664,14 @@ function visibleRouteMarker() {
   const halfWidth = floating ? 36 : 12;
   const obstacles = [{ left: player.x - halfWidth, right: player.x + halfWidth,
     top: player.y - (floating ? 54 : 40), bottom: player.y + (floating ? 20 : 7) }];
+  for(const door of ranchDoors(scenes[engine.state.room])){
+    const shapes=engine.state.hasFlag(door.flag)?[door.openingShape,door.openLeafShape]:[door.pointerShape];
+    for(const shape of shapes){
+      if(!shape?.points?.length)continue;
+      const xs=shape.points.map(([px])=>px),ys=shape.points.map(([,py])=>py);
+      obstacles.push({left:Math.min(...xs)-2,right:Math.max(...xs)+2,top:Math.min(...ys)-2,bottom:Math.max(...ys)+2});
+    }
+  }
   for (const other of routes) {
     if (other !== exit) obstacles.push({ left: other.x - 13, right: other.x + 13, top: other.y - 13, bottom: other.y + 13 });
   }
@@ -687,7 +706,6 @@ function render() {
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   warmWindmillArt(renderRoom);
   drawScene(ctx, renderRoom, clock, preferences.video.effects,renderState);
-  if(renderRoom==='ne_yard')drawYardDoor(ctx,renderState);
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
@@ -758,13 +776,16 @@ canvas.addEventListener('pointerdown',event=>{
   stopMovement();
   const point=pointerPoint(event),padding=event.pointerType==='touch'?Math.min(10,12*480/canvas.clientWidth):0;
   const target=pointedObject(point,padding);
-  const labelExit=pointedExitLabel(point);
+  const touchedDoor=target?.kind==='ranch_outside_door'||target?.id.endsWith(':opening');
+  const labelExit=touchedDoor?null:pointedExitLabel(point);
   // A ferry's shore point is for approaching its hull. Clicking the sand walks there.
-  const propOnlyDirs = scenes[engine.state.room].propOnlyExitDirs || [];
+  const layout=scenes[engine.state.room];
+  const propOnlyDirs=[...(layout.propOnlyExitDirs||[]), ...ranchDoors(layout).map(door=>door.dir)];
   const requestedExit = labelExit || (!target && exits().find(exit =>
-    !propOnlyDirs.includes(exit.dir) && Math.hypot(exit.x - point.x, exit.y - point.y) < 13));
+    !propOnlyDirs.includes(exit.dir) && exitDistance(exit,point) < 13));
   if(requestedExit&&!engine.state.hasFlag('in_pram')){
-    const navigation=navigationScene();walkPath=findPath(navigation,player,{x:requestedExit.x,y:requestedExit.y},{nearest:true});walkTarget=null;walkExit=walkPath.length?requestedExit.dir:null;canvas.focus({preventScroll:true});return;
+    const navigation=navigationScene(), landing=nearestExitPoint(requestedExit,labelExit?player:point);
+    walkPath=findPath(navigation,player,landing,{nearest:true});walkTarget=null;walkExit=walkPath.length?requestedExit.dir:null;canvas.focus({preventScroll:true});return;
   }
   if(target&&withinReach(player,target)){interactWith(target);return;}
   if(engine.state.hasFlag('in_pram')){if(heldItem)useHeldItem();else command('exit pram');return;}

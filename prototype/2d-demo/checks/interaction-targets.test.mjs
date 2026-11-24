@@ -7,6 +7,16 @@ import { getHotspots } from '../interaction-catalog.js';
 const prop = (id, x, y, extra = {}) => ({ id, x, y, kind: 'ball', radius: 37,
   actions: [{ command: 'examine ball' }], ...extra });
 
+test('触屏可点窄门扇边缘，实点门洞始终穿过',()=>{
+  const leaf=prop('leaf',11,20,{pointerShape:{kind:'polygon',points:[[10,10],[12,10],[12,30],[10,30]],priority:3,touchPadding:7}});
+  const opening=prop('hole',18,20,{pointerShape:{kind:'polygon',points:[[13,10],[24,10],[24,30],[13,30]]}});
+  const objects=[leaf,opening];
+  assert.equal(pointerTarget(objects,{x:7,y:20}),undefined);
+  assert.equal(pointerTarget(objects,{x:7,y:20},{padding:8}),leaf);
+  assert.equal(pointerTarget(objects,{x:14,y:20},{padding:8}),opening);
+  assert.equal(pointerTarget(objects,{x:0,y:20},{padding:8}),undefined);
+});
+
 test('F faces the intended object instead of selecting a closer object behind the player', () => {
   const front = prop('front', 100, 73), back = prop('back', 100, 112);
   const player = { x: 100, y: 100, face: 'up' };

@@ -1,3 +1,4 @@
+import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
 import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
 import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
 import { ITEMS } from '../js/data/items.js';
@@ -10,7 +11,7 @@ import { groundItems } from './loose-items.js';
 import { passageHotspots } from './scene-passages.js';
 
 const layouts = {...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,
-  ...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT};
+  ...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT,...RANCH_HOUSE_ACCESS_LAYOUT};
 
 const ROOM_ITEM_SLOTS={splinter:[293,154],paper_bird:[276,182],umbrella:[247,133],bag:[333,190],ball:[348,145]};
 function reserveSiltSlot(id){
@@ -18,16 +19,45 @@ function reserveSiltSlot(id){
   const index=Object.keys(ITEMS).indexOf(id);
   return [110+(index%5)*25,133+Math.floor(index/5)*11];
 }
+export function ranchDoors(layout) {
+  return layout?.doorPlacements || (layout?.doorPlacement ? [layout.doorPlacement] : []);
+}
+
+function doorHotspots(state,layout,door) {
+  const open=state.hasFlag(door.flag);
+  const [x,y]=open && door.openLeafApproach ? door.openLeafApproach : door.approach;
+  const handle={id:door.id,kind:'ranch_outside_door',baked:true,label:door.label,x,y,
+    radius:door.radius||18,pointerShape:open && door.openLeafShape?{...door.openLeafShape,touchPadding:7}:door.pointerShape,
+    physicalHint:open?'合上门':'推开门',actions:[{label:open?'关门':'开门',
+      command:(open?'close ':'open ')+door.noun}]};
+  if(!open || !door.dir || !door.openingShape) return [handle];
+  const exit=ROOMS[state.room].exits(state)[door.dir];
+  const target=typeof exit==='string'?exit:exit?.to;
+  if(!layouts[target] || target===state.room || exit?.when===false
+    || (typeof exit?.when==='function' && !exit.when(state)))return [handle];
+
+  // The hole and the swung-aside leaf have distinct silhouettes. Pressing F
+  // at the threshold or tapping the hollow opening passes through the doorway.
+  const [passX,passY]=layout.exitAnchors[door.dir];
+  return [handle,{id:door.id+':opening',kind:'passage',baked:true,
+    label:door.label,x:passX,y:passY,radius:13,navigationHint:'穿过门口',
+    pointerShape:door.openingShape,actions:[{label:'通行',command:door.dir}]}];
+}
+
 export function getRanchHotspots(state) {
   const layout = layouts[state.room];
   if (!layout) return [];
   const objects = passageHotspots(state,layout,ROOMS[state.room]);
-  if(layout.doorPlacement){
-    const {id,approach,pointerShape}=layout.doorPlacement;
-    const open=state.hasFlag('ne_yard_outside_door_open');
-    objects.push({id,kind:'ranch_outside_door',baked:true,label:'外门',x:approach[0],y:approach[1],
-      radius:18,pointerShape,physicalHint:open?'合上门':'推开门',
-      actions:[{label:open?'关门':'开门',command:open?'close outside door':'open outside door'}]});
+  for(const door of ranchDoors(layout)) objects.push(...doorHotspots(state,layout,door));
+  if(layout.floorMarkPlacement){
+    const {id,approach,pointerShape}=layout.floorMarkPlacement;
+    objects.push({id,kind:'ranch_floor_mark',label:'地板痕迹',baked:true,x:approach[0],y:approach[1],radius:25,
+      pointerShape,actions:[{label:'查看',command:'examine corner'}]});
+  }
+  if(layout.wallMapPlacement){
+    const {id,approach,pointerShape}=layout.wallMapPlacement;
+    objects.push({id,kind:'ranch_wall_map',label:'墙上挂图',baked:true,x:approach[0],y:approach[1],radius:22,
+      pointerShape,actions:[{label:'查看',command:'examine map'},{label:'试着取下',command:'take map'}]});
   }
   if (state.room === 'underwater' && !reservoirBottomLit(state)) return objects;
   const placement = layout.binocularsPlacement;

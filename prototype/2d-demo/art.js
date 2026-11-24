@@ -1,19 +1,20 @@
 import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
+import { ranchDoors } from './ranch-actions.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
 const sceneArtError = message => Object.assign(new Error(message), { name: 'SceneArtError' });
+function flagActive(state,flag){
+  const flags = state?.flags;
+  return flags instanceof Set ? flags.has(flag) : flags?.includes(flag);
+}
 function backgroundSource(background, state) {
   const variant = background?.variant;
-  if (!variant) return background?.image;
-  const flags = state?.flags;
-  const active = flags instanceof Set ? flags.has(variant.flag) : flags?.includes(variant.flag);
-  return active ? variant.image : background.image;
+  return variant && flagActive(state,variant.flag) ? variant.image : background?.image;
 }
 // Background plates are large. Load the current room only; retain its source
 // scene during a crossing until the destination painting is decoded.
-export function ensureSceneArt(room,state){
-  const src=backgroundSource(SCENES[room]?.background,state);if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
+function loadPlate(src){
   if(pending.has(src))return pending.get(src);
   const image=new Image();backgrounds.set(src,image);
   const promise=new Promise((resolve,reject)=>{
@@ -21,6 +22,14 @@ export function ensureSceneArt(room,state){
     image.onerror=()=>{pending.delete(src);backgrounds.delete(src);reject(sceneArtError('场景画面加载失败，请重试。'));};
     image.src=new URL(src,import.meta.url).href;
   });pending.set(src,promise);return promise;
+}
+const doorImage=door=>`./assets/${door.openOverlay}-v1.png`;
+export function ensureSceneArt(room,state){
+  const scene=SCENES[room],src=backgroundSource(scene?.background,state);
+  if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
+  const base=loadPlate(src),doors=ranchDoors(scene);
+  // Door commands and restored saves must show the matching plate from their first frame.
+  return doors.length?Promise.all([base,...doors.map(door=>loadPlate(doorImage(door)))]).then(([image])=>image):base;
 }
 export function requestedSceneArt(){return [...backgrounds.keys()];}
 const dust = Array.from({length:22},(_,i)=>({x:(i*79+31)%480,y:(i*47+19)%288,phase:i*2.1}));
@@ -31,6 +40,11 @@ export function drawScene(c,room,time,effects=true,state={}){
   if(!atlas)ensureSceneArt(room,state).catch(()=>{});
   if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();if(room==='arboretum'&&state.flipped){c.translate(480,0);c.scale(-1,1);}c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
+  for(const door of ranchDoors(SCENES[room])){
+    if(!flagActive(state,door.flag))continue;
+    const layer=backgrounds.get(doorImage(door));
+    if(layer?.complete && layer.naturalWidth)c.drawImage(layer,0,0,480,288);
+  }
   // Very restrained atmospheric movement; keep the interactive ground crisp.
   c.save();c.globalCompositeOperation='screen';
   const polar=SCENES[room]?.chapter==='tundra';

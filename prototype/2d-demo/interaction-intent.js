@@ -8,6 +8,8 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='binoculars' && object.physicalHint)return find('take ');
   if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
+  if(object.kind==='ranch_floor_mark')return find('examine ');
+  if(object.kind==='ranch_wall_map')return seen?find('take '):find('examine ');
   if(object.kind==='ranch_view')return find('look at ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
