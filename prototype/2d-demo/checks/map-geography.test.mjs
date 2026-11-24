@@ -4,9 +4,25 @@ import { buildChapterMap } from '../chapter-map.js';
 import { illustratedMapNodes, chartConnection, chartRoadPath } from '../map-geography.js';
 import { terrainMarkup } from '../chapter-map-art.js';
 import { ROOMS } from '../../js/data/prologue.js';
+import { ROOMS as RANCH_ROOMS } from '../../js/data/ranch.js';
 import { SCENES } from '../scene-manifest.js';
 
 const input=visited=>({state:{room:'palace_gate',chapter:'prologue',visited,flags:[],counters:{},itemLoc:{}},rooms:ROOMS,scenes:SCENES});
+
+test('牧场地图先显示石墙地形，五段外围道路只在相邻地点均已到访后出现',()=>{
+  const ring = ['nw_ranch','ne_ranch','front_yard','se_ranch','sw_ranch'];
+  const scenes = Object.fromEntries(ring.map(id => [id, {chapter:'ranch'}]));
+  for (let count=1; count<=ring.length; count++) {
+    const visited = ring.slice(0,count);
+    const model = buildChapterMap({state:{room:visited.at(-1),chapter:'ranch',visited},rooms:RANCH_ROOMS,scenes});
+    const nodes = illustratedMapNodes(model);
+    assert.equal(model.chapterLabel,'牧场');
+    assert.equal(nodes.length,count);
+    assert.match(terrainMarkup('ranch','perimeter',nodes),/map-ranch-perimeter/);
+    assert.equal(model.edges.length,2 * (count===5 ? 5 : count-1));
+    for (const edge of model.edges) assert.ok(chartConnection(edge,nodes,'ranch',model.edges).road,edge.id);
+  }
+});
 
 test('新档已有地形轮廓，探索只增加地点标记，不会移动已知地点或披露其他名称',()=>{
   const first=buildChapterMap(input(['palace_gate'])),full=buildChapterMap(input(Object.keys(ROOMS)));

@@ -196,8 +196,25 @@ function desertChart(){
     ${path('M 148 377 l 4 -7 l 4 8 m 4 -3 l 6 -4 M 338 290 l 3 -8 l 4 7 l 5 -4 M 759 378 l 4 -10 l 4 9 l 5 -6 M 936 322 l 3 -7 l 2 7 l 6 -4 M 308 488 l 3 -6 l 5 7','none','#85815d',1.4)}
   </g>`;
 }
+function ranchChart(id){
+  const yard='M 307 208 Q 370 195 496 199 L 558 203 Q 589 204 592 239 L 597 404 Q 597 449 554 454 L 330 463 Q 289 462 285 429 L 279 250 Q 277 215 307 208 Z';
+  const reservoir='M 738 295 C 754 256 810 235 857 241 C 912 243 957 275 961 316 C 967 359 920 396 863 404 C 801 413 749 385 735 348 C 729 327 731 312 738 295 Z';
+  return `<g class="map-ranch-perimeter">
+    <rect width="1080" height="680" fill="#c3ae80"/>
+    ${path('M 0 0 H 1080 V 141 Q 906 88 780 118 T 491 129 Q 315 154 204 122 Q 91 96 0 143 Z','#af9f7a','#a69672',1.5)}
+    ${path('M 0 509 Q 91 485 165 527 T 355 578 Q 503 556 662 579 T 943 536 Q 1020 522 1080 551 V 680 H 0 Z','#c9b78f','#b6a27d',1.4)}
+    ${path('M 56 157 Q 128 136 196 149 M 64 166 Q 131 149 167 154 M 731 122 Q 830 101 924 123 M 791 126 Q 862 114 911 126 M 64 498 Q 126 484 168 510 M 766 552 Q 850 541 904 516 M 818 555 Q 885 542 926 521','none','#a4916d',1.7)}
+    ${path(yard,'#b3a67c','#726f5e',7)}${path(yard,'none','#d6caac',4)}
+    ${path('M 349 290 L 487 280 L 494 366 L 354 374 Z','#857a64','#716854',2)}
+    ${path('M 342 278 L 483 267 L 493 350 L 351 361 Z','#b19a7b','#776d59',2)}
+    ${path('M 345 282 L 367 309 L 469 301 L 484 270 M 351 359 L 367 309 M 491 350 L 469 301','none','#7b715e',2)}
+    ${path('M 492 303 L 511 301 L 514 327 L 495 329 Z','#c3b294','#877e67',1.8)}
+    ${path(reservoir,'#a4997e','#787768',13)}${water(reservoir,id)}
+    ${path('M 781 304 q 20 -6 38 -2 m 21 27 q 22 5 42 0 m 5 -48 q 17 -3 28 1','none','#bbcab3',1.8)}
+  </g>`;
+}
 const chartPainters={prologue:garden,wabe:wildland,japan:hillside,underground:caveChart,
-  pacific:pacificChart,tundra:tundraChart,islet:isletChart,desert:desertChart};
+  pacific:pacificChart,tundra:tundraChart,islet:isletChart,desert:desertChart,ranch:ranchChart};
 
 /** SVG string contains only authored geometry and finite discovery coordinates. */
 export function terrainMarkup(chapter,id,nodes=[]){

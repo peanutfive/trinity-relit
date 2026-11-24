@@ -173,8 +173,11 @@ for (const scene of Object.values(scenes)) {
       `${label}: outward stride should activate only its own exit`);
     assert.equal(approachingExit(exit, end, start), false, `${label}: inward stride must not cross a room`);
     const [x, y] = vector;
-    assert.equal(leavingBoundaryExit(exit, end, { x, y }), true, `${label}: held outward input`);
-    assert.equal(leavingBoundaryExit(exit, end, { x: -x, y: -y }), false, `${label}: held inward input`);
+    const frameEdge = { x: { w: 12, e: width - 12 }[exit.dir] ?? exit.x,
+      y: { n: 12, s: height - 12 }[exit.dir] ?? exit.y };
+    assert.ok(isSegmentWalkable(scene, end, frameEdge), `${label}: painted road stops before the edge`);
+    assert.equal(leavingBoundaryExit(exit, frameEdge, { x, y }), true, `${label}: held outward input`);
+    assert.equal(leavingBoundaryExit(exit, frameEdge, { x: -x, y: -y }), false, `${label}: held inward input`);
 
     const destination = scenes[exit.target];
     const returnRoad = only(destination.exits, candidate => candidate.target === scene.room, `${label}: reciprocal road`);

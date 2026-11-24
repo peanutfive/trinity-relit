@@ -38,7 +38,11 @@ const desert={
   paved_road_1:[66,584,'lane'], paved_road_2:[66,501,'lane'], paved_road_3:[66,418,'lane'],
   paved_road_4:[66,335,'lane'], paved_road_5:[66,231,'lane'], paved_road_6:[66,123,'lane'],
 };
-const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert};
+const ranch={
+  nw_ranch:[244,162,'gate'], ne_ranch:[615,160,'lane'], front_yard:[661,329,'stairs'],
+  se_ranch:[619,506,'gate'], sw_ranch:[240,508,'gate'],
+};
+const authored={prologue:gardens,wabe:wilds,japan,underground,orbit,pacific,tundra,islet,desert,ranch};
 
 /** Only already discovered nodes are returned. No name/count/edge disclosure. */
 export function illustratedMapNodes(model){
@@ -65,7 +69,7 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
     return length>0&&(dx*directionVector[0]+dy*directionVector[1])/length>.83;
   };
   const reverse=edges.filter(other=>other.from===edge.to&&other.to===edge.from);
-  const chartedGround=chapter==='prologue'||(['islet','desert'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
+  const chartedGround=chapter==='prologue'||(['islet','desert','ranch'].includes(chapter)&&authored[chapter][from.id]&&authored[chapter][to.id]);
   const road=chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
   return {from,to,road:!!road,schematic:!road};
 }
