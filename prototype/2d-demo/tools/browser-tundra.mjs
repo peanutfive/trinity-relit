@@ -1,3 +1,4 @@
+import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
 // Legal engine fixtures enter through the normal save UI. No page state edits.
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -25,7 +26,9 @@ const e=createPrologueSession(),fixtures={};e.moveTo(e.state.room);
 function capture(){if(SCENES[e.state.room]){const room=e.state.room,[x,y]=SCENES[room].spawn;fixtures[room]=makeVisualSave(e,{room,x,y,face:'up'});}}
 async function run(commands){for(const c of commands){await e.processInput(c);assert.equal(e.state.dead,false,c);capture();}}
 await run(['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','e','u']);
-while(e.state.sundialSymbol!==5)await run(['turn ring']);
+await fitGnomonFixture(e);
+for(let i=0;e.state.sundialSymbol!==5 && i<7;i++)await run(['turn ring']);
+assert.equal(e.state.sundialSymbol,5);
 await run(['d','ne','e','nw','e','e']);assert.equal(e.state.room,'herb_garden');
 await run(['in','n','n','e','e','s','s','w','n','u','n','s','d','sw']);
 assert.equal(Object.keys(fixtures).filter(id=>SCENES[id].chapter==='tundra').length,11);
@@ -60,6 +63,6 @@ try{
  await page.keyboard.press('i');await page.getByRole('button',{name:'旅鼠',exact:true}).click();await page.keyboard.press('i');await page.click('#inventory-drop');await drain();assert.equal((await state()).objects.filter(o=>o.itemId==='lemming'&&o.visual!==false).length,1);await shot('mouse-dropped');
  const turns=(await state()).turns;await page.keyboard.press('m');assert.equal((await state()).map.nodes,11);await tick(60000);assert.equal((await state()).turns,turns);await shot('chapter-map');await page.setViewportSize({width:844,height:390});await shot('phone-map');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.keyboard.press('m');await shot('phone-game');await page.setViewportSize({width:1440,height:900});
  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),VISUAL_SAVE_KEY);await page.reload();await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');await page.click('#continue-save');await drain();assert.equal((await state()).room,saved.engine.state.room);assert.equal((await state()).turns,saved.engine.state.turns);assert.equal((await state()).objects.filter(o=>o.itemId==='lemming'&&o.visual!==false).length,1);await shot('restored-cliff');
- await importSave(fixtures.tundra_1);await page.keyboard.press('i');await page.getByRole('button',{name:'日晷指针',exact:true}).click();await page.keyboard.press('i');await move(135,216);await face('a');await F('out');await drain();assert.equal((await state()).room,'herb_garden');assert.equal((await state()).navigation.arrival.entrance,'in');await shot('returned-herbs-held');
+ await importSave(fixtures.tundra_1);await page.keyboard.press('i');await page.getByRole('button',{name:'雨伞',exact:true}).click();await page.keyboard.press('i');await move(135,216);await face('a');await F('out');await drain();assert.equal((await state()).room,'herb_garden');assert.equal((await state()).navigation.arrival.entrance,'in');await shot('returned-herbs-held');
  assert.deepEqual(errors,[]);await writeFile(`${out}/result.json`,JSON.stringify({pass:true,receipts,discovery:true,stableMouse:true,map:true,restore:true,heldPassage:true,errors},null,2));console.log(`PASS Tundra: ${receipts.length} actual keyboard/F exits, discovery, mouse, map/phone/restore and held return; no errors`);
 }catch(error){await shot('failure').catch(()=>{});await writeFile(`${out}/failure.json`,JSON.stringify({message:error.message,state:await state().catch(()=>null),receipts,errors},null,2));throw error;}finally{await browser.close();}

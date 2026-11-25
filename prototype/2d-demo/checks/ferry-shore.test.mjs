@@ -1,3 +1,4 @@
+import {installCarriedGnomon} from './vertex-install-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ROOMS as TEXT_WABE } from '../../js/data/wabe.js';
@@ -221,7 +222,11 @@ test('旧河岸档第一次恢复启动排班，旧票已付与旧岛尚未付�
 
 test('正常渡河后沙洲没有菌门，对准影尖才可在南侧小岛穿门',async()=>{
   const run=await river();
-  for(const command of ['nw','u','push lever','turn ring to seventh symbol','d','se']) await run.enter(command);
+  await run.enter('nw');
+  await run.enter('u');
+  run.engine.state.take('gnomon'); // The ordinary prologue pickup is covered by ranch-entry.
+  await installCarriedGnomon(run.engine);
+  for(const command of ['push lever','turn ring to seventh symbol','d','se']) await run.enter(command);
   run.engine.state.wear('shroud');
   run.engine.state.toPocket('silver_coin');
   for(let i=0;i<12 && !run.view().docked;i++) await run.enter('look');

@@ -201,6 +201,7 @@ async function travel(dir,to) {
 }
 async function dial(symbol) {
   await pointerAction('bottom_of_stairs:stairs', [245,102], 'u', 'vertex');
+  assert.ok((await state()).objects.some(o=>o.id==='vertex:lever'),'前序实走应已装针，旧版来档沿用拉杆');
   for(let attempt=0;attempt<7&&(await state()).sundialSymbol!==symbol;attempt++)
     await pointerAction('vertex:ring',[286,132],'turn ring');
   assert.equal((await state()).sundialSymbol,symbol);

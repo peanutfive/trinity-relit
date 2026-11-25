@@ -1,3 +1,4 @@
+import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
 // Legal engine route creates a fixture; imports use the normal save UI. Every
 // subsequent room transition uses visible ground and real keyboard/F input.
 import assert from 'node:assert/strict';
@@ -29,7 +30,7 @@ const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper 
 async function hold(name){await page.keyboard.press('i');await page.getByRole('button',{name,exact:true}).click();}
 try{
  await page.goto(process.env.DEMO_URL||'http://127.0.0.1:8080/2d-demo/?reviewRoutes=1');await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).undergroundSprites==='loaded');await page.click('#start');await drain();
- const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);for(let i=0;e.state.sundialSymbol!==2&&i<7;i++)await e.processInput('turn ring');for(const c of ['d','ne','e','nw'])await e.processInput(c);assert.equal(e.state.room,'bluff');
+ const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);await fitGnomonFixture(e);for(let i=0;e.state.sundialSymbol!==2&&i<7;i++)await e.processInput('turn ring');for(const c of ['d','ne','e','nw'])await e.processInput(c);assert.equal(e.state.room,'bluff');
  await importSave(makeVisualSave(e,{room:e.state.room,x:240,y:180,face:'right'}));await shot('bluff');
  await click(440,136);await page.waitForTimeout(2900);await page.keyboard.down('d');await page.waitForTimeout(800);await page.keyboard.up('d');await drain();assert.equal((await state()).room,'cottage');await shot('cottage');
  await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});await page.waitForTimeout(40);

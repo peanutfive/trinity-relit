@@ -1,4 +1,5 @@
-import { advanceShadow, initializeShadow, restoreShadow } from './islet-shadow.js';
+import { advanceShadow, initializeShadow, restoreShadow, initializeVertexInstallation,
+  restoreVertexInstallation, recordVertexMirrorCrossing } from './islet-shadow.js';
 import { GameEngine } from '../js/engine.js';
 import { ferryView, startFerry } from './ferry-state.js';
 import { advanceFerry, leaveFerry } from './ferry-voyage.js';
@@ -40,6 +41,9 @@ class ExplorationParser extends Parser {
     if(cnSymbol)return {type:'compound',verb:'turn',noun:'ring',prep:'to',noun2:'第'+cnSymbol[1]+'个符号'};
     if(['压下拉杆','压下杆'].includes(text))return super.parse('push lever');
     if(['抬起拉杆','抬杆'].includes(text))return super.parse('pull lever');
+    if (/^(?:put|insert|screw) (?:the )?gnomon (?:in|into) (?:the )?(?:sundial|dial|hole|socket)$/.test(text)
+      || /^(?:把|将)?(?:日晷)?指针(?:装入|拧入|插入)(?:盘心|螺孔|孔中)$/.test(text)) return super.parse('put gnomon in hole');
+    if (/^(?:拧下|旋下)(?:日晷)?指针$/.test(text)) return super.parse('unscrew gnomon');
     const command=super.parse(input);
     if(command)return command;
     if(/^(?:(?:touch|feel) (?:the )?walls?|(?:摸|触摸)(?:墙|墙壁|墙面))$/i.test(input.trim()))
@@ -51,6 +55,7 @@ class ExplorationParser extends Parser {
 class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
+    restoreVertexInstallation(this.state,save.state);
     restoreShadow(this.state);
     if (['the_river','sand_bar'].includes(this.state.room)) startFerry(this.state);
     return true;
@@ -129,7 +134,10 @@ class ExplorationEngine extends GameEngine {
       this.print("You couldn't do that while you're in the dory.\n\n你还在船上，没法往那里走。");
       return true;
     }
-    return super._handleDirection(dir);
+    const flipped=this.state.flipped, carried=this.state.has('gnomon');
+    const moved=await super._handleDirection(dir);
+    recordVertexMirrorCrossing(this.state,flipped,carried);
+    return moved;
   }
 
   _postTurn() {
@@ -158,5 +166,6 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
     },
   });
   engine.registerTimerHandlers(TIMERS);
+  initializeVertexInstallation(engine.state);
   return engine;
 }

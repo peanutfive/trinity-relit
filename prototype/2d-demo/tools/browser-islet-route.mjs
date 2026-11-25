@@ -11,6 +11,7 @@ export function pointerCenter(object) {
 export async function setIslandDial({ state, tap }, symbol) {
   assert.equal((await state()).room,'vertex');
   const lever = (await state()).objects.find(item=>item.id==='vertex:lever');
+  assert.ok(lever,'正常渡船路线应先在顶台安装指针，旧档应保留原有拉杆');
   if ((await state()).dialShadow.leverUp) {
     await tap(pointerCenter(lever),'push lever');
   }

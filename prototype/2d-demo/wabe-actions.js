@@ -1,4 +1,4 @@
-import { vertexShadowView } from './islet-shadow.js';
+import { vertexShadowView, vertexGnomonView, moorDoorHidden } from './islet-shadow.js';
 import {ARBOR_WABE_ROOMS,getArborHotspots,getArborInventoryActions} from './arbor-actions.js';
 import {COMPLETION_WABE_ROOMS,getCompletionHotspots,getCompletionInventoryActions} from './wabe-completion-actions.js';
 import {UG_WABE_ROOMS,getUndergroundHotspots,getUndergroundInventoryActions} from './underground-actions.js';
@@ -47,7 +47,7 @@ export function getWabeHotspots(state) {
     'bottom_of_stairs:stairs', 245, 112, '崖壁石阶', 'stairs', undefined,
     [action('查看此处', 'look'), action('登上石阶', 'u')],
   ));
-  if (room === 'moor') {
+  if (room === 'moor' && !moorDoorHidden(state)) {
     objects.push(object('moor:mushroom-gate', P.gate.x, P.gate.y, '蘑菇门', 'mushroom_gate', undefined,
       [action('观察此处', 'look'), action('穿过蘑菇门', 'in')]));
     Object.assign(objects.at(-1), {visualOptions: {open: state.sundialSymbol === 1}, pointerShape: {
@@ -56,21 +56,37 @@ export function getWabeHotspots(state) {
   }
   if (room === 'vertex') {
     const {leverUp}=vertexShadowView(state);
-    objects.push(
+    const mount=vertexGnomonView(state);
+    if(mount.controls) objects.push(
       {...object('vertex:lever',187,157,'拉杆','sundial_lever','vertex_examine_lever',
         [leverUp?action('压下拉杆','push lever'):action('抬起拉杆','pull lever'),action('查看拉杆','examine lever')]),
-        physicalHint:leverUp?'压下拉杆':'抬起拉杆',pointerShape:{kind:'ellipse',x:184,y:135,rx:8,ry:15,priority:3},visualOptions:{leverUp}},
+        physicalHint:leverUp?'压下拉杆':'抬起拉杆',pointerShape:{kind:'ellipse',x:184,y:135,rx:8,ry:15,priority:3},visualOptions:{leverUp}}
+    );
+    objects.push(
 
       object('vertex:sundial', 245, 140, '日晷', 'sundial', 'examine_sundial_vertex',
         [action('查看日晷', 'examine sundial')], 'sundial'),
       object('vertex:ring', 285, 175, '符号环', 'ring', 'examine_ring',
         [action('查看符号环', 'examine ring'), action('转动符号环', 'turn ring')], 'ring'),
-      // This fixed pointer is not the portable prologue gnomon. Never offer taking it.
-      object('vertex:fixed-gnomon', 218, 173, '嵌入表盘的指针', 'gnomon', 'vertex_read_shadow',
-        [action('查看影尖', 'examine shadow'),action('查看指针','examine gnomon')]),
       object('vertex:stairs', 200, 232, '下行石阶', 'stairs', undefined,
         [action('走下石阶', 'd')]),
     );
+    if (mount.installed || mount.legacy) {
+      const actions=[action('查看影尖','examine shadow')];
+      if(mount.installed) actions.push(action('拧下指针','unscrew gnomon'));
+      objects.push(object('vertex:fixed-gnomon',218,173,'日晷指针','gnomon','vertex_read_shadow',actions,mount.installed?'gnomon':undefined));
+    }
+    if (!mount.installed) {
+      const actions=[action('查看螺纹孔','examine hole')];
+      if(state.carrying('gnomon')) actions.push(action('装入指针','put gnomon in hole'));
+      objects.push({...object('vertex:hole',218,173,'螺纹孔','vertex_hole','vertex_examine_hole',actions),
+        pointerShape:{kind:'ellipse',x:245,y:132,rx:7,ry:5,priority:5}});
+    }
+    if(mount.onDial) {
+      objects.push({...object('vertex:dial-gnomon',265,176,'日晷指针','gnomon','vertex_read_gnomon',
+        [action('查看指针','examine gnomon'),action('拿起指针','take gnomon')],'gnomon'),
+        pointerShape:{kind:'ellipse',x:260,y:140,rx:8,ry:5,priority:4}});
+    }
   }
 
   // Include dropped items in any room of the slice. Fixed sundial/ring props are
@@ -97,6 +113,7 @@ export function getWabeInventoryActions(id, state) {
   const item = ITEMS[id];
   const noun = item.aliases?.[0] || id;
   const actions = [action('查看', `examine ${noun}`)];
+  if (id==='gnomon' && state.room==='vertex') actions.push(action('查看螺栓','examine bolt'));
   if (!item.fixed) actions.push(action('放下', `drop ${noun}`));
   // No chapter portals, symbol shortcuts, or future puzzle uses are invented here.
   return actions;

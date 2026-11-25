@@ -1,7 +1,9 @@
 // Optional real-UI integration check. Set PLAYWRIGHT_MODULE to an installed Playwright entry.
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { SCENES } from '../scene-manifest.js';
+import { checkInstalledPointer } from './browser-vertex-gnomon.mjs';
+import { pointerCenter } from './browser-islet-route.mjs';
 import { findPath } from '../world.js';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const artifacts = process.env.QA_OUTPUT || '/tmp/trinity-hd2d-qa';
@@ -64,12 +66,14 @@ async function walk(dir, target) {
 }
 // Click the actual prop: the game itself finds a reachable standing point and
 // performs its single current intention. No action-list buttons are consulted.
-async function touch(object) {
+async function touch(object, input) {
   await drain();
   const before = await state();
   const keyboard=before.nearby===object.label;
+  if (input === 'F') assert.ok(keyboard, `${object.id}: F must address the nearby object`);
   if(keyboard)await page.keyboard.press('f');
   else if(object.id==='vertex:ring')await clickLogical(286,132);
+  else if(object.pointerShape && (object.id.startsWith('vertex:') || ['trellises:ascent','top_of_arbor:descent'].includes(object.id)))await clickLogical(...pointerCenter(object));
   else {
     // Click the painted prop, not the old universal ten-pixels-above-foot
     // point (which is above a seven-pixel-high paper boat, for example).
@@ -88,13 +92,13 @@ async function touch(object) {
   }
   throw new Error(`${before.room}: touching ${object.id} did not execute an intention`);
 }
-async function perform(command, { objectId } = {}) {
+async function perform(command, { objectId, input } = {}) {
   for (let attempt = 0; attempt < 5; attempt++) {
     await drain();
     const s = await state();
     const object = s.objects.find(value => (!objectId || value.id === objectId) && value.actions.some(action => action.command === command));
     assert.ok(object, `${s.room}: no prop offers ${command}`);
-    const after = await touch(object);
+    const after = await touch(object, input);
     if (after.lastCommand === command) return after;
     // The shore's E/IN aliases share the painted water entry.
     if(command==='enter water'&&s.room==='long_water'&&after.room==='wading'&&['e','in'].includes(after.lastCommand))return after;
@@ -112,6 +116,44 @@ async function clearHand() {
   await drain();
   if ((await state()).heldItem) await page.click('#clear-hand');
   assert.equal((await state()).heldItem, null);
+}
+
+async function saveAndResume(label){
+  await drain();
+  const before=await state();
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab',{name:'探索进度'}).click();
+  const exported=page.waitForEvent('download');
+  await page.locator('#export-save').click();
+  const path=artifacts+'/'+label+'.json';
+  await (await exported).saveAs(path);
+  await page.reload(); await page.waitForFunction(()=>window.render_game_to_text);
+  await page.click('#continue-save'); await drain();
+  const after=await state();
+  for(const key of ['room','flipped','score','turns','inventory','flags'])assert.deepEqual(after[key],before[key],key);
+  assert.deepEqual(after.objects.map(o=>o.id).sort(),before.objects.map(o=>o.id).sort());
+  return path;
+}
+
+async function checkLegacyPointer(){
+  const legacy=process.env.LEGACY_VERTEX_SAVE;
+  assert.ok(legacy,'需提供旧版正常打通顶台后导出的楼梯脚存档');
+  const original=JSON.parse(await readFile(legacy,'utf8')).engine.state;
+  assert.equal(original.room,'bottom_of_stairs');
+  assert.ok(original.visited.includes('vertex'));
+  assert.equal(original.itemLoc.gnomon,'inventory');
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab',{name:'探索进度'}).click();
+  await page.locator('#save-file').setInputFiles(legacy);
+  await page.waitForFunction(score=>{const s=JSON.parse(window.render_game_to_text());return s.mode!=='paused'&&!s.processing&&s.score===score;},original.score);
+  await drain();
+  assert.ok((await state()).inventory.includes('gnomon'));
+  await perform('u',{objectId:'bottom_of_stairs:stairs'}); await drain();
+  const old=await state();
+  assert.ok(old.objects.some(o=>o.id==='vertex:lever'));
+  assert.ok(old.inventory.includes('gnomon'));
+  assert.equal(old.score,original.score);
+  await saveAndResume('legacy-vertex');
 }
 
 try {
@@ -166,6 +208,8 @@ try {
   await walk('n', 'summit'); await screenshot('wabe-summit'); await walk('s', 'meadow');
   await walk('e', 'bottom_of_stairs'); await screenshot('wabe-stairs'); await perform('u'); await drain();
   assert.equal((await state()).room, 'vertex');
+  const extended=process.argv.includes('--vertex-regression');
+  await checkInstalledPointer({state,drain,hold,clearHand,perform,walk,saveAndResume,screenshot},extended);
   const originalSymbol = (await state()).sundialSymbol;
   await perform('turn ring'); await page.evaluate(() => window.advanceTime(180)); await screenshot('wabe-ring'); await drain();
   for (let index = 0; index < 6; index++) { await perform('turn ring'); await drain(); }
@@ -202,6 +246,7 @@ try {
   const imported = await state();
   for (const key of ['room', 'sundialSymbol', 'turns']) assert.equal(imported[key], beforeSave[key], key);
   for (const key of ['inventory', 'flags', 'observed', 'discovery']) assert.deepEqual(imported[key], beforeSave[key], key);
+  if(extended)await checkLegacyPointer();
   assert.deepEqual(errors, []);
   await writeFile(`${artifacts}/result.json`, JSON.stringify({ pass: true, visited: [...visited], receipts, routes, errors }, null, 2));
   console.log('PASS: direct exploration and held items complete prologue→Wabe eight rooms, paper observation/unfold/read, seven ring turns, splinter pickup, continuation/export/import and invalid import protection; no page errors.');

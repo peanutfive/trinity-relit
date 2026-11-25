@@ -2,6 +2,9 @@ import {resolveInteraction} from './interaction-intent.js';
 const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
 const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water|enter dory|exit dory)$/;
 function physicalHint(command,target){
+  if(command==='put gnomon in hole')return '装入指针';
+  if(command==='unscrew gnomon')return '拧下指针';
+  if(command==='take gnomon')return '拾起指针';
   if(command==='give silver coin to oarsman')return '递出银币';
   if(command==='give credit card to oarsman')return '递出信用卡';
   if(command==='give spade to oarsman')return '递出铲子';

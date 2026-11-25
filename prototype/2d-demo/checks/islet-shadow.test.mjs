@@ -1,3 +1,4 @@
+import {installCarriedGnomon} from './vertex-install-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createPrologueSession} from '../engine-adapter.js';
@@ -17,6 +18,8 @@ async function vertex() {
   const g=game();
   await g.engine.transitionChapter({to:'wabe',roomCandidates:['bottom_of_stairs']});
   await g.input('u');
+  g.engine.state.take('gnomon'); // Focused dial/door fixture starts after the prologue acquisition.
+  await installCarriedGnomon(g.engine);
   return g;
 }
 

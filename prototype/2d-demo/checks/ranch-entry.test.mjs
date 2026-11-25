@@ -1,3 +1,4 @@
+import {installCarriedGnomon} from './vertex-install-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPrologueSession } from '../engine-adapter.js';
@@ -24,6 +25,7 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
     'wait','throw ball at tree','take umbrella','push pram','open pram','enter pram',
     'open umbrella','take paper bird','take gnomon','enter water','enter door','e','u']);
   assert.equal(engine.state.room, 'vertex');
+  await installCarriedGnomon(engine);
   for (let i=0; i<7 && engine.state.sundialSymbol!==1; i++) await play(['turn ring']);
   await play(['d','e','e','in','wait','give umbrella to girl','e','take spade',
     'give paper to girl','w','ride bird','n','nw','e','s']);
@@ -38,7 +40,8 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
   await play(['w','d','d','se']);
   const state = engine.state;
   assert.equal(state.room, 'shallow_crater');
-  assert.ok(state.has('gnomon'));
+  assert.equal(state.itemAt('gnomon'),'vertex_socket');
+  assert.ok(state.has('shroud'));
   assert.equal(engine.loadedChapters.has('ranch'), false);
   for (const [dir, target, chapter, label] of [
     ['se', 'nw_ranch', 'ranch', '牧场西北'], ['nw', 'shallow_crater', 'desert', '浅坑'],
@@ -52,7 +55,8 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
     assert.equal(state.chapter, chapter);
     assert.ok(state.hasFlag('chapter_'+chapter+'_entered'));
     assert.equal(state.turns, turns+1);
-    assert.ok(state.has('gnomon'));
+    assert.equal(state.itemAt('gnomon'),'vertex_socket');
+    assert.ok(state.has('shroud'));
     assert.deepEqual(arrivals.slice(count), [label]);
   }
 });

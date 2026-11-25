@@ -1,3 +1,4 @@
+import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
 // Source-engine fixtures are imported through the ordinary save UI. Actual
 // movement and F/held-item input exercise the browser controller, not a debug API.
 import assert from 'node:assert/strict';
@@ -24,7 +25,7 @@ try{
  await page.goto(process.env.DEMO_URL||'http://127.0.0.1:8080/2d-demo/?reviewRoutes=1');
  await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).japanSprites==='loaded');
  await page.click('#start');await drain();
- const e=createPrologueSession();e.moveTo(e.state.room);for(const c of first)await e.processInput(c);for(let i=0;e.state.sundialSymbol!==1&&i<7;i++)await e.processInput('turn ring');await e.processInput('d');
+ const e=createPrologueSession();e.moveTo(e.state.room);for(const c of first)await e.processInput(c);await fitGnomonFixture(e);for(let i=0;e.state.sundialSymbol!==1&&i<7;i++)await e.processInput('turn ring');await e.processInput('d');
  await importSave(makeVisualSave(e,{room:e.state.room,x:438,y:178,face:'right',knowledge:{observed:[],paper:{observed:[],identified:[]}}}));
  // First new route runs on normal animation frames before deterministic samples.
  await page.keyboard.down('d');await page.waitForTimeout(750);await page.keyboard.up('d');await page.waitForFunction(()=>JSON.parse(window.render_game_to_text()).room==='the_bend');await drain();await shot('bend');

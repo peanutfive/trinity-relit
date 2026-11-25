@@ -21,7 +21,7 @@ import {renderNotice,noticeArtStatus} from './notice-art.js';
 import { nearbyTarget, pointerTarget, withinReach } from './interaction-targets.js';
 import { createChapterMapView } from './chapter-map.js';
 import { renderStorySprite, drawStoryPortrait, spriteArtStatus } from './story-atlas.js';
-import { renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
+import { animateVertexMount, renderWabeSprite, resetWabeArt, wabeArtStatus } from './wabe-art.js';
 import { heroArtStatus } from './character.js';
 import {prologueClock} from '../js/prologue-time.js';
 import {renderJapanSprite,japanArtStatus} from './japan-art.js';
@@ -384,6 +384,7 @@ async function command(input, actions = [], observedId = null) {
     }
     normalizePlayerLocation();
     const after = gameSnapshot();
+    if(preferences.video.effects) animateVertexMount(before,after,clock);
     director.onCommand(before, after, input);
     const landing=director.getState(engine.state).playerLanding;
     if(landing){player.x=landing.x;player.y=landing.y;player.face=landing.face;stopMovement();}
@@ -810,14 +811,15 @@ function render() {
   if (!story.hidePlayer&&!inPram) {
     actors.push({y:player.y,draw:()=>{
       const time=preferences.video.effects?clock:0;
+      const costumeAtlas=renderState.itemLoc.shroud==='worn'?cemeteryShroudAtlas():null;
       if(renderRoom==='reservoir'||renderRoom==='underwater'){
-        drawSwimmer(ctx,renderRoom,player,time,motion.moving);
+        drawSwimmer(ctx,renderRoom,player,time,motion.moving,costumeAtlas);
       }else if(renderState.chapter==='orbit'){
         renderOrbitPlayer(ctx,player,time);
       }else{
         const animation=animationState();
         animation.sceneScale=shackRouteCharacterScale(renderRoom,player.y);
-        if(renderState.itemLoc.shroud==='worn')animation.costumeAtlas=cemeteryShroudAtlas();
+        animation.costumeAtlas=costumeAtlas;
         drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animation);
       }
       if(renderRoom.startsWith('underground_')&&engine.state.has('lantern')){

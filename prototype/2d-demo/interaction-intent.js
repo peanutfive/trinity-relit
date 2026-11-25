@@ -45,7 +45,10 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
-  if(object.id==='vertex:fixed-gnomon'||object.kind==='islet_shadow')return find('examine shadow');
+  if(object.id==='vertex:hole')return (heldItem==='gnomon' && find('put gnomon in hole')) || find('examine hole');
+  if(object.id==='vertex:dial-gnomon')return seen?find('take gnomon'):find('examine gnomon');
+  if(object.id==='vertex:fixed-gnomon')return (seen && find('unscrew gnomon')) || find('examine shadow') || find('examine gnomon');
+  if(object.kind==='islet_shadow')return find('examine shadow');
   if(object.kind==='ring' && state.room==='vertex')return seen ? find('turn ') : find('examine ');
   if(object.kind==='passage')return actions.find(a=>['n','ne','e','se','s','sw','w','nw','in','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
@@ -77,6 +80,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
 }
 export function resolveHeldSelf(id,state) {
   if(!id||!state.has(id))return null;
+  if(id==='gnomon'&&state.room==='vertex')return 'examine bolt';
   if(id==='axe'&&state.room==='orbit_satellite')return 'break bubble with axe';
   if(id==='lantern'&&['underground_2','underground_3'].includes(state.room)&&!state.hasFlag('lantern_on'))return 'turn lantern';
   if(id==='paper_bird'&&state.room==='round_pond')return state.hasFlag('bird_unfolded')?'read paper bird':'open paper bird';

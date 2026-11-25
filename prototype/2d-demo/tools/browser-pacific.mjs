@@ -1,3 +1,4 @@
+import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
 // Legal engine fixtures enter through the normal save UI. No page state edits.
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -23,7 +24,9 @@ const e=createPrologueSession(),fixtures={};e.moveTo(e.state.room);
 function capture(){if(SCENES[e.state.room]){const room=e.state.room,[x,y]=SCENES[room].spawn;fixtures[room]=makeVisualSave(e,{room,x,y,face:'up'});}}
 async function run(commands){for(const c of commands){await e.processInput(c);assert.equal(e.state.dead,false,c);capture();}}
 await run(['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','e','u']);
-while(e.state.sundialSymbol!==4)await run(['turn ring']);
+await fitGnomonFixture(e);
+for(let i=0;e.state.sundialSymbol!==4 && i<7;i++)await run(['turn ring']);
+assert.equal(e.state.sundialSymbol,4);
 await run(['d','w','ne']);capture();await run(['in','s','d','u','n','e','s','w']);
 assert.equal(Object.keys(fixtures).filter(id=>SCENES[id].chapter==='pacific').length,7);
 // Samples are picked from visible doors and beaches, independently of hitboxes.
@@ -50,7 +53,7 @@ try{
  await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});await page.waitForTimeout(25);
  for(const [room,entries]of Object.entries(passages))for(const [command,target,pixel]of entries){await importSave(fixtures[room]);await hit(...pixel,command,target);receipts.push({from:room,target,kind:'painted-passage',command,arrival:(await state()).navigation.arrival});}
  for(const [room,entries]of Object.entries(routes))for(const [target,points,keys]of entries){await importSave(fixtures[room]);await road(target,points,keys);}
- await importSave(fixtures.bottom_scaffold);await page.keyboard.press('i');await page.getByRole('button',{name:'日晷指针',exact:true}).click();await page.keyboard.press('i');assert.equal((await state()).heldItem,'gnomon');await move(291,146);await face('w');await F('look');await drain();await shot('held-box-before-open');await F('open box');await drain();await shot('box-open');
+ await importSave(fixtures.bottom_scaffold);await page.keyboard.press('i');await page.getByRole('button',{name:'纸鸟',exact:true}).click();await page.keyboard.press('i');assert.equal((await state()).heldItem,'paper_bird');await move(291,146);await face('w');await F('look');await drain();await shot('held-box-before-open');await F('open box');await drain();await shot('box-open');
  await move(279,142);await face('w');await F('push switch');await drain();assert.equal((await state()).pacific.timerTurns,6);await shot('switch-pressed');
  const active=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),VISUAL_SAVE_KEY);
  for(const key of ['m','Escape']){await page.keyboard.press(key);const turns=(await state()).turns;await tick(5000);assert.equal((await state()).turns,turns);assert.equal((await state()).pacific.timerTurns,6);await shot(key==='m'?'active-map':'active-pause');await page.keyboard.press(key);}

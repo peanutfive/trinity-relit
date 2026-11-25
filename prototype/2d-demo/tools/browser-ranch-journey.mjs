@@ -149,7 +149,8 @@ async function reachCrater() {
   await drain();
   assert.equal((await state()).turns, exported.engine.state.turns);
   assert.equal((await state()).chapter, 'desert');
-  assert.ok((await state()).inventory.includes('gnomon'));
+  const items=(await state()).inventory;
+  assert.ok(items.includes('gnomon') || items.includes('spade'),'应保留该存档实际随身的试用物品');
   assert.ok((await state()).inventory.includes('splinter'), '正常序章路线应已从南沼泽拾到发光木片');
   await shot('crater-checkpoint');
 }
@@ -358,13 +359,16 @@ async function exerciseStairs(visited) {
   await shot('edge-water-stop');
 
   await walkTo([234, 171]);
+  const testItem=(await state()).inventory.includes('gnomon')
+    ? {id:'gnomon',name:'日晷指针'} : {id:'spade',name:'铲子'};
+  assert.ok((await state()).inventory.includes(testItem.id));
   await page.keyboard.press('i');
-  await page.getByRole('button', { name: '日晷指针', exact: true }).click();
+  await page.getByRole('button', { name: testItem.name, exact: true }).click();
   await page.keyboard.press('i');
   await page.locator('#inventory-drop').click();
-  const drop = await until(s => !s.processing && s.objects.some(object => object.itemId === 'gnomon'), '指针没有落在平台上');
-  assert.equal(drop.inventory.includes('gnomon'), false);
-  const item = drop.objects.find(object => object.itemId === 'gnomon');
+  const drop = await until(s => !s.processing && s.objects.some(object => object.itemId === testItem.id), '选定物品没有落在平台上');
+  assert.equal(drop.inventory.includes(testItem.id), false);
+  const item = drop.objects.find(object => object.itemId === testItem.id);
   await drain();
   await reopen('edge-reopened');
   const restoredItem = (await state()).objects.find(object => object.id === item.id);
@@ -373,9 +377,9 @@ async function exerciseStairs(visited) {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await shot('phone-edge');
   await mapAt('ranch', [...visited, 'edge_reservoir'], 'phone-ranch-map');
-  await pointerAction(item.id, [item.pointerShape.x, item.pointerShape.y], 'take gnomon', 'edge_reservoir', true);
+  await pointerAction(item.id, [item.pointerShape.x, item.pointerShape.y], 'take '+testItem.id, 'edge_reservoir', true);
   const recovered = await state();
-  assert.ok(recovered.inventory.includes('gnomon') && recovered.objects.every(object => object.id !== item.id));
+  assert.ok(recovered.inventory.includes(testItem.id) && recovered.objects.every(object => object.id !== item.id));
   receipts.push({ from: 'edge_reservoir', input: 'touch-item', item: item.id });
   await page.setViewportSize({ width: 1440, height: 900 });
   await climbStairs('d', 'south_reservoir', { point: [234, 188], face: 's' }, 'south-steps-return');

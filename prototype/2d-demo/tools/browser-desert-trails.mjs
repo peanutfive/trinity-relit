@@ -166,18 +166,18 @@ async function checkMap(rooms, connections, screenshot) {
   assert.deepEqual(progress(after), before);
 }
 
-async function dropGnomon() {
+async function dropItem(item) {
   await page.keyboard.press('i');
-  await page.getByRole('button', { name: '日晷指针', exact: true }).click();
+  await page.getByRole('button', { name: item.name, exact: true }).click();
   await page.keyboard.press('i');
   await page.locator('#inventory-drop').click();
-  const dropped = await until(s => !s.processing && s.objects.some(object => object.itemId === 'gnomon'), '物品未落地');
-  assert.equal(dropped.inventory.includes('gnomon'), false);
+  const dropped = await until(s => !s.processing && s.objects.some(object => object.itemId === item.id), '物品未落地');
+  assert.equal(dropped.inventory.includes(item.id), false);
   await drain();
-  return dropped.objects.find(object => object.itemId === 'gnomon').id;
+  return dropped.objects.find(object => object.itemId === item.id).id;
 }
 
-async function retrieveGnomon(id) {
+async function retrieveItem(id,item) {
   const object = (await state()).objects.find(object => object.id === id);
   assert.ok(object?.pointerShape);
   const point = [object.pointerShape.x, object.pointerShape.y];
@@ -185,7 +185,7 @@ async function retrieveGnomon(id) {
   await until(s => !s.processing && s.observed.includes(id), '触屏未观察地面物品');
   await drain();
   await clickPoint(point, true);
-  await until(s => !s.processing && s.inventory.includes('gnomon'), '触屏未拾取物品');
+  await until(s => !s.processing && s.inventory.includes(item.id), '触屏未拾取物品');
   await drain();
   assert.equal((await state()).objects.some(object => object.id === id), false);
 }
@@ -224,7 +224,10 @@ try {
     await walkRoad(exit);
   }
   assert.equal((await state()).room, 'foothills_2');
-  const groundItem = await dropGnomon();
+  const item=(await state()).inventory.includes('gnomon')
+    ? {id:'gnomon',name:'日晷指针'} : {id:'spade',name:'铲子'};
+  assert.ok((await state()).inventory.includes(item.id));
+  const groundItem = await dropItem(item);
   const approach = roadPoints.foothills_2.w.at(-1);
   await walkTo(approach);
   await page.keyboard.press('Escape');
@@ -241,7 +244,7 @@ try {
   await page.setViewportSize({ width: 844, height: 390 });
   await checkMap(drawnRooms, drawnRoads, 'phone-map');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  await retrieveGnomon(groundItem);
+  await retrieveItem(groundItem,item);
   await shot('phone-recovered-item');
   const west = (await state()).exits.find(exit => exit.dir === 'w');
   await walkRoad(west);

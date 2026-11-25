@@ -1,3 +1,4 @@
+import {installCarriedGnomon} from './vertex-install-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPrologueSession } from '../engine-adapter.js';
@@ -64,8 +65,13 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
   engine.state.chapter = 'wabe';
   const parser = new Parser();
   const covered = new Set();
-  for (const room of WABE_SLICE_ROOMS) {
+  const scenarios = [...WABE_SLICE_ROOMS.map(room=>({room})),{room:'vertex',mount:true}];
+  for (const {room,mount} of scenarios) {
     engine.state.room = room;
+    if(mount) {
+      engine.state.take('gnomon');
+      await installCarriedGnomon(engine);
+    }
     if(room==='barrow')engine.state.placeItem('key_barrow','inventory');
     const before = engine.state.serialize();
     const objects = getHotspots(engine.state);
@@ -85,7 +91,14 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
     if (room === 'vertex') {
       assert.equal(objects.filter(object => object.itemId === 'sundial').length, 1);
       assert.equal(objects.filter(object => object.itemId === 'ring').length, 1);
-      assert.equal(objects.find(object => object.id === 'vertex:fixed-gnomon').actions.some(action => /^(take|unscrew) /.test(action.command)), false);
+      const mounted=engine.state.itemAt('gnomon')==='vertex_socket';
+      assert.equal(objects.some(object=>object.id==='vertex:hole'),!mounted);
+      assert.equal(objects.some(object=>object.id==='vertex:lever'),mounted);
+      const pointer=objects.find(object=>object.id==='vertex:fixed-gnomon');
+      if(mounted) {
+        assert.ok(pointer.actions.some(action=>action.command==='unscrew gnomon'));
+        assert.ok(!pointer.actions.some(action=>action.command==='take gnomon'));
+      } else assert.equal(pointer,undefined);
     }
   }
   assert.deepEqual([...covered].sort(), WABE_SLICE_ROOMS.flatMap(room => ROOMS[room].events.map(event => event.id)).sort());

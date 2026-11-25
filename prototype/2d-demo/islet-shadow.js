@@ -5,6 +5,42 @@ const known = state => Object.hasOwn(state.counters ?? {},COUNT);
 const flag = (state,key) => state.hasFlag?.(key) ?? state.flags?.has?.(key) ?? state.flags?.includes?.(key) ?? false;
 const tick = state => state.counters?.[COUNT] ?? 6;
 
+const controlsVersion = 'vertex_install_rules';
+export const VERTEX_SOCKET = 'vertex_socket';
+export const VERTEX_DIAL = 'vertex_dial';
+
+export function initializeVertexInstallation(state) {
+  state.setFlag(controlsVersion);
+}
+
+export function restoreVertexInstallation(state, saved) {
+  if (saved.itemLoc && !Object.hasOwn(saved.itemLoc,'gnomon')) delete state.itemLoc.gnomon;
+  if (flag(state,controlsVersion)) return;
+  const laterChapters=['japan','underground','orbit','pacific','tundra','islet','desert','ranch'];
+  const advanced=state.visited.has('vertex') || laterChapters.includes(state.chapter)
+    || laterChapters.some(id=>flag(state,'chapter_'+id+'_entered'));
+  const mount=state.itemAt('gnomon');
+  if (advanced && mount!==VERTEX_SOCKET && mount!==VERTEX_DIAL && !flag(state,'vertex_gnomon_scored')) state.setFlag('vertex_legacy_controls');
+  initializeVertexInstallation(state);
+}
+
+// A portable object which goes through the arbor with the player keeps its
+// apparent handedness. The same object left in the world appears reversed.
+export function recordVertexMirrorCrossing(state, previousFlipped, carried) {
+  const location=state.itemAt('gnomon');
+  if (previousFlipped===state.flipped || carried || !location || location==='destroyed') return;
+  if (flag(state,'gnomon_bolt_right')) state.clearFlag('gnomon_bolt_right');
+  else state.setFlag('gnomon_bolt_right');
+}
+
+export function vertexGnomonView(state) {
+  const location=state.itemLoc?.gnomon;
+  const installed=location===VERTEX_SOCKET, onDial=location===VERTEX_DIAL;
+  const legacy=flag(state,'vertex_legacy_controls');
+  return {installed,onDial,legacy,controls:installed||legacy,
+    holeThread:state.flipped?'left':'right',boltThread:flag(state,'gnomon_bolt_right')?'right':'left'};
+}
+
 export function initializeShadow(state) {
   if (known(state)) return;
   state.setCnt(COUNT,6);
@@ -45,4 +81,11 @@ export function setShadowSymbol(state, symbol) {
 export function advanceShadow(state, moves) {
   if (!known(state) || !flag(state,'vertex_lever_up') || state.chapter === 'prologue' || state.chapter === 'desert' || state.chapter === 'ranch') return;
   state.setCnt(COUNT,(tick(state)+moves)%169);
+}
+
+
+// This applies only after a real uninstallation. Legacy routes and the
+// published chapter-to-symbol mapping remain available in their own states.
+export function moorDoorHidden(state) {
+  return flag(state,'vertex_gnomon_scored') && !vertexGnomonView(state).controls;
 }
