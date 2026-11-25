@@ -61,6 +61,9 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='passage')return actions.find(a=>['n','ne','e','se','s','sw','w','nw','in','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
   if(object.kind==='stairs')return find('u')||find('d')||find('look');
+  // At the lake's last instant the open doorway is still a usable exit.
+  // A first F at its threshold must not spend that instant inspecting it.
+  if(object.id==='wading:door' && state.counters?.long_water_phase===6)return find('enter door');
   if(object.kind==='door')return seen?find('enter door')||find('s')||find('examine '):find('examine ')||find('look');
   if(object.kind==='ug_barrow_door'){
     if(heldItem==='key_barrow')return find('put key');

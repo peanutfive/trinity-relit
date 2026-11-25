@@ -8,6 +8,7 @@ import { missingSandbarFeature } from './sandbar-ground.js';
 import { initializeRoadrunner, restoreRoadrunner, birdAtOpenDoor, advanceRoadrunner, roadrunnerAction,
   missingRoadrunnerTarget, performRoadrunnerAction, roadrunnerWait, recordSceneryFocus } from './roadrunner-story.js';
 import { ranchCollapseDue, RANCH_RIVER_ENDING } from './river-ending-story.js';
+import { beginPrologueTurn, finishPrologueTurn, restoreGardenMoves } from './prologue-ending-story.js';
 import { Parser } from '../js/parser.js';
 import { ITEMS, restorePaperback, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
@@ -62,6 +63,7 @@ class ExplorationParser extends Parser {
 class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
+    restoreGardenMoves(this.state);
     restorePaperback(this.state,save.state);
     restoreVertexInstallation(this.state,save.state);
     restoreShadow(this.state);
@@ -124,7 +126,16 @@ class ExplorationEngine extends GameEngine {
         }
       }
     }
-    return super._runCommandTurn(command);
+    this._prologueTurn=beginPrologueTurn(state);
+    try { return await super._runCommandTurn(command); }
+    finally { this._prologueTurn=null; }
+  }
+
+  _autosave() {
+    // The room and timer have settled by this point. The auto-save and the
+    // visible state must include the same number of completed clock cycles.
+    finishPrologueTurn(this.state,this._prologueTurn);
+    super._autosave();
   }
 
   async _handleAction(command) {
@@ -153,8 +164,8 @@ class ExplorationEngine extends GameEngine {
     // recorded bird route, checking one's score or pockets costs no move.
     const birdRoute=this.state.hasFlag('river_ferry_crossed') && ['islet','desert','ranch'].includes(this.state.chapter);
     const awaitingRanchEnding=this.state.chapter==='ranch' && this.state.hasFlag('ranch_snake_bitten');
-    if((birdRoute || awaitingRanchEnding)
-      && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase())) this.state.turns--;
+    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding)
+      && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase()))) this.state.turns--;
     return super._handleMeta(input);
   }
 

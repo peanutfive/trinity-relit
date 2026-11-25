@@ -1,4 +1,6 @@
-// The ranch ending uses the original terminal River, separate from the
+import {prologueEndingTransition} from './prologue-ending-story.js';
+
+// These endings use the original terminal River, separate from the
 // navigable Wabe shore. Reading these pages never boards a boat or spends a coin.
 export const RANCH_RIVER_ENDING = 'ranch_terminal_river';
 const bitten = 'ranch_snake_bitten';
@@ -49,13 +51,39 @@ function rankFor(score) {
 }
 
 export function riverEndingResult(before, after) {
-  if (!before || !after || before.dead || !after.dead || before.chapter !== 'ranch' || after.chapter !== 'ranch'
-    || !hasFlag(before, bitten) || !hasFlag(after, RANCH_RIVER_ENDING) || !rooms.has(after.room)) return null;
-  const score = after.score, turns = before.turns, maxScore = 100, rank = rankFor(score);
+  if (!before || !after || before.dead || !after.dead) return null;
+  let transition=prologueEndingTransition(before,after);
+  if (!transition && before.chapter==='ranch' && after.chapter==='ranch'
+    && hasFlag(before,bitten) && hasFlag(after,RANCH_RIVER_ENDING) && rooms.has(after.room)) {
+    transition={cause:'ranch',intro:sceneIntro(after.room)};
+  }
+  if (!transition) return null;
+  const score = after.score, turns = transition.cause==='ranch' ? before.turns : after.turns;
+  const maxScore = 100, rank = rankFor(score);
   const pointWord = score === 1 ? 'point' : 'points';
   const moveWord = turns === 1 ? 'move' : 'moves';
   const summary = '[Your score is ' + score + ' ' + pointWord + ' out of 100, in ' + turns + ' ' + moveWord
     + '. This gives you the rank of ' + rank.en + '.]\n\n[你在 ' + turns + ' 回合中获得了 '
     + score + ' 分，满分 100 分。你获得了「' + rank.cn + '」的称号。]';
-  return {intro:sceneIntro(after.room), pages:[shore, boat, finalPassage(after)], score, turns, maxScore, rank, summary};
+  return {...transition, pages:[shore, boat, finalPassage(after)], score, turns, maxScore, rank, summary};
+}
+
+export function riverEndingLead(output, result) {
+  const lines=output.filter(line=>!line.trimStart().startsWith('你死了。'));
+  if (result.cause==='ranch') return [...lines,result.intro];
+  // The shared park finale already starts an abbreviated River scene. The
+  // lake refusal can also contain the scene change in the same text entry.
+  const firstSentence=result.intro.split('\n\n')[0];
+  const body=[];
+  for (const line of lines) {
+    const index=line.indexOf(firstSentence);
+    if (index>=0) {
+      const preceding=line.slice(0,index).trimEnd();
+      if (preceding) body.push(preceding);
+      break;
+    }
+    if (line.trimStart().startsWith(shore.split('. ')[0])) break;
+    body.push(line);
+  }
+  return [...body,result.intro];
 }

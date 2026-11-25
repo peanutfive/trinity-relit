@@ -156,7 +156,7 @@ async function checkLegacyPointer(){
   await saveAndResume('legacy-vertex');
 }
 
-try {
+async function run() {
   await page.goto(process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/');
   await page.waitForFunction(() => {
     const s = window.render_game_to_text && JSON.parse(window.render_game_to_text());
@@ -199,6 +199,23 @@ try {
   await perform('enter pram'); await drain(); assert.ok((await state()).flags.includes('in_pram'));
   await hold('umbrella', '雨伞'); await page.click('#held-item'); await drain();
   assert.equal((await state()).room, 'long_water'); assert.equal((await state()).lastCommand, 'open umbrella');
+  if (process.argv.includes('--lake-checkpoint')) {
+    await clearHand();
+    const shore = await state();
+    assert.equal(shore.storyClock.elapsed, 1785);
+    assert.equal(shore.storyClock.phase, 0);
+    assert.equal(shore.storyClock.frozen, true);
+    assert.equal(shore.dead, false);
+    const source = await saveAndResume('long-water-played');
+    await screenshot('long-water-live-start');
+    assert.deepEqual(errors, []);
+    await writeFile(`${artifacts}/result.json`, JSON.stringify({
+      pass:true, source, room:shore.room, turns:shore.turns, score:shore.score, clock:shore.storyClock,
+      visited:[...visited], receipts, routes, errors,
+    }, null, 2));
+    console.log('真实序章抵达长水湖并导出阶段 0 的正常存档');
+    return;
+  }
   await clearHand(); await perform('take paper bird'); await perform('take gnomon'); await drain();
   await screenshot('prologue-long-water');
   await perform('enter water'); await drain(); assert.equal((await state()).room,'wading'); await perform('enter door'); await drain();
@@ -250,6 +267,10 @@ try {
   assert.deepEqual(errors, []);
   await writeFile(`${artifacts}/result.json`, JSON.stringify({ pass: true, visited: [...visited], receipts, routes, errors }, null, 2));
   console.log('PASS: direct exploration and held items complete prologue→Wabe eight rooms, paper observation/unfold/read, seven ring turns, splinter pickup, continuation/export/import and invalid import protection; no page errors.');
+}
+
+try {
+  await run();
 } catch (error) {
   await screenshot('failure').catch(() => {});
   const current = await state().catch(() => null);

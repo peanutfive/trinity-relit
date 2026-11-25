@@ -16,7 +16,7 @@ import {shackDoorOpen} from './shack-story.js';
 import { roadrunnerView } from './roadrunner-story.js';
 import { recordCompanionArrival, rememberRubyDrop, TOWER_BOX } from './roadrunner-layout.js';
 import { drawBirdThroughOptics, drawRoadrunner, drawRoadrunnerRuby, drawTowerBox } from './roadrunner-art.js';
-import {riverEndingResult} from './river-ending-story.js';
+import {riverEndingResult,riverEndingLead} from './river-ending-story.js';
 import {createRiverEndingView} from './river-ending-view.js';
 import {drawRiverEnding,warmRiverEndingArt} from './river-ending-art.js';
 import {rememberDesertBookDrop,rememberBookmarkDrop} from './shack-route-actions.js';
@@ -462,8 +462,7 @@ async function command(input, actions = [], observedId = null) {
     if(conclusion){
       ending.prepare(conclusion,{language,binding:keyLabel(preferences.bindings.interact),canRestore:Boolean(saveStore.read().save)});
       warmRiverEndingArt();
-      output=output.filter(line=>!line.startsWith('\n你死了。'));
-      output.push(conclusion.intro);
+      output=riverEndingLead(output,conclusion);
     }
     if (output.length) {
       const text=output.join('\n\n');
