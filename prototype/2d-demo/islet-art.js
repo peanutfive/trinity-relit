@@ -1,5 +1,6 @@
 import { propImage } from './art.js';
 import { paintCharacter } from './character.js';
+import { shackRouteCharacterScale } from './shack-route-layout.js';
 import { cemeteryShroudAtlas } from './cemetery-art.js';
 import { FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART } from './ferry-art-assets.js';
 import { FERRY_ABOARD_POINTS } from './ferry-visual-layout.js';
@@ -67,6 +68,22 @@ function passengersInBoat(ctx,layout) {
 }
 
 export function renderIsletSprite(ctx, object, state, time = 0) {
+  if(object.kind==='ladder_traveller'){
+    const visual=object.visualOptions;
+    paintCharacter(ctx,object.x,object.y,'#bca071',visual.facing,visual.phase,false,
+      {airborne:visual.onRungs,moving:visual.moving,blend:visual.moving?1:0,time,sceneScale:shackRouteCharacterScale(visual.room,object.y),
+        costumeAtlas:state.itemLoc?.shroud==='worn'?cemeteryShroudAtlas():undefined});
+    return true;
+  }
+  if(object.kind==='paperback'){
+    const cover=propImage('./assets/desert-shack-paperback-v1.png');
+    const [x,y]=object.drawAt || [object.x,object.y];
+    if (cover) {
+      ctx.fillStyle='rgba(30,22,16,.32)';ctx.beginPath();ctx.ellipse(x,y-2,5,1.8,0,0,Math.PI*2);ctx.fill();
+      ctx.drawImage(cover,x-5.5,y-9,11,9);
+    }
+    return true;
+  }
   // The cap, door and oarsman's smaller pointer region have their own hotspots.
   if (object.kind === 'islet_gate' || object.kind === 'islet_oarsman') return true;
   if (object.kind !== 'islet_ferry') return false;

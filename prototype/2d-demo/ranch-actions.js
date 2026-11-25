@@ -2,7 +2,7 @@ import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
 import { RANCH_KITCHEN_LAYOUT } from './ranch-kitchen-layout.js';
 import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
 import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 import { RANCH_WATER_LAYOUT } from './ranch-water-layout.js';
 import { RANCH_WINDMILL_LANDING_LAYOUT } from './ranch-windmill-landing-layout.js';
 import { RANCH_PERIMETER_LAYOUT } from './ranch-perimeter-layout.js';

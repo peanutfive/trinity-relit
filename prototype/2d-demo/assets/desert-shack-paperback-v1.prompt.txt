@@ -1,0 +1,7 @@
+Original portable prop made using OpenAI ImageGen. Transparent margins trimmed; native long edge 180 pixels. Draw flat on the oak floor with the painted cover readable as an object and without lettering. Suggested long edge 12 logical pixels.
+
+Use for this game and its distribution. No third-party screenshots, photographs or character likenesses were used.
+
+Drawing instruction
+
+Paint an original isolated small game inventory prop on a genuinely transparent background. One closed, worn mass-market paperback novel lying flat on timber floor as seen by an overhead 3/4 game camera, top facing viewer, slightly diagonal, corners worn ivory, thin faded ochre-and-russet soft paper cover, layered dirty cream page edges. Cover has just a dark simplified pictorial silhouette and tiny flecks, no legible words/title/logos, no letters. Quiet realistic fine-painted HD-2D adventure game prop. Entire book is visible, no ground plane, no additional object, tiny contact shadow tightly under pages only. Fill image with the single prop for later sprite trimming.

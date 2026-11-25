@@ -1,4 +1,4 @@
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 import { LOGICAL_SIZE, isSegmentWalkable } from './world.js';
 
 const interiors = new Set(['kitchen', 'se_room', 'nw_room', 'spare_room', 'bedroom', 'bathroom', 'hallway', 'icehouse']);
@@ -21,7 +21,7 @@ export function indoorFloorPoint(state, id, anchor) {
   return legacyFloorPoint(id, anchor);
 }
 
-function nearbyDrop(player, scene, occupied) {
+export function nearbyDrop(player, scene, occupied) {
   const [dx, dy] = direction[player.face] || direction.down;
   const exits = Object.values(scene.exitAnchors || {});
   // Start in front of the player, then try both sides and finally behind them.

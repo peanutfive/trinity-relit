@@ -32,6 +32,23 @@ const visual = (engine, patch = {}) => ({ room: engine.state.room,
   x: SCENES[engine.state.room].spawn[0], y: SCENES[engine.state.room].spawn[1], face: 'right',
   knowledge: { observed: [], paper: { observed: [], identified: [] } }, ...patch });
 
+test('登船前检查点随本次存档导出，失败读档、另一次导入和新开局不会覆盖或继承它',()=>{
+  const {engine}=session();
+  Object.assign(engine.state,{chapter:'wabe',room:'the_river',turns:51});
+  const departure=makeVisualSave(engine,visual(engine));
+  Object.assign(engine.state,{chapter:'islet',room:'islet',turns:59});
+  const store=createVisualSaveStore({storage:memoryStorage()});
+  assert.ok(store.write(engine,visual(engine),departure).ok);
+  const exported=store.export().text;
+  assert.deepEqual(parseVisualSave(exported).ferryDeparture,departure);
+  const broken=JSON.parse(exported);
+  broken.ferryDeparture.engine.state.flags.push('river_ferry_onboard');
+  assert.equal(store.write(broken).ok,false);
+  assert.equal(store.export().text,exported);
+  assert.ok(store.write(departure).ok);
+  assert.equal(store.read().save.ferryDeparture,undefined);
+});
+
 async function reachMeadow(game) {
   for (const input of ['e', 'take ball', 'nw', 'unscrew gnomon', 'take gnomon',
     'n', 'take paper bird', 'open paper bird', 'w', 'buy crumbs', 'feed birds',

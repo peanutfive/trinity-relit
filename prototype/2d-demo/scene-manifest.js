@@ -17,7 +17,8 @@ import {RANCH_PERIMETER_LAYOUT} from './ranch-perimeter-layout.js';
 import {RANCH_RESERVOIR_LAYOUT} from './ranch-reservoir-layout.js';
 import {ROOMS as RANCH_ROOMS} from './ranch-story.js';
 import { ISLET_ROOMS } from './ferry-islet.js';
-import {ROOMS as DESERT_ROOMS} from '../js/data/desert.js';
+import { DESERT_ROOMS } from './shack-story.js';
+import { ISLET_OPEN_ART, ISLET_NEAR_ART, SHACK_CLOSED_ART } from './shack-route-art.js';
 import {ROOMS as TUNDRA_ROOMS} from '../js/data/tundra.js';
 import {ROOMS as PACIFIC_ROOMS} from '../js/data/pacific.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
@@ -28,7 +29,7 @@ import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
 import {UG_ROUTE_LAYOUT} from './underground-route-layout.js';
 import { CLIFF_ROUTE_LAYOUT } from './cliff-route-layout.js';
 import { GameState } from '../js/engine.js';
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 import { getHotspots } from './interaction-catalog.js';
 import { applyRemainingTerrain } from './terrain.js';
 export const SCENE_SCHEMA_VERSION = 2;
@@ -224,6 +225,8 @@ SCENES.under_windmill.background.variant = {
 };
 SCENES.the_river.preloadArt = [FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART];
 SCENES.sand_bar.preloadArt = [FERRY_PASSENGER_ART, FERRY_BOAT_ART];
+SCENES.islet.preloadArt = [ISLET_OPEN_ART, ISLET_NEAR_ART];
+SCENES.shack.preloadArt = [SHACK_CLOSED_ART,'./assets/desert-shack-paperback-v1.png'];
 SCENES.sand_bar.background.variant = {
   ...ISLET_LAYOUT.sand_bar.legacyBackground,
   anyFlags: ['ferry_paid','wabe_to_islet_used'],

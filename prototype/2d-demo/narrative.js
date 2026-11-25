@@ -1,4 +1,5 @@
 import { ranchMotion, ranchMotionRoom, drawRanchMotion } from './ranch-art.js';
+import { towerClimb, towerClimbFrame } from './shack-ladder-motion.js';
 import {createOrbitPassage,sampleOrbitPassage} from './orbit-motion.js';
 import {PIGEON_FLOCK} from './pigeon-motion.js';
 import {INVERNESS_ACTORS} from './inverness-layout.js';
@@ -116,6 +117,8 @@ export function createNarrativeDirector() {
     const added=[];
     const push=(type,options={})=>{if(add(type,before,after,options))added.push(type);};
     const ranch=ranchMotion(before,after,command);
+    const climb=towerClimb(before,after);
+    if(climb)push('tower_climb',{id:`tower_climb:${after.turns}`,room:before.room,motion:climb,duration:climb.duration});
     if(ranch)push('ranch_'+ranch.kind,{id:`ranch_${ranch.kind}:${after.turns}`,room:before.room,motion:ranch,duration:ranch.duration});
     if(orbitMotion)push(orbitMotion.type,{id:`${orbitMotion.type}:${after.turns}`,room:before.room,motion:orbitMotion,duration:orbitMotion.duration});
     if(cliffMotion)push('cliff_passage',{id:`cliff_passage:${after.turns}`,room:before.room,motion:cliffMotion,duration:cliffMotion.duration});
@@ -204,6 +207,8 @@ export function createNarrativeDirector() {
     if(type==='ranch_fall')hiddenKinds.push('binoculars');
     let sceneRoom=ranch?ranchMotionRoom(active.motion,active.elapsed/active.duration):active?.room||state.room||lastRoom;
     if(type==='ferry_crossing' && active.elapsed >= active.duration/2) sceneRoom=active.toRoom;
+    const climbFrame=type==='tower_climb'?towerClimbFrame(active.motion,active.elapsed):null;
+    if(climbFrame)sceneRoom=climbFrame.room;
     // Available commands can disappear without the people leaving the scene.
     // Return these actors to the caller's shared depth/collision pass; draw()
     // must never paint them above foreground objects after that pass has ended.
@@ -245,9 +250,15 @@ export function createNarrativeDirector() {
     const cliffFrame=type==='cliff_passage'?sampleCliffPassage(active.motion,active.elapsed):null;
     const orbitFrame=['orbit_drift','orbit_return'].includes(type)?sampleOrbitPassage(active.motion,active.elapsed):null;
     const groundActors=[...(orbitFrame?[orbitFrame.actor]:[]),...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors,...(cliffFrame?[cliffFrame.actor]:[])];
-    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:ranch||japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
+    if(climbFrame)groundActors.push(climbFrame.actor);
+    return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:ranch||Boolean(climbFrame)||japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
+    if(active?.type==='tower_climb'){
+      const {fade}=towerClimbFrame(active.motion,active.elapsed);
+      c.save();c.fillStyle=`rgba(28,30,30,${fade})`;c.fillRect(0,0,480,288);c.restore();
+      return;
+    }
     if(active?.type==='ferry_crossing'){
       const t=active.elapsed/active.duration;
       // Change shore only while the fog completely covers the picture.

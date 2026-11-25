@@ -1,10 +1,11 @@
+import { advanceShadow, initializeShadow, restoreShadow } from './islet-shadow.js';
 import { GameEngine } from '../js/engine.js';
 import { ferryView, startFerry } from './ferry-state.js';
 import { advanceFerry, leaveFerry } from './ferry-voyage.js';
 import { unseenFerryTarget } from './ferry-shore.js';
 import { missingSandbarFeature } from './sandbar-ground.js';
 import { Parser } from '../js/parser.js';
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
 
 const VISUAL_CHAPTER_LOADERS = Object.freeze({
@@ -18,7 +19,7 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
     const [islet, cemetery] = await Promise.all([import('./ferry-islet.js'),import('./cemetery-story.js')]);
     return {ROOMS:cemetery.withCemeteryItems(islet.ISLET_ROOMS)};
   },
-  desert: () => import('../js/data/desert.js'),
+  desert: () => import('./shack-story.js'),
   ranch: () => import('./ranch-story.js'),
 });
 
@@ -33,6 +34,12 @@ class ExplorationParser extends Parser {
     if (/^脱下裹尸布$/.test(text))return super.parse('remove shroud');
     if (/^(?:board (?:the )?(?:dory|boat)|登艇|登船|上船)$/.test(text))return super.parse('enter dory');
     if (/^(?:get out of (?:the )?(?:dory|boat)|离艇|下船)$/.test(text))return super.parse('exit dory');
+    const symbol=text.match(/^(?:turn|rotate) (?:the )?(?:brass )?ring to (?:the )?(first|second|third|fourth|fifth|sixth|seventh) symbol$/);
+    if(symbol)return {type:'compound',verb:'turn',noun:'ring',prep:'to',noun2:symbol[1]+' symbol'};
+    const cnSymbol=text.match(/^(?:把)?(?:铜环|符号环)(?:转至|转到|对准)第([一二三四五六七])个?符号$/);
+    if(cnSymbol)return {type:'compound',verb:'turn',noun:'ring',prep:'to',noun2:'第'+cnSymbol[1]+'个符号'};
+    if(['压下拉杆','压下杆'].includes(text))return super.parse('push lever');
+    if(['抬起拉杆','抬杆'].includes(text))return super.parse('pull lever');
     const command=super.parse(input);
     if(command)return command;
     if(/^(?:(?:touch|feel) (?:the )?walls?|(?:摸|触摸)(?:墙|墙壁|墙面))$/i.test(input.trim()))
@@ -44,12 +51,22 @@ class ExplorationParser extends Parser {
 class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
+    restoreShadow(this.state);
     if (['the_river','sand_bar'].includes(this.state.room)) startFerry(this.state);
     return true;
   }
 
   async _runCommandTurn(command) {
     const state = this.state;
+    this._shadowTurnStart=state.turns;
+    if (paperbackAction(command)) {
+      const absent=unavailablePaperback(state,command.verb);
+      if (absent) { this.print(absent); return true; }
+    }
+    if (command?.type==='direction' && command.dir==='out' && state.room==='shack') {
+      this.print('[Which way do you want to go out?]\n\n[你想往哪个方向出去？]');
+      return true;
+    }
     if (command && (state.room === 'the_river' || state.room === 'sand_bar')) {
       const view = ferryView(state);
       if (state.room === 'sand_bar' && !view.fixedBerth) {
@@ -86,7 +103,21 @@ class ExplorationEngine extends GameEngine {
     return super._runCommandTurn(command);
   }
 
+  async _handleAction(command) {
+    if (paperbackAction(command)) {
+      handlePaperback(this.state,this,command.verb);
+      return true;
+    }
+    return super._handleAction(command);
+  }
+
   async _handleDirection(dir) {
+    if (this.state.room==='shack' && dir==='e') {
+      const {approachShackDoor}=await import('./shack-story.js');
+      approachShackDoor(this.state,this);
+      return true;
+    }
+    if (this.state.room==='islet' && dir==='in') return this._handleAction({type:'simple',verb:'enter',noun:'door'});
     const view = ferryView(this.state);
     if (view.legacyPaid && this.state.room === 'the_river' && dir === 'in') {
       return this.transitionChapter({to:'islet',roomCandidates:['islet']});
@@ -102,6 +133,8 @@ class ExplorationEngine extends GameEngine {
   }
 
   _postTurn() {
+    if (this.state.chapter==='wabe') initializeShadow(this.state);
+    advanceShadow(this.state,Math.max(1,this.state.turns-this._shadowTurnStart));
     advanceFerry(this.state,this);
     super._postTurn();
   }

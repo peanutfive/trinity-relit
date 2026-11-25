@@ -10,6 +10,10 @@ import {renderCompletionSprite,completionArtStatus,completionBoyMotion} from './
 import {renderPacificSprite,pacificArtStatus,pacificControlState} from './pacific-art.js';
 import {renderIsletSprite,renderFerryAboard,isletArtStatus} from './islet-art.js';
 import {ferryView} from './ferry-state.js';
+import {isletDoorView,vertexShadowView} from './islet-shadow.js';
+import {shackDoorOpen} from './shack-story.js';
+import {rememberDesertBookDrop} from './shack-route-actions.js';
+import {shackRouteCharacterScale} from './shack-route-layout.js';
 import {renderTundraSprite,tundraArtStatus} from './tundra-art.js';
 import {renderArborOrbitSprite,renderOrbitPlayer,arborOrbitArtStatus} from './arbor-orbit-art.js';
 import {filterVisualPresence} from './visual-text-policy.js';
@@ -29,7 +33,7 @@ import { getHotspots } from './interaction-catalog.js';
 import { createDiscovery, PAPER_CRAFT_ID } from './discovery.js';
 import { resolveInteraction, resolveHeldSelf } from './interaction-intent.js';
 import { roomArrival } from './arrivals.js';
-import { createVisualSaveStore } from './save.js';
+import { createVisualSaveStore, VISUAL_SAVE_VERSION } from './save.js';
 import { createNarrativeDirector, drawStoryProp, setStorySpriteRenderer } from './narrative.js';
 import { isRepeatedItemDescription } from './text-output.js';
 import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryExit, nearestExitPoint, exitDistance, pointInPolygon } from './world.js';
@@ -37,7 +41,7 @@ import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manif
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
 import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt, currentPlate } from './art.js';
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 
 const $ = selector => document.querySelector(selector);
 const canvas = $('canvas');
@@ -65,6 +69,7 @@ const cachedNavigationScene=createNavigationSceneCache();
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { browserStorage = null; }
 const saveStore = createVisualSaveStore({ storage: browserStorage, scenes, prepareRoom: ensureSceneArt });
+let ferryDeparture = null;
 
 let engine;
 let director = createNarrativeDirector();
@@ -100,6 +105,7 @@ const sound = createAudio();
 sound.configure(preferences.audio);
 sound.setPaused(true);
 let output = [];
+let climbArrivalText = null;
 let roomDescription = null;
 let roomItemDescriptions = [];
 let roomDescriptionPending=false,removedPresence=[];
@@ -150,6 +156,8 @@ function reset() {
   cryptInspection.hide();
   discovery = createDiscovery(); observedObjects = new Set(); heldItem = null;
   previousScene = null;
+  ferryDeparture = null;
+  climbArrivalText = null;
   lastArrival = null;
   portrait = null;
   // New games enter the first room once, matching the current text entry point.
@@ -185,6 +193,8 @@ function updateHud() {
   $('#menu-bag').disabled = !started || busy;
   $('#menu-help').disabled = !started || busy;
   $('#menu-map').disabled = !started || busy;
+  $('#return-to-ferry-shore').hidden = !(started && ferryDeparture && engine.state.room==='islet'
+    && observedObjects.has('islet:gate') && !isletDoorView(engine.state).open);
   $('#replay-umbrella').hidden = !started || engine.state.room!=='lancaster_gate'||!engine.state.hasFlag('umbrella_woman_done');
   const near = started && !cryptInspection.open && !reading && !hintOpen && !paused && !director.getState().busy ? nearby() : null;
   $('#skip-event').hidden = !director.getState().busy || paused;
@@ -308,11 +318,19 @@ function faceObject(object) {
 function gameSnapshot() {
   return { ...engine.state.serialize(), visual: { room: engine.state.room, player: { ...player }, hotspots: objects(), paperIdentified:discovery.snapshot().identified.includes(PAPER_CRAFT_ID) } };
 }
+function visualSavePosition() {
+  return {room:engine.state.room,x:player.x,y:player.y,face:player.face,
+    knowledge:{observed:[...observedObjects],paper:discovery.snapshot()}};
+}
 async function command(input, actions = [], observedId = null) {
   if (busy || paused) return;
   lastCommand=input;
   busy = true;
   const before = gameSnapshot();
+  const boarding = before.room==='the_river' && !ferryView(before).onboard
+    && (input==='enter dory' || input==='in');
+  const departure = boarding
+    ? {version:VISUAL_SAVE_VERSION,engine:engine.serialize(),visual:visualSavePosition()} : null;
   const timerCallback = engine.state.timer?.perTurn;
   beginOutput(engine.state.chapter === 'islet' && input === 'look' && Boolean(observedId));
   updateHud();
@@ -323,10 +341,12 @@ async function command(input, actions = [], observedId = null) {
     const destination = engine.state;
     const moved = before.room !== destination.room;
     if(destination.room==='the_river' && ferryView(destination).onboard && !ferryView(before).onboard) {
+      if (departure) ferryDeparture = departure;
       boatSelection='oarsman';
       stopMovement();
     }
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
+    if(!moved && destination.chapter==='desert')rememberDesertBookDrop(before,destination,navigationScene());
     if (moved) {
       cryptInspection.hide();
       // Keep the source room and live timer available while its destination loads.
@@ -338,6 +358,7 @@ async function command(input, actions = [], observedId = null) {
       engine.state = destination;
       previousScene = before;
     }
+    if (!['sand_bar','islet'].includes(destination.room) && !ferryView(destination).onboard) ferryDeparture=null;
     if(['inventory','pocket','worn'].includes(before.itemLoc.lemming)&&engine.state.inRoom('lemming'))observedObjects.add('tundra:item:lemming');
     const revelation=discovery.inspect(engine.state,{command:input,success:!engine.state.dead});
     if(revelation.text)output.push(revelation.text);
@@ -372,7 +393,11 @@ async function command(input, actions = [], observedId = null) {
       cryptInspection.update(destination,heldItem);
     }
     updateLabels();
-    if (output.length) show(output.join('\n\n'), actions);
+    if (output.length) {
+      const text=output.join('\n\n');
+      if(director.getState().currentEvent==='tower_climb') climbArrivalText={text,actions};
+      else show(text,actions);
+    }
     $('#objective').textContent=chapterObjective(engine.state.chapter);
     persistProgress({force:true});
   } catch(error){
@@ -401,7 +426,7 @@ function enterOpening() {
 
 function persistProgress({force=false}={}) {
   if (!started || engine.state.dead || (busy&&!force)) return {ok:false,skipped:true};
-  const result = saveStore.write(engine, {room:engine.state.room,x:player.x,y:player.y,face:player.face,knowledge:{observed:[...observedObjects],paper:discovery.snapshot()}});
+  const result = saveStore.write(engine,visualSavePosition(),ferryDeparture);
   if (!result.ok && !result.skipped) $('#save-message').textContent = '进度未能保存：' + result.error.message;
   return result;
 }
@@ -434,6 +459,8 @@ async function restoreProgress(input) {
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
+    ferryDeparture=restored.save.ferryDeparture || null;
+    climbArrivalText=null;
     boatSelection='oarsman';
     previousScene=null;
     lastArrival=null;
@@ -608,6 +635,11 @@ function update(dt) {
   if (paused || chapterMap.isOpen() || applyingCommand) return;
   clock += dt;
   director.update(dt);
+  if(climbArrivalText && director.getState().currentEvent!=='tower_climb'){
+    const {text,actions}=climbArrivalText;
+    climbArrivalText=null;
+    show(text,actions);
+  }
   exitLock = Math.max(0, exitLock - dt);
   motion.elapsed += dt;
   if (motion.action !== 'idle' && motion.elapsed >= motion.duration) motion.action = 'idle';
@@ -784,6 +816,7 @@ function render() {
         renderOrbitPlayer(ctx,player,time);
       }else{
         const animation=animationState();
+        animation.sceneScale=shackRouteCharacterScale(renderRoom,player.y);
         if(renderState.itemLoc.shroud==='worn')animation.costumeAtlas=cemeteryShroudAtlas();
         drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animation);
       }
@@ -1066,6 +1099,9 @@ $('#held-item').onclick = useHeldItem;
 $('#clear-hand').onclick = () => {heldItem=null;$('#hand-status').textContent='';updateHud();canvas.focus({preventScroll:true});};
 $('#continue-save').onclick = loadSavedProgress;
 $('#load-save').onclick = loadSavedProgress;
+$('#return-to-ferry-shore').onclick = () => {
+  if (ferryDeparture && !$('#return-to-ferry-shore').hidden) restoreProgress(ferryDeparture);
+};
 $('#save-now').onclick = () => { const result=persistProgress(); paintSaveState(); if(result.ok) $('#save-message').textContent='已保存当前探索进度。'; };
 $('#export-save').onclick = () => {
   const result=saveStore.export();
@@ -1137,6 +1173,9 @@ for (const button of document.querySelectorAll('[data-key]')) {
 window.render_game_to_text = () => JSON.stringify({
   art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
+  isletDoor:engine.state.room==='islet'?isletDoorView(engine.state):null,
+  dialShadow:engine.state.room==='vertex'?vertexShadowView(engine.state):null,
+  shackDoor:engine.state.room==='shack'?{open:shackDoorOpen(engine.state)}:null,
   ferry:['the_river','sand_bar'].includes(engine.state.room)?{...ferryView(engine.state),selection:aboard()?boatSelection:null}:null,
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },

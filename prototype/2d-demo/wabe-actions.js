@@ -1,3 +1,4 @@
+import { vertexShadowView } from './islet-shadow.js';
 import {ARBOR_WABE_ROOMS,getArborHotspots,getArborInventoryActions} from './arbor-actions.js';
 import {COMPLETION_WABE_ROOMS,getCompletionHotspots,getCompletionInventoryActions} from './wabe-completion-actions.js';
 import {UG_WABE_ROOMS,getUndergroundHotspots,getUndergroundInventoryActions} from './underground-actions.js';
@@ -54,14 +55,19 @@ export function getWabeHotspots(state) {
     }});
   }
   if (room === 'vertex') {
+    const {leverUp}=vertexShadowView(state);
     objects.push(
+      {...object('vertex:lever',187,157,'拉杆','sundial_lever','vertex_examine_lever',
+        [leverUp?action('压下拉杆','push lever'):action('抬起拉杆','pull lever'),action('查看拉杆','examine lever')]),
+        physicalHint:leverUp?'压下拉杆':'抬起拉杆',pointerShape:{kind:'ellipse',x:184,y:135,rx:8,ry:15,priority:3},visualOptions:{leverUp}},
+
       object('vertex:sundial', 245, 140, '日晷', 'sundial', 'examine_sundial_vertex',
         [action('查看日晷', 'examine sundial')], 'sundial'),
       object('vertex:ring', 285, 175, '符号环', 'ring', 'examine_ring',
         [action('查看符号环', 'examine ring'), action('转动符号环', 'turn ring')], 'ring'),
       // This fixed pointer is not the portable prologue gnomon. Never offer taking it.
-      object('vertex:fixed-gnomon', 218, 173, '嵌入表盘的指针', 'gnomon', 'examine_gnomon_vertex',
-        [action('查看指针与影子', 'examine gnomon')]),
+      object('vertex:fixed-gnomon', 218, 173, '嵌入表盘的指针', 'gnomon', 'vertex_read_shadow',
+        [action('查看影尖', 'examine shadow'),action('查看指针','examine gnomon')]),
       object('vertex:stairs', 200, 232, '下行石阶', 'stairs', undefined,
         [action('走下石阶', 'd')]),
     );

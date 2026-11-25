@@ -496,7 +496,8 @@ try {
     await mapAt('ranch', ['nw_ranch'], 'ranch-map');
     await reopen('ranch-reopened');
     await cross(returnRoad);
-    await mapAt('desert', ['shallow_crater'], 'desert-map-after-return');
+    const exploredDesert = exported.engine.state.visited.filter(room => SCENES[room]?.chapter==='desert');
+    await mapAt('desert', exploredDesert, 'desert-map-after-return');
     await reopen('crater-reopened');
     await cross({ ...entry, screenshot: 'ranch-reentry' });
     if (!gatewayOnly) {

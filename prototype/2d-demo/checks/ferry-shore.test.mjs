@@ -178,8 +178,8 @@ test('信用卡不能充作船资，船夫撕卡后仍等真币；一回合的�
   assert.equal(ashore.engine.state.room,'sand_bar');
   await ashore.enter('s');
   assert.equal(ashore.engine.state.room,'islet');
-  await ashore.enter('enter door');
-  assert.equal(ashore.engine.state.room,'shallow_crater');
+  await ashore.enter('n');
+  assert.equal(ashore.engine.state.room,'sand_bar');
 });
 
 test('旧河岸档第一次恢复启动排班，旧票已付与旧岛尚未付两类都保留原路',async()=>{
@@ -219,11 +219,13 @@ test('旧河岸档第一次恢复启动排班，旧票已付与旧岛尚未付�
   assert.ok(TEXT_ISLET.sand_bar.events.some(event=>event.id==='give_coin_to_oarsman_sb'));
 });
 
-test('正常渡河后沙洲没有菌门，穿门只在南侧小岛生效',async()=>{
+test('正常渡河后沙洲没有菌门，对准影尖才可在南侧小岛穿门',async()=>{
   const run=await river();
+  for(const command of ['nw','u','push lever','turn ring to seventh symbol','d','se']) await run.enter(command);
   run.engine.state.wear('shroud');
   run.engine.state.toPocket('silver_coin');
-  await dock(run);
+  for(let i=0;i<12 && !run.view().docked;i++) await run.enter('look');
+  assert.ok(run.view().docked);
   await run.enter('enter dory');
   await run.enter('give silver coin to oarsman');
   const next=await restore(run);
@@ -238,7 +240,7 @@ test('正常渡河后沙洲没有菌门，穿门只在南侧小岛生效',async(
   await next.enter('s');
   assert.equal(state.room,'islet');
   await next.enter('enter white door');
-  assert.equal(state.room,'shallow_crater');
+  assert.equal(state.room,'shack');
   assert.equal(state.hasFlag('islet_done'),true);
 });
 
@@ -268,9 +270,9 @@ test('小岛首次靠近按 F、点菌盖与中英文查看菌柄均只描述可
   const crown=objects.find(object=>object.id==='islet:crown');
   const initialLocation=state.itemAt('toadstool_islet');
   const expected='The toadstool must be at least twelve feet from base to crown.\n\n这株毒菌从根部到菌盖，少说也有十二英尺高。';
-  const inspect=resolveInteraction(state,near);
+  assert.equal(resolveInteraction(state,near),'examine door');
+  const inspect=resolveInteraction(state,crown);
   assert.equal(inspect,'examine toadstool');
-  assert.equal(resolveInteraction(state,crown),inspect);
   for(const command of [inspect,'look at the mushroom','examine stem','examine crown','观察毒菌','看蘑菇','检查菌柄','查看菌盖']) {
     assert.equal(await run.enter(command),expected);
     assert.equal(state.room,'islet');

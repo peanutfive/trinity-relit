@@ -1,4 +1,5 @@
 // Presentation-only Wabe props. The engine owns the selected symbol and items.
+import { vertexShadowView } from './islet-shadow.js';
 const atlas = new Image();
 atlas.src = new URL('./assets/wabe-props.png', import.meta.url).href;
 const regions = {
@@ -29,6 +30,18 @@ function ringAngle(symbol,time) {
 export function renderWabeSprite(ctx,object,state,time) {
   if(state.chapter!=='wabe' && !(state.chapter==='ranch' && object.kind==='splinter'))return false;
   const {kind,x,y}=object;
+  if(kind==='sundial_lever'){
+    const raised=vertexShadowView(state).leverUp;
+    const tip=raised?[184,124]:[177,146];
+    ctx.save();
+    ctx.fillStyle='#594a31';ctx.beginPath();ctx.ellipse(192,151,5,2.7,0,0,TAU);ctx.fill();
+    ctx.lineCap='round';ctx.lineWidth=2.6;ctx.strokeStyle='#443923';
+    ctx.beginPath();ctx.moveTo(192,150);ctx.lineTo(...tip);ctx.stroke();
+    ctx.lineWidth=.9;ctx.strokeStyle='#be9a5b';ctx.stroke();
+    ctx.fillStyle='#665339';ctx.beginPath();ctx.ellipse(...tip,2.3,1.8,-.3,0,TAU);ctx.fill();
+    ctx.restore();
+    return true;
+  }
   // These immovable features are part of the painted background.
   if(kind==='stairs'||kind==='log')return true;
   if(state.room==='vertex'&&kind==='gnomon'&&object.id==='vertex:fixed-gnomon')return true;
@@ -40,14 +53,20 @@ export function renderWabeSprite(ctx,object,state,time) {
   }
   if(kind==='ring'&&state.room==='vertex'){
     if(!atlas.complete||!atlas.naturalWidth)return false;
-    const cx=245,cy=132,angle=ringAngle(state.sundialSymbol||2,time);
+    const shadow=vertexShadowView(state);
+    const cx=245,cy=132,angle=ringAngle(shadow.symbol,time);
     ctx.save();ctx.translate(cx,cy);ctx.scale(1,.66);ctx.rotate(angle);
     ctx.drawImage(atlas,...regions.ring,-56,-56,112,112);ctx.restore();
+    const shadowAngle = -Math.PI/2 + angle + shadow.dialIndex*TAU/7;
+    const tipX=cx+Math.cos(shadowAngle)*44, tipY=cy+Math.sin(shadowAngle)*24;
+    ctx.save();ctx.fillStyle='rgba(33,32,39,.68)';
+    ctx.beginPath();ctx.moveTo(cx-3,cy+3);ctx.lineTo(tipX,tipY);
+    ctx.lineTo(cx+3,cy+4);ctx.closePath();ctx.fill();ctx.restore();
     ctx.save();ctx.font='9px Georgia,serif';ctx.textAlign='center';ctx.textBaseline='middle';
     for(let i=0;i<7;i++){
       const a=-Math.PI/2+i*TAU/7+angle;
       const gx=cx+Math.cos(a)*44,gy=cy+Math.sin(a)*24;
-      ctx.fillStyle=i+1===state.sundialSymbol?'#ffdfa0':'#bca66f';
+      ctx.fillStyle=i+1===shadow.symbol?'#ffdfa0':'#bca66f';
       ctx.shadowColor='#513b20';ctx.shadowBlur=1;
       ctx.fillText(glyphs[i],gx,gy);
     }

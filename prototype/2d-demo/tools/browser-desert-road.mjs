@@ -164,7 +164,7 @@ async function checkShoulderCorner() {
 }
 
 try {
-  const { file } = await playedFerryCheckpoint({stage:'crater',url,output});
+  const { file,save } = await playedFerryCheckpoint({stage:'crater',url,output});
   await page.goto(roadsOnly.href);
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click(); await drain();
@@ -173,7 +173,7 @@ try {
   await page.locator('#save-file').setInputFiles(file);
   await until(s => s.room === 'shallow_crater' && !s.processing && s.mode !== 'paused','浅坑读档失败');
   await drain();
-  visited.add('shallow_crater');
+  for (const room of save.engine.state.visited) if (SCENES[room]?.chapter==='desert') visited.add(room);
   await travel('w','desert_5');
   await travel('w','desert_4');
   await travel('s',hill(2));

@@ -30,6 +30,8 @@ const islet={islet:[525,458,'island'],sand_bar:[556,212,'water']};
 // chain: two of their east exits return by going south from the desert.
 // The paved road is charted on its own meridian; only visited places are drawn.
 const desert={
+  shack:[528,77,'house'], tower_platform:[408,93,'place'],
+  tower_landing:[398,155,'stairs'], base_of_tower:[390,208,'stairs'],
   desert_1:[154,156,'dune'], desert_2:[229,192,'dune'], desert_3:[304,225,'dune'],
   desert_4:[380,259,'dune'], desert_5:[455,296,'dune'], shallow_crater:[540,337,'basin'],
   desert_6:[658,321,'dune'], desert_7:[758,300,'dune'], desert_8:[858,272,'dune'],
@@ -86,7 +88,9 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
   const pair=[from.id,to.id].sort().join('|');
   const ranchLane=chapter==='ranch' && ranchGroundPairs.has(pair) && reverse.length>0;
   const road=ranchLane || chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
-  const stairs=chapter==='ranch'&&(pair==='edge_reservoir|south_reservoir'||pair==='hallway|icehouse')&&reverse.length>0&&!from.unknownVisual&&!to.unknownVisual;
+  const vertical=chapter==='ranch' && (pair==='edge_reservoir|south_reservoir'||pair==='hallway|icehouse')
+    || chapter==='desert' && (pair==='tower_landing|tower_platform'||pair==='base_of_tower|tower_landing');
+  const stairs=vertical && reverse.length>0 && !from.unknownVisual && !to.unknownVisual;
   return {from,to,road:!!road,schematic:!road,stairs};
 }
 

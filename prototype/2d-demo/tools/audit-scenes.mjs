@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SCENES, SCENE_SCHEMA_VERSION, LOGICAL_SIZE } from '../scene-manifest.js';
 import { GameState } from '../../js/engine.js';
-import { ITEMS } from '../../js/data/items.js';
+import { ITEMS } from '../exploration-items.js';
 import { getHotspots } from '../interaction-catalog.js';
 import { ranchDoors } from '../ranch-actions.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
@@ -13,6 +13,7 @@ const modules = await Promise.all(chapters.map(id => {
   if (id === 'wabe') return import('../cemetery-story.js');
   if (id === 'islet') return import('../ferry-islet.js').then(module=>({ROOMS:module.ISLET_ROOMS}));
   if (id === 'ranch') return import('../ranch-story.js');
+  if (id === 'desert') return import('../shack-story.js').then(module=>({ROOMS:module.DESERT_ROOMS}));
   return import(`../../js/data/${id}.js`);
 }));
 const rooms = Object.assign({}, ...modules.map(module => module.ROOMS));

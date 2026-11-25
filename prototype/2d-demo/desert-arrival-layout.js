@@ -1,11 +1,13 @@
 import {along, DESERT_TRAILS_LAYOUT} from './desert-trails-layout.js';
 import {DESERT_ROAD_LAYOUT} from './desert-road-layout.js';
+import {SHACK_ROUTE_LAYOUT} from './shack-route-layout.js';
 
 // The saddles lie above the basin. The ranch trail follows a separate cut
 // through its southeastern rim and reaches the bottom of the picture.
 export const DESERT_ARRIVAL_LAYOUT = {
   ...DESERT_TRAILS_LAYOUT,
   ...DESERT_ROAD_LAYOUT,
+  ...SHACK_ROUTE_LAYOUT,
   shallow_crater: {
     chapter: 'desert', objectId: 456, image: './assets/desert-shallow-crater-v2.png',
     spawn: [232,169], looseAnchor: [238,177],
@@ -13,6 +15,7 @@ export const DESERT_ARRIVAL_LAYOUT = {
       islet: {x:222,y:174,face:'right',entrance:'door'},
       sand_bar: {x:222,y:174,face:'right',entrance:'door'},
       nw_ranch: {x:388,y:252,face:'left',entrance:'se'},
+      base_of_tower: {x:42,y:140,face:'right',entrance:'nw'},
     },
     walkablePolygons: [[[0,137],[19,136],[35,137],[50,146],[78,152],[108,155],[138,148],
       [177,126],[219,119],[271,110],[307,114],[351,122],[385,131],[414,130],[437,124],[461,121],[480,118],
@@ -20,9 +23,10 @@ export const DESERT_ARRIVAL_LAYOUT = {
       [340,224],[291,237],[248,237],[211,230],[172,226],[131,217],[113,203],[79,196],[56,180],[32,166],[16,154],[0,149]],
       along([[193,273,305],[205,281,328],[214,305,352],[222,329,365],[233,346,376],
         [244,360,392],[254,372,408],[267,384,430],[278,393,449],[288,400,466]]),
+      along([[99,54,72],[105,43,68],[113,30,60],[122,20,52],[132,12,48],[144,12,56],[153,36,71]]),
     ],
-    exitAnchors: { w:[16,144], e:[464,126], se:[422,275] },
-    exitApproaches: { se:[1,0.6] },
+    exitAnchors: { w:[16,144], nw:[55,110], e:[464,126], se:[422,275] },
+    exitApproaches: { nw:[.6,-1], se:[1,0.6] },
   },
   desert_5: {
     chapter: 'desert', image: './assets/desert-west-v1.png',

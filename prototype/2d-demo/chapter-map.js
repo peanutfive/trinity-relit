@@ -8,7 +8,7 @@ import { ROOMS as PACIFIC_ROOMS } from '../js/data/pacific.js';
 import { ROOMS as TUNDRA_ROOMS } from '../js/data/tundra.js';
 import { ISLET_ROOMS } from './ferry-islet.js';
 import { ROOMS as RANCH_ROOMS } from './ranch-story.js';
-import { ROOMS as DESERT_ROOMS } from '../js/data/desert.js';
+import { DESERT_ROOMS } from './shack-story.js';
 
 import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
 const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS,orbit:ORBIT_ROOMS,pacific:PACIFIC_ROOMS,tundra:TUNDRA_ROOMS,islet:ISLET_ROOMS,desert:DESERT_ROOMS,ranch:RANCH_ROOMS};

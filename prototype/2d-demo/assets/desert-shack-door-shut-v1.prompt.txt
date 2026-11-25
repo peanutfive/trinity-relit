@@ -1,0 +1,7 @@
+Registered full-frame transparent east-door replacement over desert-shack-v1.webp, generated from its (988,144), 290 by 460 source crop in a 1280 by 768 canvas. Only the door aperture and the previous open leaf are composited through a feathered outline. Draw at the full 480 by 288 game canvas.
+
+Use for this game and its distribution. No third-party screenshots, photographs or character likenesses were used.
+
+Drawing instruction
+
+Pixel-registration edit of the supplied original tightly cropped door in the right wall of an ordinary fictional tin shed. Swing the EXISTING white four-panel domestic leaf SHUT on its right-hand hinges; fill the ENTIRE dark teal opening with the same weathered white-painted wood in the very same jamb and same sloped doorway perspective. Closed door spans from the original upper LEFT inside corner to the original lower RIGHT corner of this jamb; it is a fairly broad complete classic four-panel door when shut. The brass knob now near its LEFT stile. Absolutely no teal opening and no ajar sliver, keep only slim inside doorframe shading. Do not move the doorway or change the camera, room corners, wood trim, floor, built-in shadows, wall material, or composition. No additional things. All required changes occur within existing doorway and existing open leaf silhouette. Same proportions and square corners of the supplied fictional game artwork. No text or people.

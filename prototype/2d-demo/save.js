@@ -120,8 +120,7 @@ function visualPosition(visual, scene, blocked) {
   };
   return { visual: normalized, repositioned: !valid };
 }
-function prepare(input, { scenes = SCENES, isBlocked = worldIsBlocked } = {}) {
-  const packet = rawPacket(input);
+function prepareRoomSave(packet, { scenes = SCENES, isBlocked = worldIsBlocked } = {}) {
   if (!record(packet) || packet.version !== VISUAL_SAVE_VERSION
     || !record(packet.engine) || !record(packet.visual)) fail('VISUAL_FORMAT', '这不是兼容的二维游戏存档。');
   validateEngineEnvelope(packet.engine, scenes);
@@ -135,6 +134,23 @@ function prepare(input, { scenes = SCENES, isBlocked = worldIsBlocked } = {}) {
   try { engine = JSON.parse(JSON.stringify(packet.engine)); }
   catch { fail('ENGINE_FORMAT', '游戏状态无法序列化。'); }
   return { save: { version: VISUAL_SAVE_VERSION, engine, visual: position.visual }, repositioned: position.repositioned };
+}
+
+function prepare(input, options) {
+  const packet = rawPacket(input);
+  const result = prepareRoomSave(packet, options);
+  if (packet.ferryDeparture == null) return result;
+  // The return point belongs to this crossing and travels with its exported
+  // save. A fresh game or an unrelated import cannot inherit another fare.
+  const departure = prepareRoomSave(packet.ferryDeparture, options).save;
+  const origin = departure.engine.state, current = result.save.engine.state;
+  if (origin.room !== 'the_river' || origin.flags?.includes('river_ferry_onboard')
+      || origin.flags?.includes('river_ferry_crossed') || origin.turns > current.turns
+      || !['the_river','sand_bar','islet'].includes(current.room)) {
+    fail('FERRY_DEPARTURE', '存档中的登船前位置与这次渡程不符。');
+  }
+  result.save.ferryDeparture = departure;
+  return result;
 }
 
 export function makeVisualSave(engineOrSave, visual, options = {}) {
@@ -172,7 +188,7 @@ export function createVisualSaveStore({ storage, scenes = SCENES, isBlocked = wo
       return { ok: true, ...prepared, empty: false, error: null };
     } catch (error) { return { ok: false, save: null, empty: false, error }; }
   }
-  function write(engineOrSave, visual) {
+  function write(engineOrSave, visual, ferryDeparture) {
     try {
       if (typeof storage?.setItem !== 'function') throw unavailable();
       const serialized = typeof engineOrSave?.serialize === 'function' ? engineOrSave.serialize() : engineOrSave;
@@ -180,7 +196,7 @@ export function createVisualSaveStore({ storage, scenes = SCENES, isBlocked = wo
       if (engineSave?.state?.dead === true) return { ok: true, save: null, skipped: true, error: null };
       const prepared = serialized?.engine && visual === undefined
         ? prepare(serialized, options)
-        : prepare({ version: VISUAL_SAVE_VERSION, engine: serialized, visual }, options);
+        : prepare({ version: VISUAL_SAVE_VERSION, engine: serialized, visual, ferryDeparture }, options);
       const text = JSON.stringify(prepared.save);
       storage.setItem(VISUAL_SAVE_KEY, text);
       return { ok: true, ...prepared, skipped: false, error: null };

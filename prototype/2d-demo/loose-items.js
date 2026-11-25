@@ -1,4 +1,4 @@
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 
 const action = (label, command) => ({ label, command });
 

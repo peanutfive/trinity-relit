@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPrologueSession } from '../engine-adapter.js';
+import { ferryView } from '../ferry-state.js';
 import { sceneExits } from '../scene-manifest.js';
 
 // Begin with the same possessions, time and chapter registration as a new game.
@@ -28,9 +29,13 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
     'give paper to girl','w','ride bird','n','nw','e','s']);
   assert.equal(engine.state.room,'cemetery');
   await play(['open crypt with spade','take shroud','wear shroud','take bandage','take silver coin',
-    's','w','se','w','sw','se','wait','wait','enter dory','give silver coin to oarsman']);
+    's','w','se','w','sw','se','nw','u','push lever','turn ring to seventh symbol','d','se']);
+  for(let i=0;i<12 && !ferryView(engine.state).docked;i++) await play(['look']);
+  await play(['enter dory','give silver coin to oarsman']);
   assert.equal(engine.state.room,'sand_bar');
   await play(['s','enter door']);
+  assert.equal(engine.state.room,'shack');
+  await play(['w','d','d','se']);
   const state = engine.state;
   assert.equal(state.room, 'shallow_crater');
   assert.ok(state.has('gnomon'));

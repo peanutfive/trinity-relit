@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SCENES } from '../scene-manifest.js';
 import { playedFerryCheckpoint } from './played-ferry-checkpoint.mjs';
+import { shackRoads } from './browser-islet-route.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = new URL(process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/');
@@ -190,7 +191,9 @@ async function retrieveGnomon(id) {
 }
 
 try {
-  const { file } = await playedFerryCheckpoint({stage:'crater',url,output});
+  const { file,save } = await playedFerryCheckpoint({stage:'crater',url,output});
+  const arrivalRooms = save.engine.state.visited.filter(room => SCENES[room]?.chapter==='desert');
+  const arrivalRoads = shackRoads.filter(pair=>pair.every(room=>arrivalRooms.includes(room))).map(([from,to])=>edgePair(from,to));
   await page.goto(roadsOnly.href);
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click();
@@ -201,7 +204,7 @@ try {
   await until(s => s.room === 'shallow_crater' && !s.processing, '浅坑存档未载入');
   await drain();
   assert.equal(desert.size, 13);
-  await checkMap(['shallow_crater'], [], 'initial-map');
+  await checkMap(arrivalRooms, arrivalRoads, 'initial-map');
   await explore();
   assert.deepEqual([...visited].sort(), [...desert].sort());
   assert.deepEqual(connectors.map(({ room }) => room).sort(), Object.keys(pavedConnections));
@@ -210,8 +213,9 @@ try {
   assert.equal(expected.length, 28);
   assert.deepEqual([...receipts.keys()].sort(), expected.sort());
   const trailRoads = [...receipts.values()];
-  const drawnRoads = new Set(trailRoads.map(({ from, target }) => edgePair(from, target)));
-  await checkMap(desert, drawnRoads, 'desert-map');
+  const drawnRoads = new Set([...arrivalRoads,...trailRoads.map(({ from, target }) => edgePair(from, target))]);
+  const drawnRooms = new Set([...desert,...arrivalRooms]);
+  await checkMap(drawnRooms, drawnRoads, 'desert-map');
 
   // Return to the middle foothill and save near a newly connected road.
   for (const dir of ['w', 'w', 's']) {
@@ -235,7 +239,7 @@ try {
   assert.equal(restored.routeMarker?.exit?.target, pavedConnections.foothills_2);
   await shot('restored-west-road');
   await page.setViewportSize({ width: 844, height: 390 });
-  await checkMap(desert, drawnRoads, 'phone-map');
+  await checkMap(drawnRooms, drawnRoads, 'phone-map');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await retrieveGnomon(groundItem);
   await shot('phone-recovered-item');

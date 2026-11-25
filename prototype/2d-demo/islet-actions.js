@@ -1,3 +1,4 @@
+import { isletDoorView } from './islet-shadow.js';
 import { groundItems, carriedItemActions } from './loose-items.js';
 import { ferryView } from './ferry-state.js';
 import { ferryShoreGeometry, FERRY_ABOARD_POINTS } from './ferry-visual-layout.js';
@@ -59,12 +60,20 @@ export function getIsletHotspots(state) {
       id:'islet:crown',kind:'islet_crown',label:'菌盖',...points.crown,radius:35,
       pointerOnly:true,baked:true,actions:[action('观察毒菌','examine toadstool')],
     });
+    const door = onIslet && isletDoorView(state);
+    if (door && !door.legacy && (door.near || door.aligned)) objects.push({
+      id:'islet:shadow',kind:'islet_shadow',label:'影尖',x:326,y:166,radius:19,baked:true,
+      pointerShape:{kind:'polygon',priority:3,points:door.aligned
+        ? [[333,153],[362,146],[366,149],[340,157]]
+        : [[312,163],[336,155],[340,158],[319,167]]},
+      actions:[action('查看影尖','examine shadow')],
+    });
     if (onIslet || ferryView(state).fixedBerth) objects.push({
       id: `${room}:gate`, kind: 'islet_gate', label: '毒菌白门', ...points.gate, radius: 35,
-      baked: true, navigationHint: '穿过白门',
+      baked: true, navigationHint: door && !door.open ? '试着推门' : '穿过白门',
       eventId: onIslet ? 'enter_door_to_desert' : 'enter_door_to_desert_sb',
       ...(onIslet ? { itemId: 'toadstool_islet' } : {}),
-      actions: [action('观察', onIslet ? 'examine toadstool' : 'look'), action('进入', 'enter door')],
+      actions: [action('观察', onIslet ? (door.legacy?'examine toadstool':'examine door') : 'look'), action('进入', 'enter door')],
     });
     objects.push(...ferryObjects(state,points.ferry));
     if (!onIslet) {

@@ -5,6 +5,7 @@ import { getHotspots, getInventoryActions } from '../interaction-catalog.js';
 import { getHotspots as getPrologueHotspots } from '../prologue-actions.js';
 import { WABE_SLICE_ROOMS } from '../wabe-actions.js';
 import { ROOMS } from '../../js/data/wabe.js';
+import { ROOMS as VISUAL_ROOMS } from '../cemetery-story.js';
 import { Parser } from '../../js/parser.js';
 
 function createGame() {
@@ -72,7 +73,7 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
     assert.equal(objects.length, new Set(objects.map(object => object.id)).size);
     for (const object of objects) {
       assert.ok(object.x >= 12 && object.x <= 468 && object.y >= 12 && object.y <= 276);
-      if (object.eventId) assert.ok(ROOMS[room].events.some(event => event.id === object.eventId));
+      if (object.eventId) assert.ok(VISUAL_ROOMS[room].events.some(event => event.id === object.eventId));
       for (const action of object.actions) {
         const parsed = parser.parse(action.command);
         assert.ok(parsed, action.command);

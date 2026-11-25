@@ -1,6 +1,7 @@
 import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
 import { ranchDoors } from './ranch-actions.js';
+import { doorwayLayer } from './shack-route-art.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
 const sceneArtError = message => Object.assign(new Error(message), { name: 'SceneArtError' });
@@ -51,12 +52,18 @@ function shadeSceneEdges(c) {
   c.fillStyle=gradient;
   c.fillRect(0,0,480,288);
 }
+function drawDoorwayLayer(c, room, state) {
+  const src = doorwayLayer(room, state);
+  const image = src && backgrounds.get(src);
+  if (image?.complete && image.naturalWidth) c.drawImage(image, 0, 0, 480, 288);
+}
 export function drawScene(c,room,time,effects=true,state={}){
   c.imageSmoothingEnabled=true;
   const background=SCENES[room]?.background;const atlas=backgrounds.get(backgroundSource(background,state));
   if(!atlas)ensureSceneArt(room,state).catch(()=>{});
   if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();if(room==='arboretum'&&state.flipped){c.translate(480,0);c.scale(-1,1);}c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
+  drawDoorwayLayer(c,room,state);
   for(const door of ranchDoors(SCENES[room])){
     if(!flagActive(state,door.flag))continue;
     const layer=backgrounds.get(doorImage(door));
@@ -105,7 +112,12 @@ export function drawOcclusion(c,room,footY,state){
     if(footY>=cover.depthY)continue;
     c.save();clipOutline(c,cover.points);
     if(cover.material==='iron-bars'){const mask=ironMask(cover,atlas,background);c.globalAlpha*=.72;c.drawImage(mask.canvas,mask.x,mask.y,mask.w,mask.h);}
-    else{const h=atlas.naturalHeight/background.panels;c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);}c.restore();
+    else{
+      const h=atlas.naturalHeight/background.panels;
+      c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);
+      drawDoorwayLayer(c,room,state);
+    }
+    c.restore();
   }
   for(const door of ranchDoors(scene)){
     if(door.openLeafDepthY==null || footY>=door.openLeafDepthY || !flagActive(state,door.flag))continue;

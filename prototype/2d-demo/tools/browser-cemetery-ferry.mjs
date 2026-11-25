@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { pointerCenter, setIslandDial, shackPassages } from './browser-islet-route.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
@@ -172,6 +173,15 @@ async function exportProgress(path) {
   return JSON.parse(await readFile(path, 'utf8'));
 }
 
+async function importProgress(path, expectedRoom) {
+  await drain();
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab',{name:'探索进度'}).click();
+  await page.locator('#save-file').setInputFiles(path);
+  await until(s => !s.processing && s.room===expectedRoom && s.mode!=='paused', '实玩存档未恢复');
+  await drain();
+}
+
 
 async function holdItem(name) {
   await page.keyboard.press('i');
@@ -214,12 +224,7 @@ async function reachCemetery() {
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   assert.equal((await state()).mode,'title');
   await page.locator('#start').click();
-  await drain();
-  await page.keyboard.press('Escape');
-  await page.getByRole('tab',{name:'探索进度'}).click();
-  await page.locator('#save-file').setInputFiles(checkpoint);
-  await until(s=>!s.processing && s.room===exported.engine.state.room,'从序章真实导出的存档打不开');
-  await drain();
+  await importProgress(checkpoint,exported.engine.state.room);
   assert.equal((await state()).turns,exported.engine.state.turns);
   await dial(1);
   await travel('e','the_bend');
@@ -273,7 +278,10 @@ async function reachRiver() {
   await travel('se','craters_edge');
   await travel('w','under_cliff');
   await travel('sw','bottom_of_stairs');
-  assert.equal((await state()).sundialSymbol,1);
+  await pointerAction('bottom_of_stairs:stairs',[245,102],'u','vertex');
+  await setIslandDial({state,tap:(point,command)=>checkCommand(()=>clickAt(point),command)},checkpointStage==='river'?6:7);
+  await record('shadow-prepared-for-crossing');
+  await pointerAction('vertex:stairs',[200,222],'d','bottom_of_stairs');
   await travel('se','the_river');
   await record('river-before-board');
 }
@@ -589,12 +597,24 @@ async function testSandBar() {
 
 async function enterCrater() {
   await travel('s','islet');
+  assert.ok((await state()).isletDoor?.aligned);
   await approachF([343,166],'d','islet:gate');
-  await pressF('examine toadstool');
-  const crater = await pressF('enter door','shallow_crater');
-  assert.equal(crater.navigation.arrival?.entrance,'door');
-  assert.equal(crater.navigation.arrival?.fromRoom,'islet');
-  await record('crater-from-islet');
+  await pressF('examine door');
+  const shack = await pressF('enter door','shack');
+  assert.equal(shack.navigation.arrival?.entrance,'door');
+  assert.equal(shack.navigation.arrival?.fromRoom,'islet');
+  assert.equal(shack.shackDoor.open,true);
+  await record('shack-from-islet');
+  for (const {from,dir,to,entrance} of shackPassages) {
+    const object = (await state()).objects.find(item=>item.id===`${from}:passage:${dir}`);
+    await pointerAction(object.id,pointerCenter(object),dir,to);
+    assert.equal((await state()).navigation.arrival?.entrance,entrance);
+  }
+  await travel('se','shallow_crater');
+  const crater = await state();
+  assert.equal(crater.navigation.arrival?.entrance,'nw');
+  assert.equal(crater.navigation.arrival?.fromRoom,'base_of_tower');
+  await record('crater-from-tower');
 }
 
 try {

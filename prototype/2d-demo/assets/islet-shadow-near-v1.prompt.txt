@@ -1,0 +1,3 @@
+Original lighting overlay calculated from the project-owned islet-islet-v1.png. No external image or generator was used for this layer. The shadow uses a tapered cast-shadow profile and a soft penumbra which widens away from the tip. Its cool tint follows underlying terrain brightness. Tip at logical (336,158), southwest of the closed sill; original island RGB beneath is retained. Native 1586 by 992. Draw full frame at 480 by 288.
+
+Use for this game and its distribution. No third-party screenshots, photographs or character likenesses were used.

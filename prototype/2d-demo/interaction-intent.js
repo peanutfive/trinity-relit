@@ -1,10 +1,12 @@
-import { ITEMS } from '../js/data/items.js';
+import { ITEMS } from './exploration-items.js';
 
 // One physical intention at a time. Menus never reveal the puzzle's verb list.
 export function resolveInteraction(state,object,{heldItem=null,observed=new Set()}={}) {
   if(!object)return null;
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
+  if(object.kind==='shack_door' || object.kind==='sundial_lever')return actions[0]?.command;
+  if(object.kind==='paperback')return seen?find('take '):find('examine ');
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='binoculars' && object.physicalHint)return find('take ');
   if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
@@ -43,6 +45,8 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='mushroom_gate')return seen
     ? actions.find(a=>a.command==='in')?.command||find('look') : find('look');
   if(object.kind==='japan_door')return seen?find('enter door')||find('look'):find('look');
+  if(object.id==='vertex:fixed-gnomon'||object.kind==='islet_shadow')return find('examine shadow');
+  if(object.kind==='ring' && state.room==='vertex')return seen ? find('turn ') : find('examine ');
   if(object.kind==='passage')return actions.find(a=>['n','ne','e','se','s','sw','w','nw','in','out','u','d'].includes(a.command))?.command||null;
   if(object.kind==='japan_children')return find('wait');
   if(object.kind==='stairs')return find('u')||find('d')||find('look');
