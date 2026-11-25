@@ -135,19 +135,26 @@ async function pressF(command, target) {
   return current;
 }
 
+async function touchAction(point, command, screenshot) {
+  const before = await state();
+  await page.touchscreen.tap(...await canvasPoint(...point));
+  const after = await until(s => !s.processing && s.turns>before.turns, `触摸未完成 ${command}`);
+  assert.equal(after.lastCommand,command);
+  assert.equal(after.turns,before.turns+1);
+  if (screenshot) await shot(screenshot);
+  const pages = await drain();
+  assert.equal(new Set(pages).size,pages.length,'同一次触摸不重复显示叙述');
+  receipts.push({case:'touch',point,command,from:before.room,target:after.room,turn:after.turns});
+  return {after,pages};
+}
+
 async function touchVessel(id, command) {
   const before = await state();
   const object = before.objects.find(entry => entry.id===`${before.room}:${id}`);
   assert.ok(object?.actions.some(action => action.command===command));
   const {points} = object.pointerShape;
   const midpoint = points.reduce(([x,y],[px,py]) => [x+px/points.length,y+py/points.length],[0,0]);
-  await page.touchscreen.tap(...await canvasPoint(...midpoint));
-  const after = await until(s => !s.processing && s.turns>before.turns && s.lastCommand===command, `触摸未完成 ${command}`);
-  assert.equal(after.turns,before.turns+1);
-  const pages = await drain();
-  assert.equal(new Set(pages).size,pages.length,'渡口抵达描述只显示一次');
-  receipts.push({case:'touch',command,from:before.room,target:after.room,turn:after.turns});
-  return after;
+  return (await touchAction(midpoint,command)).after;
 }
 
 async function crossFromRiver() {
@@ -158,13 +165,10 @@ async function crossFromRiver() {
   await tapDirection('d',350);
   assert.deepEqual(gameState(await state()),gameState(first));
   await page.setViewportSize({width:844,height:390});
-  for (const phase of [1,2]) {
-    const before = await state();
-    await page.keyboard.press('r');
-    await until(s => !s.processing && s.turns===before.turns+1 && s.ferry.phase===phase,'渡船阶段未推进');
-    await drain();
-  }
-  await touchVessel('ferry','examine dory');
+  assert.equal((await touchVessel('ferry','examine dory')).ferry.phase,1);
+  const docked = await touchVessel('ferry','wait');
+  assert.equal(docked.ferry.phase,2);
+  assert.ok(docked.ferry.docked);
   const boarded = await touchVessel('ferry','enter dory');
   assert.ok(boarded.ferry.onboard);
   assert.equal(boarded.room,'the_river');
@@ -187,6 +191,30 @@ async function goToSandBar() {
 
 async function goEastFromCrater() {
   await walkRoad([[351, 154], [411, 144], [444, 129]], 'd', 'desert_6', 'w');
+}
+
+async function inspectCanopy() {
+  await page.setViewportSize({width:844,height:390});
+  for (let visit = 0; visit < 2; visit++) {
+    const {after,pages} = await touchAction([376,82],'examine toadstool',visit===0?'phone-canopy-observation':undefined);
+    assert.equal(after.room,'islet');
+    const text = pages.join('\n');
+    assert.match(text,/十二英尺|12\s*英尺/);
+    assert.doesNotMatch(text,/沙漠|墨西哥|浅坑/);
+  }
+  const before = await state();
+  const gate = before.objects.find(object => object.id==='islet:gate');
+  assert.ok(gate?.actions.some(action => action.command==='enter door'));
+  if (!before.observed.includes(gate.id)) {
+    const look = gate.actions.find(action => action.command.startsWith('examine '));
+    if (look) {
+      const {after} = await touchAction([363,135],look.command);
+      assert.equal(after.room,'islet');
+    }
+  }
+  const {after} = await touchAction([363,135],'enter door');
+  await page.setViewportSize({width:1440,height:900});
+  return after;
 }
 
 async function checkMap(chapter, rooms, connections, screenshot) {
@@ -217,13 +245,27 @@ try {
   await importSave(file,'the_river');
   await crossFromRiver();
   const sandBarSave = await exportSave('sand-bar-paid-played.json');
+  const withoutGate = await state();
+  assert.ok(!withoutGate.objects.some(object => object.id==='sand_bar:gate'));
+  assert.ok(!withoutGate.exits.some(exit => exit.target==='shallow_crater'));
+  assert.ok(withoutGate.backgrounds.includes('./assets/islet-sand-bar-v2.webp'));
+  await page.setViewportSize({width:844,height:390});
+  await page.touchscreen.tap(...await canvasPoint(144,197));
+  await until(s => !s.processing && !s.navigation.path.length,'沙洲旧门位置未结束步行');
+  assert.deepEqual(gameState(await state()),gameState(withoutGate),'新沙洲旧门位置有残留交互');
+  await page.touchscreen.tap(...await canvasPoint(151,177));
+  const acrossSand = await until(s => !s.processing && !s.navigation.path.length,'未走进原菌柄附近沙地');
+  assert.deepEqual(gameState(acrossSand),gameState(withoutGate));
+  assert.ok(Math.hypot(acrossSand.player.x-151,acrossSand.player.y-177)<7,'角色无法踏入绘出的沙地');
+  receipts.push({case:'new-sand-bar-walkable-sand',point:[151,177],foot:[acrossSand.player.x,acrossSand.player.y],turn:acrossSand.turns});
+  await shot('paid-sand-bar-without-door');
+  await page.setViewportSize({width:1440,height:900});
   await walkRoad([[210, 255]], 's', 'islet', 'n');
   await goToSandBar();
   await checkMap('islet', ['islet', 'sand_bar'], [['islet', 'sand_bar']], 'islet-map');
   await walkRoad([[210, 255]], 's', 'islet', 'n');
-  await approach('islet_gate', [343, 166], 'd');
-  await pressF('examine toadstool');
-  const crater = await pressF('enter door', 'shallow_crater');
+  const crater = await inspectCanopy();
+  assert.equal(crater.room,'shallow_crater');
   assert.equal(crater.navigation.arrival?.fromRoom, 'islet');
   assert.equal(crater.navigation.arrival?.entrance, 'door');
   assert.equal((await state()).chapter, 'desert');
@@ -266,16 +308,22 @@ try {
   receipts.push({ case: 'main-route', source: '正常取得银币并付费到达沙洲的实玩进度' });
 
   await importSave(sandBarSave,'sand_bar');
-  await approach('islet_gate', [174, 214], 'a');
-  await pressF('look');
-  const fromSandBar = await pressF('enter door', 'shallow_crater');
-  assert.equal(fromSandBar.navigation.arrival?.fromRoom, 'sand_bar');
-  assert.equal(fromSandBar.navigation.arrival?.entrance, 'door');
+  assert.ok(!(await state()).objects.some(object => object.id==='sand_bar:gate'));
+  receipts.push({case:'paid-south-only',source:'本次实付沙洲档',door:false});
 
   if (process.env.PLAYED_LEGACY_SAND_BAR) {
     await importSave(process.env.PLAYED_LEGACY_SAND_BAR,'sand_bar');
     const old = await state();
     assert.equal(old.ferry.legacyPaid,true);
+    assert.ok(old.backgrounds.includes('./assets/islet-sand-bar-v1.png'));
+    assert.ok(old.objects.some(object => object.id==='sand_bar:gate'));
+    await shot('legacy-paid-sand-bar-door');
+    await approach('islet_gate',[174,214],'a');
+    if (!old.observed.includes('sand_bar:gate')) await pressF('look');
+    const fromSandBar = await pressF('enter door','shallow_crater');
+    assert.equal(fromSandBar.navigation.arrival?.fromRoom,'sand_bar');
+    assert.equal(fromSandBar.navigation.arrival?.entrance,'door');
+    await importSave(process.env.PLAYED_LEGACY_SAND_BAR,'sand_bar');
     await approach('islet_ferry',[245,154],'d');
     if (!old.observed.includes('sand_bar:ferry')) await pressF('examine dory');
     await pressF('out','the_river');
@@ -284,7 +332,7 @@ try {
 
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({ receipts, errors }, null, 2)}\n`);
-  console.log('通过触摸登艇付费、沙洲与小岛、两侧白门、地图及沙漠续玩检查');
+  console.log('通过触摸登艇付费、沙洲南口到小岛、旧档通路、地图及沙漠续玩检查');
 } catch (error) {
   await shot('failure').catch(() => {});
   const current = await state().catch(() => null);

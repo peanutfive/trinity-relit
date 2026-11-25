@@ -2,6 +2,7 @@ import { GameEngine } from '../js/engine.js';
 import { ferryView, startFerry } from './ferry-state.js';
 import { advanceFerry, leaveFerry } from './ferry-voyage.js';
 import { unseenFerryTarget } from './ferry-shore.js';
+import { missingSandbarFeature } from './sandbar-ground.js';
 import { Parser } from '../js/parser.js';
 import { ITEMS } from '../js/data/items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
@@ -51,6 +52,10 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     if (command && (state.room === 'the_river' || state.room === 'sand_bar')) {
       const view = ferryView(state);
+      if (state.room === 'sand_bar' && !view.fixedBerth) {
+        const missing = missingSandbarFeature(command);
+        if (missing) { this.print(missing); return true; }
+      }
       if (command.type === 'direction') {
         const direction = command.dir;
         // The Z-machine's bare IN/OUT are direction routines. They can change

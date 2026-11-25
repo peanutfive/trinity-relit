@@ -291,14 +291,19 @@ async function inspectCrypt() {
   await inspection.waitFor({ state:'visible' });
 }
 
-async function checkCommand(input, command, points = 0, screenshot, turns = 1) {
+async function checkCommand(input, command, points = 0, {turns = 1,crossing = false} = {}) {
   const before = await state();
   await input();
   const after = await until(s => !s.processing && s.lastCommand===command && s.turns>before.turns, `未完成 ${command}`);
   assert.equal(after.turns,before.turns+turns);
   assert.equal(after.score,before.score+points);
   receipts.push({ command,room:after.room,turn:after.turns,points });
-  if (screenshot) await shot(screenshot);
+  if (crossing) {
+    const frame = await until(s => s.narrative.currentEvent==='ferry_crossing' && s.narrative.elapsed>=0.65,'渡船穿雾演出未播放');
+    assert.equal(frame.narrative.sceneRoom,'the_river');
+    assert.equal(frame.turns,after.turns);
+    await shot('ferry-crossing-mid-fog');
+  }
   await drain();
   return after;
 }
@@ -435,7 +440,7 @@ async function checkPhase(phase,visible,docked = false) {
 }
 
 async function pressWait(turns = 1) {
-  return checkCommand(() => page.keyboard.press('r'),'wait',0,undefined,turns);
+  return checkCommand(() => page.keyboard.press('r'),'wait',0,{turns});
 }
 
 async function touchFerry(kind, command, touch = false) {
@@ -457,7 +462,7 @@ async function changeShroud(command) {
 
 async function checkPaidCrossing() {
   await holdItem('银币');
-  const arrival = await checkCommand(() => page.keyboard.press('f'),'give silver coin to oarsman');
+  const arrival = await checkCommand(() => page.keyboard.press('f'),'give silver coin to oarsman',0,{crossing:true});
   assert.equal(arrival.room,'sand_bar');
   assert.equal(arrival.chapter,'islet');
   assert.equal(arrival.navigation.arrival?.entrance,'ferry');
@@ -569,7 +574,10 @@ async function testSandBar() {
   assert.match(island.dialogue?.text,/十来码|脚步|每一步/);
   assert.ok(!/南边的沙地/.test(island.dialogue?.text));
   await travel('n','sand_bar');
-  while ((await state()).ferry.phase!==8) await checkCommand(() => page.keyboard.press('l'),'look');
+  for (let turn = 0; turn < 12 && (await state()).ferry.phase!==8; turn++) {
+    await checkCommand(() => page.keyboard.press('l'),'look');
+  }
+  await checkPhase(8,true);
   await touchFerry('ferry','examine dory');
   await checkPhase(9,true,true);
   const turnedAway = await touchFerry('ferry','enter dory');
@@ -605,7 +613,9 @@ try {
   }
   assert.deepEqual(errors,[]);
   await writeFile(join(output,'result.json'),JSON.stringify({pass:true,receipts,errors},null,2));
-  console.log('正常探索墓地、河岸候船及渡船起程通过');
+  if (checkpointStage === 'river') console.log('正常探索墓地并在初见渡船时导出河岸存档');
+  else if (checkpointStage === 'crater') console.log('从正常开局过河并导出浅坑存档');
+  else console.log('正常探索墓地、河岸候船及渡船起程通过');
 } catch (error) {
   await shot('failure').catch(() => {});
   await writeFile(join(output,'failure.json'),JSON.stringify({message:error.message,state:await state().catch(() => null),receipts,errors},null,2));

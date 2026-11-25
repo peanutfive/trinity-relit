@@ -36,7 +36,7 @@ import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryE
 import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
-import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt } from './art.js';
+import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt, currentPlate } from './art.js';
 import { ITEMS } from '../js/data/items.js';
 
 const $ = selector => document.querySelector(selector);
@@ -574,7 +574,8 @@ function navigationScene(){
     const doorBody=engine.state.hasFlag(door.flag)?door.openObstacles:door.closedObstacles;
     if(doorBody)bodies.push(...doorBody);
   }
-  return cachedNavigationScene(scene,bodies);
+  const plate = currentPlate(scene.background,engine.state);
+  return cachedNavigationScene(scene,bodies,plate?.walkablePolygons);
 }
 function solid(x, y) { return isBlocked(navigationScene(), x, y); }
 function normalizePlayerLocation(){

@@ -5,6 +5,9 @@ export const ISLET_POINTS = {
   islet: {
     ferry: { x: 128, y: 185, drawAt: { x: 73, y: 191 } },
     gate: { x: 355, y: 163, pointerShape: { kind: 'ellipse', x: 363, y: 135, rx: 14, ry: 20, priority: 2 } },
+    crown: { x: 355, y: 163, pointerShape: { kind: 'polygon', priority: 1, points:
+      [[309,88],[322,71],[346,55],[372,48],[393,50],[410,59],[431,75],[445,94],
+       [447,104],[430,113],[409,114],[390,107],[363,99],[339,96],[318,94]] } },
   },
   sand_bar: {
     ferry: { x: 261, y: 149, drawAt: { x: 342, y: 151 } },
@@ -28,12 +31,16 @@ export const ISLET_LAYOUT = {
     exitAnchors: { n: [238,16] }, exitApproaches: { n: [0,-1] },
   },
   sand_bar: {
-    chapter: 'islet', objectId: 501, image: './assets/islet-sand-bar-v1.png',
+    chapter: 'islet', objectId: 501, image: './assets/islet-sand-bar-v2.webp',
     spawn: [220, 183], looseAnchor: [224, 197],
     sourceArrivals: { the_river: { x: 255, y: 151, face: 'left', entrance: 'ferry' } },
-    occluders: [{depthY: 210, points: [[94,159],[103,151],[123,140],[142,134],[157,135],[169,139],
-      [180,148],[184,154],[182,161],[175,166],[158,170],[155,182],[157,199],[156,207],
-      [145,209],[122,208],[121,203],[126,180],[126,173],[109,171],[98,167]]}],
+    occluders: [],
+    legacyBackground: {
+      image: './assets/islet-sand-bar-v1.png',
+      occluders: [{depthY: 210, points: [[94,159],[103,151],[123,140],[142,134],[157,135],[169,139],
+        [180,148],[184,154],[182,161],[175,166],[158,170],[155,182],[157,199],[156,207],
+        [145,209],[122,208],[121,203],[126,180],[126,173],[109,171],[98,167]]}],
+    },
     walkablePolygons: [[[153,288],[169,268],[178,251],[166,235],[144,226],[117,219],
       [120,212],[150,210],[160,204],[163,188],[161,178],[183,167],[180,147],[159,138],
       [151,131],[166,119],[189,108],[202,97],[215,81],[220,69],[233,59],[245,63],
@@ -44,6 +51,15 @@ export const ISLET_LAYOUT = {
     exitApproaches: { s: [0,1] }, interactionExitDirs: ['out'], propOnlyExitDirs: ['out'],
   },
 };
+
+// The old trunk occupied this band. The new shore has exposed rippled sand
+// between the driftwood to the northwest and the grassy rocks to the southwest.
+const shoal = ISLET_LAYOUT.sand_bar;
+shoal.legacyBackground.walkablePolygons = shoal.walkablePolygons;
+shoal.walkablePolygons = [...shoal.walkablePolygons, [
+  [116,210],[140,203],[131,194],[127,186],[116,178],[109,169],[118,158],
+  [136,149],[154,136],[177,126],[201,119],[223,138],[213,195],[181,218],[145,218],
+]];
 
 for (const layout of Object.values(ISLET_LAYOUT)) {
   Object.assign(layout, { footprint: { rx: 6, ry: 3 }, pathResolution: 0.25, blockedPolygons: [], obstacles: [] });

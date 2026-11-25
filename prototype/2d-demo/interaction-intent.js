@@ -36,7 +36,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
     return seen ? find('enter dory') || find('in') || find('out') || find('wait') || observe : observe;
   }
   if (object.kind==='sandbar_water' || object.kind==='completion_river') return (seen && find('wait')) || find('examine ');
-  if (object.kind==='sandbar_sand') return find('examine ');
+  if (object.kind==='sandbar_sand' || object.kind==='islet_crown') return find('examine ');
   if(object.kind==='pacific_box')return seen?find('open box')||find('look'):find('look');
   if(['pacific_switch','pacific_button'].includes(object.kind))return find('push ')||find('look');
   // Doorways are navigation: carrying a prop must not lock the player inside.

@@ -4,6 +4,8 @@ import { ROOMS as TEXT_WABE } from '../../js/data/wabe.js';
 import { ROOMS as TEXT_ISLET } from '../../js/data/islet.js';
 import { createPrologueSession } from '../engine-adapter.js';
 import { ferryView } from '../ferry-state.js';
+import { getHotspots } from '../interaction-catalog.js';
+import { resolveInteraction } from '../interaction-intent.js';
 
 function session() {
   const lines=[];
@@ -215,4 +217,65 @@ test('旧河岸档第一次恢复启动排班，旧票已付与旧岛尚未付�
   }
   assert.ok(TEXT_WABE.the_river.exits(original.engine.state).in);
   assert.ok(TEXT_ISLET.sand_bar.events.some(event=>event.id==='give_coin_to_oarsman_sb'));
+});
+
+test('正常渡河后沙洲没有菌门，穿门只在南侧小岛生效',async()=>{
+  const run=await river();
+  run.engine.state.wear('shroud');
+  run.engine.state.toPocket('silver_coin');
+  await dock(run);
+  await run.enter('enter dory');
+  await run.enter('give silver coin to oarsman');
+  const next=await restore(run);
+  const state=next.engine.state;
+  const turn=state.turns;
+  for(const command of ['enter door','enter white door','进入白门','examine door','观察毒菌','examine toadstool']){
+    assert.match(await next.enter(command),/You can't see any (door|toadstool) here\./);
+    assert.equal(state.room,'sand_bar');
+    assert.equal(state.turns,turn);
+    assert.equal(state.hasFlag('islet_done'),false);
+  }
+  await next.enter('s');
+  assert.equal(state.room,'islet');
+  await next.enter('enter white door');
+  assert.equal(state.room,'shallow_crater');
+  assert.equal(state.hasFlag('islet_done'),true);
+});
+
+test('两类历史登岛档读入后仍可用沙洲原有白门',async()=>{
+  for(const flag of ['wabe_to_islet_used','ferry_paid']) {
+    const run=session();
+    await run.engine.transitionChapter({to:'islet',roomCandidates:['sand_bar']});
+    run.engine.state.setFlag(flag);
+    const next=await restore(run);
+    await next.enter('enter door');
+    assert.equal(next.engine.state.room,'shallow_crater');
+    assert.equal(next.engine.state.hasFlag('islet_done'),true);
+  }
+});
+
+test('小岛首次靠近按 F、点菌盖与中英文查看菌柄均只描述可见的高度',async()=>{
+  const run=await river();
+  const state=run.engine.state;
+  state.wear('shroud');
+  state.take('silver_coin');
+  await dock(run);
+  await run.enter('enter dory');
+  await run.enter('give silver coin to oarsman');
+  await run.enter('s');
+  const objects=getHotspots(state);
+  const near=objects.find(object=>object.id==='islet:gate');
+  const crown=objects.find(object=>object.id==='islet:crown');
+  const initialLocation=state.itemAt('toadstool_islet');
+  const expected='The toadstool must be at least twelve feet from base to crown.\n\n这株毒菌从根部到菌盖，少说也有十二英尺高。';
+  const inspect=resolveInteraction(state,near);
+  assert.equal(inspect,'examine toadstool');
+  assert.equal(resolveInteraction(state,crown),inspect);
+  for(const command of [inspect,'look at the mushroom','examine stem','examine crown','观察毒菌','看蘑菇','检查菌柄','查看菌盖']) {
+    assert.equal(await run.enter(command),expected);
+    assert.equal(state.room,'islet');
+    assert.equal(state.itemAt('toadstool_islet'),initialLocation);
+    assert.equal(state.hasFlag('islet_done'),false);
+  }
+  assert.equal(resolveInteraction(state,near,{observed:new Set([near.id])}),'enter door');
 });

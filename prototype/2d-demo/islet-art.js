@@ -21,21 +21,23 @@ function loadSheet() {
   return Boolean(sheet);
 }
 
-function passenger(ctx,slot,x,y,height,opacity=1) {
+function passenger(ctx,slot,x,y,height,opacity=1,flip=false) {
   const atlas=propImage(FERRY_PASSENGER_ART);
   if(!atlas)return;
   const w=atlas.naturalWidth/3, h=atlas.naturalHeight, drawWidth=height*w/h;
   ctx.save();
   ctx.globalAlpha*=opacity;
-  ctx.drawImage(atlas,slot*w,0,w,h,x-drawWidth/2,y-height,drawWidth,height);
+  ctx.translate(x,y);
+  if(flip)ctx.scale(-1,1);
+  ctx.drawImage(atlas,slot*w,0,w,h,-drawWidth/2,-height,drawWidth,height);
   ctx.restore();
 }
 
 function passengersOnShore(ctx,layout,time) {
   if(layout.room!=='the_river')return;
   if(layout.phase===2){
-    passenger(ctx,0,316,155,25,.77);
-    passenger(ctx,0,300,148,20,.55);
+    passenger(ctx,0,302,150,25,.86);
+    passenger(ctx,1,317,155,27,.87);
     ctx.save();
     ctx.strokeStyle='rgba(210,190,149,.35)';
     ctx.lineWidth=.6;
@@ -119,10 +121,10 @@ export function renderFerryAboard(ctx, view, time = 0) {
   ctx.save();
   ctx.imageSmoothingEnabled=true;
   ctx.drawImage(plate,0,0,480,288);
-  if(view.phase>=3)passenger(ctx,2,111,161,60,.90);
+  if(view.phase>=3)passenger(ctx,2,109,174,67,.93);
   if(view.phase>=4){
-    passenger(ctx,2,178,163,65,.92);
-    passenger(ctx,2,303,161,59,.89);
+    passenger(ctx,2,178,178,73,.96,true);
+    passenger(ctx,2,304,173,65,.91);
   }
   const player=FERRY_ABOARD_POINTS.player;
   ctx.translate(player.x,player.y);
@@ -131,5 +133,14 @@ export function renderFerryAboard(ctx, view, time = 0) {
     time, costumeAtlas:view.shrouded?cemeteryShroudAtlas():null,
   });
   ctx.restore();
+  // The nearest edge of the painted gunwale passes in front of the seated
+  // riders' hems. Reuse its sloping timber edge in the same camera registration.
+  if(view.phase>=3){
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(24,126);
+    for(const [x,y] of [[57,148],[91,158],[128,164],[181,168],[228,169],[278,168],
+      [326,165],[372,161],[407,153],[433,144],[450,130],[454,211],[24,211]])ctx.lineTo(x,y);
+    ctx.closePath();ctx.clip();ctx.drawImage(plate,0,0,480,288);ctx.restore();
+  }
   return true;
 }

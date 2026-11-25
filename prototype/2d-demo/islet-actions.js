@@ -55,9 +55,13 @@ export function getIsletHotspots(state) {
   if (chapter === 'islet') {
     const points = ISLET_POINTS[room];
     const onIslet = room === 'islet';
-    objects.push({
+    if (onIslet) objects.push({
+      id:'islet:crown',kind:'islet_crown',label:'菌盖',...points.crown,radius:35,
+      pointerOnly:true,baked:true,actions:[action('观察毒菌','examine toadstool')],
+    });
+    if (onIslet || ferryView(state).fixedBerth) objects.push({
       id: `${room}:gate`, kind: 'islet_gate', label: '毒菌白门', ...points.gate, radius: 35,
-      baked: true, navigationHint: '进入沙漠 · 单程',
+      baked: true, navigationHint: '穿过白门',
       eventId: onIslet ? 'enter_door_to_desert' : 'enter_door_to_desert_sb',
       ...(onIslet ? { itemId: 'toadstool_islet' } : {}),
       actions: [action('观察', onIslet ? 'examine toadstool' : 'look'), action('进入', 'enter door')],

@@ -8,10 +8,13 @@ function flagActive(state,flag){
   const flags = state?.flags;
   return flags instanceof Set ? flags.has(flag) : flags?.includes(flag);
 }
-function backgroundSource(background, state) {
+export function currentPlate(background, state) {
   const variant = background?.variant;
-  return variant && flagActive(state,variant.flag) ? variant.image : background?.image;
+  if (!variant || (variant.unlessFlag && flagActive(state,variant.unlessFlag))) return background;
+  if (variant.anyFlags?.some(flag=>flagActive(state,flag)) || flagActive(state,variant.flag)) return variant;
+  return background;
 }
+const backgroundSource = (background, state) => currentPlate(background,state)?.image;
 // Background plates are large. Load the current room only; retain its source
 // scene during a crossing until the destination painting is decoded.
 function loadPlate(src){
@@ -98,7 +101,7 @@ function clipOutline(c,points) {
 export function drawOcclusion(c,room,footY,state){
   const scene=SCENES[room],background=scene?.background,atlas=backgrounds.get(backgroundSource(background,state));
   if(!atlas?.complete||!atlas.naturalWidth)return;
-  for(const cover of scene.occluders||[]){
+  for(const cover of currentPlate(background,state)?.occluders ?? scene.occluders ?? []){
     if(footY>=cover.depthY)continue;
     c.save();clipOutline(c,cover.points);
     if(cover.material==='iron-bars'){const mask=ironMask(cover,atlas,background);c.globalAlpha*=.72;c.drawImage(mask.canvas,mask.x,mask.y,mask.w,mask.h);}

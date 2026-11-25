@@ -5,9 +5,13 @@ import { waitForFerry } from './ferry-voyage.js';
 import { withSandbarGround, withIsletGround } from './sandbar-ground.js';
 
 function islandEvents(room) {
-  return room.events.map(event => event.id.startsWith('give_coin_to_oarsman_')
-    ? {...event,when:state => ferryView(state).legacyUnpaid && event.when(state)}
-    : event);
+  return room.events.map(event => {
+    if (event.id.startsWith('give_coin_to_oarsman_'))
+      return {...event,when:state => ferryView(state).legacyUnpaid && event.when(state)};
+    if (event.id === 'enter_door_to_desert_sb')
+      return {...event,when:state => ferryView(state).fixedBerth && event.when(state)};
+    return event;
+  });
 }
 
 export const ISLET_ROOMS = {

@@ -7,6 +7,10 @@ import { GameState } from '../../js/engine.js';
 import { getIsletHotspots } from '../islet-actions.js';
 import { ISLET_ROOMS } from '../ferry-islet.js';
 import { createNarrativeDirector } from '../narrative.js';
+import { currentPlate } from '../art.js';
+import { pointerTarget } from '../interaction-targets.js';
+import { resolveInteraction } from '../interaction-intent.js';
+import { createNavigationSceneCache } from '../navigation-scene.js';
 
 test('沙洲真正的南侧沙地能往返，两处观察都能站在岸上完成', () => {
   const state = new GameState();
@@ -24,6 +28,28 @@ test('沙洲真正的南侧沙地能往返，两处观察都能站在岸上完�
   }
 });
 
+test('沙洲的画面、前景遮挡和可点击的门同时匹配玩家实际经历的渡程', () => {
+  const scene=SCENES.sand_bar;
+  const navigation=createNavigationSceneCache();
+  for (const flags of [[],['ferry_paid','river_ferry_crossed'],['ferry_paid'],['wabe_to_islet_used']]) {
+    const state=new GameState();
+    state.room='sand_bar'; state.chapter='islet';
+    for (const flag of flags) state.setFlag(flag);
+    const oldTrip=flags.length===1;
+    assert.equal(getIsletHotspots(state).some(object=>object.kind==='islet_gate'),oldTrip);
+    const plate=currentPlate(scene.background,state);
+    assert.equal(plate===scene.background.variant,oldTrip);
+    assert.equal(currentPlate(scene.background,state.serialize()),plate);
+    const occluders=plate.occluders ?? scene.occluders;
+    assert.equal(occluders.length>0,oldTrip);
+    const ground=navigation(scene,[],plate.walkablePolygons);
+    assert.equal(isBlocked(ground,151,177),oldTrip);
+    if (!oldTrip) assert.ok(findPath(ground,scene.spawn,[151,177]).length);
+    state.room='islet';
+    assert.ok(getIsletHotspots(state).some(object=>object.kind==='islet_gate'));
+  }
+});
+
 test('船上交币穿雾后抵达沙洲，跳过及读档保持已结算的行程', () => {
   const director=createNarrativeDirector();
   const before={room:'the_river',chapter:'wabe',flags:['river_ferry_onboard']};
@@ -38,6 +64,19 @@ test('船上交币穿雾后抵达沙洲，跳过及读档保持已结算的行�
   director.skip();
   assert.equal(director.getState(after).busy,false);
   assert.equal(createNarrativeDirector().getState(after).sceneRoom,'sand_bar');
+});
+
+test('小岛的菌盖可以反复查看，只有菌柄上的门能穿过', () => {
+  const state=new GameState();
+  state.room='islet'; state.chapter='islet';
+  const objects=getIsletHotspots(state);
+  const crown=pointerTarget(objects,{x:376,y:82});
+  const door=pointerTarget(objects,{x:363,y:135});
+  assert.equal(crown.id,'islet:crown');
+  assert.equal(door.id,'islet:gate');
+  const observed=new Set([crown.id,door.id]);
+  assert.equal(resolveInteraction(state,crown,{observed}),'examine toadstool');
+  assert.equal(resolveInteraction(state,door,{observed}),'enter door');
 });
 
 test('渡口及白门的来向落点可步行离开，且不创建反向道路', () => {

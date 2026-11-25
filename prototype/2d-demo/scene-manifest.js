@@ -224,6 +224,11 @@ SCENES.under_windmill.background.variant = {
 };
 SCENES.the_river.preloadArt = [FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART];
 SCENES.sand_bar.preloadArt = [FERRY_PASSENGER_ART, FERRY_BOAT_ART];
+SCENES.sand_bar.background.variant = {
+  ...ISLET_LAYOUT.sand_bar.legacyBackground,
+  anyFlags: ['ferry_paid','wabe_to_islet_used'],
+  unlessFlag: 'river_ferry_crossed',
+};
 // The shared story calls these places simply Desert or Foothills. Use the
 // landmarks on the delivered plates for the explorer's map and signposts.
 const desertLabels = {
