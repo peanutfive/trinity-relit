@@ -2,6 +2,7 @@ import { passageHotspots } from './scene-passages.js';
 import { SHACK_ROUTE_LAYOUT } from './shack-route-layout.js';
 import { DESERT_ROOMS, shackDoorOpen } from './shack-story.js';
 import { nearbyDrop } from './ranch-floor-items.js';
+import { isBlocked } from './world.js';
 
 export function shackRouteHotspots(state) {
   const layout=SHACK_ROUTE_LAYOUT[state.room];
@@ -26,7 +27,7 @@ export function positionDesertBook(state,object) {
   const y=untouched?corner.y:state.cnt('desert_book_y') || object.y;
   return {...object,id:state.room==='shack'?'shack:paperback':object.id,
     x:untouched?corner.at[0]:x,y:untouched?corner.at[1]:y,drawAt:[x,y],depthY:y,
-    radius:17,inspectionHint:'看书封',
+    ...(untouched?{sideApproaches:corner.sides,radius:12}:{radius:17}),inspectionHint:'看书封',
     pointerShape:{kind:'ellipse',x,y:y-3,rx:7,ry:5,priority:4}};
 }
 
@@ -37,4 +38,28 @@ export function rememberDesertBookDrop(before,state,scene) {
   const point=nearbyDrop(before.visual.player,scene,occupied) || before.visual.player;
   state.setCnt('desert_book_x',Math.round(point.x));
   state.setCnt('desert_book_y',Math.round(point.y));
+}
+
+export function rememberBookmarkDrop(before,state,scene) {
+  const was=before.itemLoc.slip;
+  if(!state.inRoom('slip') || !['paperback','inventory','worn','pocket'].includes(was))return;
+  const occupied=before.visual.hotspots.filter(o=>o.itemId && before.itemLoc[o.itemId]===state.room);
+  const book=was==='paperback' && occupied.find(o=>o.itemId==='paperback');
+  let point;
+  if(book){
+    const [x,y]=book.drawAt||[book.x,book.y];
+    const foot={x:x+(before.visual.player.x>x?-14:14),y:y+5};
+    if(!isBlocked(scene,foot.x,foot.y))point=foot;
+  }
+  point=point||nearbyDrop(before.visual.player,scene,occupied)||before.visual.player;
+  state.setCnt('bookmark_x_'+state.room,Math.round(point.x));
+  state.setCnt('bookmark_y_'+state.room,Math.round(point.y));
+}
+
+export function positionBookmark(state,object) {
+  if(object.itemId!=='slip' || !state.inRoom('slip') || state.room==='underwater')return object;
+  const x=state.cnt('bookmark_x_'+state.room),y=state.cnt('bookmark_y_'+state.room);
+  if(!x||!y)return object;
+  return {...object,x,y,depthY:y,drawAt:[x,y],radius:17,
+    pointerShape:{kind:'ellipse',x,y:y-2.5,rx:6,ry:4.5,priority:4}};
 }

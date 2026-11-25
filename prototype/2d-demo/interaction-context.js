@@ -2,6 +2,8 @@ import {resolveInteraction} from './interaction-intent.js';
 const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
 const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water|enter dory|exit dory)$/;
 function physicalHint(command,target){
+  if(command==='put slip in book')return '夹入书中';
+  if(command==='take slip')return '拾起书签';
   if(command==='put gnomon in hole')return '装入指针';
   if(command==='unscrew gnomon')return '拧下指针';
   if(command==='take gnomon')return '拾起指针';
@@ -22,7 +24,7 @@ export function keyboardInteraction(state,target,{heldItem=null,observed=new Set
   const self=state.room==='orbit_satellite'&&heldItem==='axe'&&!passage
     ||['underground_2','underground_3'].includes(state.room)&&heldItem==='lantern'&&!flag(state,'lantern_on')&&!passage;
   if(self)return {type:'self',hint:'使用手中物品'};
-  if(!target)return null;
+  if(!target)return heldItem==='paperback'?{type:'self',hint:'翻阅'}:null;
   const command=resolveInteraction(state,target,{heldItem,observed});
   const inspecting=/^(examine |read |look$)/.test(command||'');
   const physical=physicalHint(command,target);

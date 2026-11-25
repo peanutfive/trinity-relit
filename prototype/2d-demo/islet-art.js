@@ -15,6 +15,16 @@ const frames = [0, 1, 2, 3].map(index => ({
   height: 357,
 }));
 let requested = false, sheet;
+let fallingCard=null;
+export function resetBookmarkMotion(){fallingCard=null;}
+
+export function animateBookmark(before,after,time){
+  fallingCard=null;
+  if(before.room!==after.room || before.itemLoc.slip!=='paperback' || after.itemLoc.slip!==after.room)return;
+  const book=before.visual.hotspots.find(o=>o.itemId==='paperback' && before.itemLoc.paperback===before.room);
+  const [x,y]=book?.drawAt||[book?.x??before.visual.player.x,book?.y??before.visual.player.y];
+  fallingCard={room:after.room,x,y:y-(book?5:16),time};
+}
 
 function loadSheet() {
   requested = true;
@@ -75,12 +85,28 @@ export function renderIsletSprite(ctx, object, state, time = 0) {
         costumeAtlas:state.itemLoc?.shroud==='worn'?cemeteryShroudAtlas():undefined});
     return true;
   }
-  if(object.kind==='paperback'){
-    const cover=propImage('./assets/desert-shack-paperback-v1.png');
+  if(object.kind==='paperback' || object.kind==='slip'){
+    const card=object.kind==='slip';
+    const open=!card && (state.hasFlag?.('paperback_open') ?? state.flags?.includes?.('paperback_open'));
+    const cover=propImage(card?'./assets/desert-shack-verse-card-v1.png':
+      open?'./assets/desert-shack-paperback-open-v1.png':'./assets/desert-shack-paperback-v1.png');
     const [x,y]=object.drawAt || [object.x,object.y];
     if (cover) {
-      ctx.fillStyle='rgba(30,22,16,.32)';ctx.beginPath();ctx.ellipse(x,y-2,5,1.8,0,0,Math.PI*2);ctx.fill();
-      ctx.drawImage(cover,x-5.5,y-9,11,9);
+      if(!card){ctx.fillStyle='rgba(30,22,16,.32)';ctx.beginPath();ctx.ellipse(x,y-2,5,1.8,0,0,Math.PI*2);ctx.fill();}
+      if(card){
+        const t=fallingCard?.room===state.room && time>=fallingCard.time
+          ?Math.min(1,(time-fallingCard.time)/.8):1;
+        if(t<1){
+          const ease=t*(2-t);
+          ctx.save();
+          ctx.translate(fallingCard.x+(x-fallingCard.x)*ease+Math.sin(t*Math.PI*2)*2,
+            fallingCard.y+(y-fallingCard.y)*t*t-Math.sin(t*Math.PI)*5);
+          ctx.rotate(Math.sin(t*Math.PI*2)*.42);
+          ctx.drawImage(cover,-4,-5,8,5);ctx.restore();
+        }else ctx.drawImage(cover,x-4,y-5,8,5);
+      }
+      else if(open)ctx.drawImage(cover,x-10,y-9,16,9);
+      else ctx.drawImage(cover,x-5.5,y-9,11,9);
     }
     return true;
   }

@@ -26,7 +26,7 @@ export const SHACK_ROUTE_LAYOUT = {
     interactionExitDirs:['w'],propOnlyExitDirs:['w'],
     passageVisuals:{w:passage('走出棚屋',[[25,97],[65,82],[65,153],[25,188]])},
     eastDoor:{at:[421,172],points:[[416,84],[455,97],[455,188],[417,156]]},
-    book:{at:[346,157],x:355,y:145},
+    book:{at:[326,156],sides:[[326,156],[385,156]],x:355,y:145},
   },
   tower_platform: {
     chapter:'desert',objectId:158,image:'./assets/desert-shack-platform-v1.webp',

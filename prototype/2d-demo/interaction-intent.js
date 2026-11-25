@@ -6,7 +6,11 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
   if(object.kind==='shack_door' || object.kind==='sundial_lever')return actions[0]?.command;
-  if(object.kind==='paperback')return seen?find('take '):find('examine ');
+  if(object.kind==='paperback' && !object.visualOptions?.onShelf){
+    if(heldItem==='slip')return 'put slip in book';
+    return seen?find('take '):find('examine ');
+  }
+  if(object.kind==='slip' && !object.visualOptions?.onShelf)return seen?'take slip':'examine slip';
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='binoculars' && object.physicalHint)return find('take ');
   if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
@@ -80,6 +84,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
 }
 export function resolveHeldSelf(id,state) {
   if(!id||!state.has(id))return null;
+  if(id==='paperback')return 'read book';
   if(id==='gnomon'&&state.room==='vertex')return 'examine bolt';
   if(id==='axe'&&state.room==='orbit_satellite')return 'break bubble with axe';
   if(id==='lantern'&&['underground_2','underground_3'].includes(state.room)&&!state.hasFlag('lantern_on'))return 'turn lantern';

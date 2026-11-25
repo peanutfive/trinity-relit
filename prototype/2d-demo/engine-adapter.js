@@ -6,7 +6,7 @@ import { advanceFerry, leaveFerry } from './ferry-voyage.js';
 import { unseenFerryTarget } from './ferry-shore.js';
 import { missingSandbarFeature } from './sandbar-ground.js';
 import { Parser } from '../js/parser.js';
-import { ITEMS, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
+import { ITEMS, restorePaperback, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
 
 const VISUAL_CHAPTER_LOADERS = Object.freeze({
@@ -55,6 +55,7 @@ class ExplorationParser extends Parser {
 class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
+    restorePaperback(this.state,save.state);
     restoreVertexInstallation(this.state,save.state);
     restoreShadow(this.state);
     if (['the_river','sand_bar'].includes(this.state.room)) startFerry(this.state);
@@ -64,8 +65,9 @@ class ExplorationEngine extends GameEngine {
   async _runCommandTurn(command) {
     const state = this.state;
     this._shadowTurnStart=state.turns;
-    if (paperbackAction(command)) {
-      const absent=unavailablePaperback(state,command.verb);
+    const action=paperbackAction(command,state);
+    if (action) {
+      const absent=unavailablePaperback(state,action);
       if (absent) { this.print(absent); return true; }
     }
     if (command?.type==='direction' && command.dir==='out' && state.room==='shack') {
@@ -109,8 +111,9 @@ class ExplorationEngine extends GameEngine {
   }
 
   async _handleAction(command) {
-    if (paperbackAction(command)) {
-      handlePaperback(this.state,this,command.verb);
+    const action=paperbackAction(command,this.state);
+    if (action) {
+      handlePaperback(this.state,this,action);
       return true;
     }
     return super._handleAction(command);

@@ -8,11 +8,11 @@ import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
 import {renderCompletionSprite,completionArtStatus,completionBoyMotion} from './wabe-completion-art.js';
 import {renderPacificSprite,pacificArtStatus,pacificControlState} from './pacific-art.js';
-import {renderIsletSprite,renderFerryAboard,isletArtStatus} from './islet-art.js';
+import {animateBookmark,resetBookmarkMotion,renderIsletSprite,renderFerryAboard,isletArtStatus} from './islet-art.js';
 import {ferryView} from './ferry-state.js';
 import {isletDoorView,vertexShadowView} from './islet-shadow.js';
 import {shackDoorOpen} from './shack-story.js';
-import {rememberDesertBookDrop} from './shack-route-actions.js';
+import {rememberDesertBookDrop,rememberBookmarkDrop} from './shack-route-actions.js';
 import {shackRouteCharacterScale} from './shack-route-layout.js';
 import {renderTundraSprite,tundraArtStatus} from './tundra-art.js';
 import {renderArborOrbitSprite,renderOrbitPlayer,arborOrbitArtStatus} from './arbor-orbit-art.js';
@@ -153,6 +153,7 @@ function reset() {
   engine = createPrologueSession({ ui });
   director = createNarrativeDirector();
   resetWabeArt();
+  resetBookmarkMotion();
   cryptInspection.hide();
   discovery = createDiscovery(); observedObjects = new Set(); heldItem = null;
   previousScene = null;
@@ -309,8 +310,9 @@ function animateAction(action) {
 }
 
 function faceObject(object) {
-  const dx = object.x - player.x;
-  const dy = object.y - player.y;
+  const [x,y]=object.sideApproaches ? object.drawAt : [object.x,object.y];
+  const dx = x - player.x;
+  const dy = y - player.y;
   if (Math.hypot(dx, dy) > 1) player.face = Math.abs(dx) > Math.abs(dy)
     ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
 }
@@ -347,6 +349,8 @@ async function command(input, actions = [], observedId = null) {
     }
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
     if(!moved && destination.chapter==='desert')rememberDesertBookDrop(before,destination,navigationScene());
+    if(!moved && before.itemLoc.slip!==destination.itemAt('slip') && destination.inRoom('slip'))
+      rememberBookmarkDrop(before,destination,navigationScene());
     if (moved) {
       cryptInspection.hide();
       // Keep the source room and live timer available while its destination loads.
@@ -384,6 +388,7 @@ async function command(input, actions = [], observedId = null) {
     }
     normalizePlayerLocation();
     const after = gameSnapshot();
+    if(preferences.video.effects)animateBookmark(before,after,clock);
     if(preferences.video.effects) animateVertexMount(before,after,clock);
     director.onCommand(before, after, input);
     const landing=director.getState(engine.state).playerLanding;
@@ -460,6 +465,7 @@ async function restoreProgress(input) {
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
+    resetBookmarkMotion();
     ferryDeparture=restored.save.ferryDeparture || null;
     climbArrivalText=null;
     boatSelection='oarsman';
@@ -532,7 +538,12 @@ function interactWith(object) {
   if(!input){sound.playUi('click');$('#hand-status').textContent='没有反应。';return;}
   portrait=object.kind==='woman'?(engine.state.room==='broad_walk'?'bird_woman':'umbrella_woman'):null;
   animateAction(/^(take|get|pick)/.test(input)?'pickup':'inspect');
-  command(input,[],object.id);
+  const actions=[];
+  if(object.kind==='paperback' && input==='examine book' && !object.visualOptions?.onShelf){
+    const open=engine.state.hasFlag('paperback_open');
+    actions.push({label:open?'合上书':'翻开书',run:()=>command(open?'close book':'open book')});
+  }
+  command(input,actions,object.id);
 }
 
 function useHeldItem() {
@@ -578,6 +589,14 @@ function inventory() {
     const strap=document.createElement('button');strap.textContent=worn?'摘下望远镜':'挂上望远镜';
     strap.onclick=()=>{closeDialog();command(worn?'remove binoculars':'wear binoculars');};
     $('#choices').append(strap);
+  }
+  if(engine.state.has('paperback') && (heldItem==='paperback'||heldItem==='slip')){
+    const cover=heldItem==='paperback', open=engine.state.hasFlag('paperback_open');
+    const button=document.createElement('button');
+    button.id=cover?'inventory-book-cover':'inventory-bookmark';
+    button.textContent=cover?(open?'合上书':'翻开书'):'夹回书里';
+    button.onclick=()=>{closeDialog();command(cover?(open?'close book':'open book'):'put slip in book');};
+    $('#choices').append(button);
   }
   if(heldItem&&engine.state.has(heldItem)&&!ITEMS[heldItem]?.fixed&&!(heldItem==='soap_bubble'&&engine.state.chapter==='orbit')){
     const drop=document.createElement('button');drop.textContent='放下手中物品';drop.id='inventory-drop';

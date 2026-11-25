@@ -596,3 +596,4 @@ ranch 的 99 条非直连出口里，84 条是例程，但只对应 **19 个不�
 - [x] 2026-11-25 T50 小岛白门与棚屋梯路。已对照原版逐档乘船复验影尖与门态。二维版可从正常开局取得船资、开门进入棚屋，再经平台、梯腰、塔脚抵达浅坑，沿来路爬回。另已实测关门时恢复登船前的进度、调准日晷再渡河。[原版对照与复现](prototype/2d-demo/FERRY_LANDING_REFERENCE.md) · [双向走图](prototype/2d-demo/tools/browser-islet.mjs)
 - [x] 2026-11-25 T51 棚屋平装书。书可在实景中观察、用 F 或触屏拾取，随身带出后放在脚边。已实走放下、离开、返回、重新拾取及存读档，核对书名、数量和所在地点。[平装书实走](prototype/2d-demo/tools/browser-shack-paperback.mjs)
 - [x] 2026-11-25 T52 顶台的螺纹孔和指针。已从正常开局尝试安装，携带同一枚针穿过凉亭后装入盘心，再拆下、存读档、拾回和复装，首次安装得 5 分。旧档仍可沿已开通的路线继续。风车过场和潜水也已复验，角色从梯子到上岸均穿着自己的衣物。[日晷实走](prototype/2d-demo/tools/browser-vertex-gnomon.mjs) · [原版对照](prototype/2d-demo/FERRY_LANDING_REFERENCE.md#t52-初次登台与指针)
+- [x] 2026-11-25 T53 棚屋平装书与夹页。书可在地上翻开，也能拿在手中阅读。夹在书里的纸卡会落到开书的地点，首次拾取加 1 分。已从正常取得的书验证夹回、合书、带过塔梯、重新打开和读档。[书与夹页实走](prototype/2d-demo/tools/browser-shack-bookmark.mjs)

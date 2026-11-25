@@ -226,7 +226,8 @@ SCENES.under_windmill.background.variant = {
 SCENES.the_river.preloadArt = [FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART];
 SCENES.sand_bar.preloadArt = [FERRY_PASSENGER_ART, FERRY_BOAT_ART];
 SCENES.islet.preloadArt = [ISLET_OPEN_ART, ISLET_NEAR_ART];
-SCENES.shack.preloadArt = [SHACK_CLOSED_ART,'./assets/desert-shack-paperback-v1.png'];
+SCENES.shack.preloadArt = [SHACK_CLOSED_ART,'./assets/desert-shack-paperback-v1.png',
+  './assets/desert-shack-paperback-open-v1.png','./assets/desert-shack-verse-card-v1.png'];
 SCENES.sand_bar.background.variant = {
   ...ISLET_LAYOUT.sand_bar.legacyBackground,
   anyFlags: ['ferry_paid','wabe_to_islet_used'],

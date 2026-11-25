@@ -143,6 +143,11 @@ export function getRanchHotspots(state) {
 // The surface and bottom share depth controls wherever the swimmer is.
 // The landing spans the painted concrete lip and is reachable along its width.
 export function positionWaterTarget(object,player) {
+  if(object.sideApproaches){
+    const [left,right]=object.sideApproaches;
+    const [x,y]=player.x<(left[0]+right[0])/2?left:right;
+    return {...object,x,y};
+  }
   if (object.actorRelative) return {...object,x:player.x,y:player.y,
     pointerShape:{...object.pointerShape,x:player.x,y:player.y-5}};
   if (object.shoreline) return {...object,x:Math.max(object.shoreline[0],Math.min(object.shoreline[1],player.x))};

@@ -1,5 +1,5 @@
 import { getRanchHotspots } from './ranch-actions.js';
-import { shackRouteHotspots, positionDesertBook } from './shack-route-actions.js';
+import { shackRouteHotspots, positionDesertBook, positionBookmark } from './shack-route-actions.js';
 import { carriedItemActions } from './loose-items.js';
 import {getOrbitHotspots,getOrbitInventoryActions} from './orbit-actions.js';
 import {getPacificHotspots,getPacificInventoryActions} from './pacific-actions.js';
@@ -26,7 +26,7 @@ export function getHotspots(state,options={}) {
       :state.chapter==='desert'?[...getIsletHotspots(state).map(o=>positionDesertBook(state,o)),...shackRouteHotspots(state)]
       :state.chapter==='islet'?getIsletHotspots(state)
       :state.chapter==='prologue'?getPrologueHotspots(state):[];
-  return applyTerrainHotspotAdjustments(state.room,objects);
+  return applyTerrainHotspotAdjustments(state.room,objects).map(object=>positionBookmark(state,object));
 }
 
 export function getInventoryActions(id, state) {
