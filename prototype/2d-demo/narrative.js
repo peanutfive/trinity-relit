@@ -1,5 +1,7 @@
 import { ranchMotion, ranchMotionRoom, drawRanchMotion } from './ranch-art.js';
 import { towerClimb, towerClimbFrame } from './shack-ladder-motion.js';
+import { sampleRoadrunnerBeat } from './roadrunner-art.js';
+import { TOWER_BOX } from './roadrunner-layout.js';
 import {createOrbitPassage,sampleOrbitPassage} from './orbit-motion.js';
 import {PIGEON_FLOCK} from './pigeon-motion.js';
 import {INVERNESS_ACTORS} from './inverness-layout.js';
@@ -97,7 +99,7 @@ export function createNarrativeDirector() {
     const event={id,type,room,fromRoom:before.room,toRoom:after.room,elapsed:0,duration:length[type]||1,busy:options.busy!==false,anchors:eventAnchors(before,after,room),...options};
     queue.push(event);if(!active)active=queue.shift();return true;
   }
-  function onCommand(before={},after={},command='') {
+  function onCommand(before={},after={},command='',companion=null) {
     if(!latest)windChanged=has(before,'wind_changed');
     latest=after;lastRoom=after.room;if(before.room!==after.room)idleSeconds=0;
     const cliffMotion=createCliffPassage(before,after);
@@ -119,6 +121,13 @@ export function createNarrativeDirector() {
     const ranch=ranchMotion(before,after,command);
     const climb=towerClimb(before,after);
     if(climb)push('tower_climb',{id:`tower_climb:${after.turns}`,room:before.room,motion:climb,duration:climb.duration});
+    if(companion?.kind==='optics'){
+      push('bird_optics',{id:'bird_optics:'+after.turns,duration:2.1});
+    }else if(companion){
+      const {duration}=sampleRoadrunnerBeat(companion.kind,0,companion);
+      if(duration)push('companion_'+companion.kind,{id:`companion:${after.turns}:${companion.kind}`,
+        room:companion.room,motion:companion,duration});
+    }
     if(ranch)push('ranch_'+ranch.kind,{id:`ranch_${ranch.kind}:${after.turns}`,room:before.room,motion:ranch,duration:ranch.duration});
     if(orbitMotion)push(orbitMotion.type,{id:`${orbitMotion.type}:${after.turns}`,room:before.room,motion:orbitMotion,duration:orbitMotion.duration});
     if(cliffMotion)push('cliff_passage',{id:`cliff_passage:${after.turns}`,room:before.room,motion:cliffMotion,duration:cliffMotion.duration});
@@ -251,6 +260,22 @@ export function createNarrativeDirector() {
     const orbitFrame=['orbit_drift','orbit_return'].includes(type)?sampleOrbitPassage(active.motion,active.elapsed):null;
     const groundActors=[...(orbitFrame?[orbitFrame.actor]:[]),...(pair?[pair.pusher,pair.pram]:[]),...japanFrame.actors,...(cliffFrame?[cliffFrame.actor]:[])];
     if(climbFrame)groundActors.push(climbFrame.actor);
+    // During the ladder's last frames the bird is still on the lid, holding
+    // the only ruby. Start its separate beat when the player reaches the sand.
+    const encounter=active?.type?.startsWith('companion_') ? active :
+      climbFrame?.room==='base_of_tower' ? queue.find(event=>event.type==='companion_drop') : null;
+    if(encounter){
+      const m=encounter.motion,frame=sampleRoadrunnerBeat(m.kind,encounter===active?active.elapsed:0,m);
+      hiddenKinds.push('companion_bird');
+      if(frame.hideGroundRuby)hiddenKinds.push('tower_ruby');
+      if(frame.bird){
+        const bird=frame.bird;
+        const depthY=m.kind==='door'?152:m.kind==='drop'?Math.max(TOWER_BOX.y+.5,bird.y):bird.y;
+        groundActors.push({id:'companion:arrival',kind:'companion_bird',x:bird.x,y:bird.y,depthY,visualOptions:bird});
+      }
+      if(frame.ruby)groundActors.push({id:'companion:falling-ruby',kind:'tower_ruby',
+        ...frame.ruby,depthY:TOWER_BOX.y+1});
+    }
     return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:ranch||Boolean(climbFrame)||japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {

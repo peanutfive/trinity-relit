@@ -2,6 +2,7 @@ import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
 import { RANCH_KITCHEN_LAYOUT } from './ranch-kitchen-layout.js';
 import { RANCH_CLOSET_LAYOUT } from './ranch-closet-layout.js';
 import { closetView } from './ranch-closet-story.js';
+import { companionHotspots } from './roadrunner-layout.js';
 import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
 import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
 import { ITEMS } from './exploration-items.js';
@@ -84,6 +85,7 @@ export function getRanchHotspots(state) {
   const layout = layouts[state.room];
   if (!layout) return [];
   const objects = passageHotspots(state,layout,ROOMS[state.room]);
+  objects.push(...companionHotspots(state,layout));
   for(const door of ranchDoors(layout)) objects.push(...doorHotspots(state,layout,door));
   // The player can feel for the only door in the dark. Loose objects have
   // no visible target until light reaches the boards again.

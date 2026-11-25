@@ -2,6 +2,8 @@ import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
 import { ranchDoorOpen, ranchDoors } from './ranch-actions.js';
 import { doorwayLayer } from './shack-route-art.js';
+import { ROADRUNNER_ART } from './roadrunner-art.js';
+import { roadrunnerView } from './roadrunner-story.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
 const sceneArtError = message => Object.assign(new Error(message), { name: 'SceneArtError' });
@@ -33,7 +35,9 @@ export function ensureSceneArt(room,state){
   if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
   const base=loadPlate(src),doors=ranchDoors(scene);
   // Door commands and restored saves must show the matching plate from their first frame.
-  const extras=[...doors.map(doorImage),...(scene.preloadArt||[])];
+  const companion=room==='islet' || room==='base_of_tower' || state && scene.chapter==='ranch' && roadrunnerView(state).visible
+    || room==='shallow_crater' && state && roadrunnerView(state).joined;
+  const extras=[...doors.map(doorImage),...(scene.preloadArt||[]),...(companion?ROADRUNNER_ART:[])];
   return extras.length?Promise.all([base,...extras.map(loadPlate)]).then(([image])=>image):base;
 }
 export function propImage(src){

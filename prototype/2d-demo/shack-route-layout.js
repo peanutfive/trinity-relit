@@ -65,6 +65,7 @@ export const SHACK_ROUTE_LAYOUT = {
   base_of_tower: {
     chapter:'desert',objectId:146,image:'./assets/desert-ladder-foot-v1.webp',
     spawn:[238,202],looseAnchor:[240,207],
+    obstacles:[{x:171,y:165,w:28,h:6}],
     walkablePolygons:[[[44,150],[90,145],[144,143],[176,151],[187,164],[227,175],
       [265,186],[309,202],[348,215],[388,228],[416,245],[462,259],[480,266],
       [480,288],[349,288],[302,263],[258,246],[225,225],[190,210],[155,198],

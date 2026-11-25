@@ -1,6 +1,7 @@
 import { getRanchHotspots } from './ranch-actions.js';
 import { shackRouteHotspots, positionDesertBook, positionBookmark } from './shack-route-actions.js';
 import { carriedItemActions } from './loose-items.js';
+import { positionLooseRuby } from './roadrunner-layout.js';
 import {getOrbitHotspots,getOrbitInventoryActions} from './orbit-actions.js';
 import {getPacificHotspots,getPacificInventoryActions} from './pacific-actions.js';
 import {getPacificPassages} from './pacific-passages.js';
@@ -23,10 +24,10 @@ export function getHotspots(state,options={}) {
       :state.chapter==='pacific'?[...getPacificHotspots(state),...getPacificPassages(state)]
       :state.chapter==='ranch'?getRanchHotspots(state)
       :state.chapter==='tundra'?getTundraHotspots(state,options)
-      :state.chapter==='desert'?[...getIsletHotspots(state).map(o=>positionDesertBook(state,o)),...shackRouteHotspots(state)]
+      :state.chapter==='desert'?[...getIsletHotspots(state,options).map(o=>positionDesertBook(state,o)),...shackRouteHotspots(state)]
       :state.chapter==='islet'?getIsletHotspots(state)
       :state.chapter==='prologue'?getPrologueHotspots(state):[];
-  return applyTerrainHotspotAdjustments(state.room,objects).map(object=>positionBookmark(state,object));
+  return applyTerrainHotspotAdjustments(state.room,objects).map(object=>positionLooseRuby(state,positionBookmark(state,object)));
 }
 
 export function getInventoryActions(id, state) {

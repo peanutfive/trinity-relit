@@ -50,6 +50,6 @@ export const DESERT_ARRIVAL_LAYOUT = {
 for (const layout of Object.values(DESERT_ARRIVAL_LAYOUT)) {
   Object.assign(layout, {
     footprint: { rx: 6, ry: 3 }, pathResolution: 0.25,
-    exitApproaches: { e: [1,0], w: [-1,0], ...layout.exitApproaches }, blockedPolygons: [], obstacles: [], occluders: [],
+    exitApproaches: { e: [1,0], w: [-1,0], ...layout.exitApproaches }, blockedPolygons: [], obstacles: layout.obstacles||[], occluders: [],
   });
 }

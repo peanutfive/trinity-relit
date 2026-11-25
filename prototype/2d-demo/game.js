@@ -13,6 +13,9 @@ import {animateBookmark,resetBookmarkMotion,renderIsletSprite,renderFerryAboard,
 import {ferryView} from './ferry-state.js';
 import {isletDoorView,vertexShadowView} from './islet-shadow.js';
 import {shackDoorOpen} from './shack-story.js';
+import { roadrunnerView } from './roadrunner-story.js';
+import { recordCompanionArrival, rememberRubyDrop, TOWER_BOX } from './roadrunner-layout.js';
+import { drawBirdThroughOptics, drawRoadrunner, drawRoadrunnerRuby, drawTowerBox } from './roadrunner-art.js';
 import {rememberDesertBookDrop,rememberBookmarkDrop} from './shack-route-actions.js';
 import {shackRouteCharacterScale} from './shack-route-layout.js';
 import {renderTundraSprite,tundraArtStatus} from './tundra-art.js';
@@ -41,7 +44,7 @@ import { isBlocked, findPath, nearestWalkable, approachingExit, leavingBoundaryE
 import { SCENES, LOGICAL_SIZE, sceneExits, sceneBoundaries } from './scene-manifest.js';
 import { DEFAULT_BINDINGS, loadPreferences, savePreferences, keyLabel } from './settings.js';
 import { createAudio } from './audio.js';
-import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt, currentPlate } from './art.js';
+import { drawScene, drawActor, drawOcclusion, artStatus, ensureSceneArt, requestedSceneArt, currentPlate, propImage } from './art.js';
 import { ITEMS } from './exploration-items.js';
 
 const $ = selector => document.querySelector(selector);
@@ -51,6 +54,14 @@ const ctx = canvas.getContext('2d');
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
 setStorySpriteRenderer((ctx,object,state,time)=>{
+  if(object.kind==='companion_bird'){
+    const [x,y]=object.drawAt||[object.x,object.y];
+    drawRoadrunner(ctx,{x,y,...object.visualOptions},time,!preferences.video.effects,propImage);return true;
+  }
+  if(object.kind==='tower_ruby' || object.itemId==='ruby' && object.kind==='ruby' && (state.chapter==='desert'||state.chapter==='ranch'||state.chapter==='islet') && !object.visualOptions?.onShelf){
+    const [x,y]=object.drawAt||[object.x,object.y];
+    drawRoadrunnerRuby(ctx,{x,y,groundY:object.groundY},propImage);return true;
+  }
   if(object.kind==='cemetery_tomb'){drawCemeteryTomb(ctx,tombArtView(state));return true;}
   if(renderCemeteryItem(ctx,object))return true;
   return drawRanchProp(ctx,object)||renderIsletSprite(ctx,object,state,time)||renderTundraSprite(ctx,object,state,time)||renderPacificSprite(ctx,object,state,time)||renderCompletionSprite(ctx,object,state,time)||renderArborOrbitSprite(ctx,object,state,time)||renderUndergroundSprite(ctx,object,state,time)||renderCliffSprite(ctx,object,state,time)||renderJapanSprite(ctx,object,state,time)||renderNotice(ctx,object)||renderWabeSprite(ctx,object,state,clock)||renderStorySprite(ctx,object,state,time);
@@ -212,7 +223,7 @@ function updateHud() {
   $('#surface-water').hidden=!darkTouch;
   const control=near?.actorRelative && matchMedia('(pointer: coarse)').matches ? '轻触人物' : keyLabel(preferences.bindings.interact);
   $('#hint').textContent=decision&&!darkTouch?`${control} · ${decision.hint}`:'';
-  $('#hand-kit').hidden = !heldItem || !started || paused || reading || cryptInspection.open;
+  $('#hand-kit').hidden = !heldItem || !started || paused || reading || cryptInspection.open || director.getState().currentEvent==='bird_optics';
   $('#held-item').textContent = heldItem ? '手中 · ' + ITEMS[heldItem].cn : '';
 }
 
@@ -356,6 +367,8 @@ async function command(input, actions = [], observedId = null) {
     }
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
     if(!moved && destination.chapter==='desert')rememberDesertBookDrop(before,destination,navigationScene());
+    if(!moved && ['ranch','desert','islet'].includes(destination.chapter) && before.itemLoc.ruby!==destination.itemAt('ruby'))
+      rememberRubyDrop(before,destination,navigationScene());
     if(!moved && before.itemLoc.slip!==destination.itemAt('slip') && destination.inRoom('slip'))
       rememberBookmarkDrop(before,destination,navigationScene());
     if (moved) {
@@ -394,10 +407,19 @@ async function command(input, actions = [], observedId = null) {
       stopMovement(); motion.blend = 0; player.walk = 0; exitLock = 0.5;
     }
     normalizePlayerLocation();
+    let companion=null;
+    if(['desert','ranch','islet'].includes(destination.chapter)){
+      const priorBird=roadrunnerView(before),currentBird=roadrunnerView(destination);
+      if(priorBird.birdRoom!==currentBird.birdRoom || priorBird.joined!==currentBird.joined || priorBird.alreadyCrossed!==currentBird.alreadyCrossed)
+        companion=recordCompanionArrival(before,destination,navigationScene(),player,moved?lastArrival?.entrance:null,objects());
+      if(input==='look at roadrunner through binoculars' && currentBird.visible && destination.hasFlag('binoculars_focused_on_roadrunner')
+        && (destination.carrying('binoculars') || destination.wearing('binoculars')) && destination.turns>before.turns)
+        companion={kind:'optics'};
+    }
     const after = gameSnapshot();
     if(preferences.video.effects)animateBookmark(before,after,clock);
     if(preferences.video.effects) animateVertexMount(before,after,clock);
-    director.onCommand(before, after, input);
+    director.onCommand(before, after, input,preferences.video.effects?companion:null);
     const landing=director.getState(engine.state).playerLanding;
     if(landing){player.x=landing.x;player.y=landing.y;player.face=landing.face;stopMovement();}
     if (input==='look in crypt' && destination.room==='cemetery' && tombArtView(destination).open) {
@@ -408,7 +430,7 @@ async function command(input, actions = [], observedId = null) {
     updateLabels();
     if (output.length) {
       const text=output.join('\n\n');
-      if(director.getState().currentEvent==='tower_climb') climbArrivalText={text,actions};
+      if(waitForArrivalBeat()) climbArrivalText={text,actions};
       else show(text,actions);
     }
     $('#objective').textContent=chapterObjective(engine.state.chapter);
@@ -504,7 +526,7 @@ function loadSavedProgress() {
 }
 
 function objects() {
-  const listed=discovery.mapHotspots(engine.state,getHotspots(engine.state,{observed:observedObjects}));
+  const listed=discovery.mapHotspots(engine.state,getHotspots(engine.state,{observed:observedObjects,heldItem}));
   const ids=new Set(listed.map(object=>object.id));
   const persistent=director.getState(engine.state).persistentActors.filter(object=>object.room===engine.state.room&&!ids.has(object.id));
   return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:positionWaterTarget(object,player));
@@ -660,11 +682,16 @@ function canMovePlayer() {
     && $('#quest').hidden;
 }
 
+function waitForArrivalBeat(){
+  const event=director.getState().currentEvent;
+  return event==='tower_climb' || event==='companion_door' || event==='companion_drop' || event==='bird_optics';
+}
+
 function update(dt) {
   if (paused || chapterMap.isOpen() || applyingCommand) return;
   clock += dt;
   director.update(dt);
-  if(climbArrivalText && director.getState().currentEvent!=='tower_climb'){
+  if(climbArrivalText && !waitForArrivalBeat()){
     const {text,actions}=climbArrivalText;
     climbArrivalText=null;
     show(text,actions);
@@ -837,10 +864,17 @@ function render() {
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
-  for(const object of story.groundActors||[])actors.push({y:object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
+  if(renderRoom==='base_of_tower')actors.push({y:TOWER_BOX.y,draw:()=>drawTowerBox(ctx,propImage)});
+  for(const object of story.groundActors||[])actors.push({y:object.depthY??object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
   if (!story.hidePlayer&&!inPram) {
     actors.push({y:player.y,draw:()=>{
       const time=preferences.video.effects?clock:0;
+      // The binoculars take the traveller's viewpoint. Fade the outside
+      // silhouette as the lens rises so it cannot be seen through itself.
+      ctx.save();
+      if(story.currentEvent==='bird_optics'){
+        ctx.globalAlpha*=1-Math.min(1,story.elapsed/.22,Math.max(0,story.duration-story.elapsed)/.28);
+      }
       const costumeAtlas=renderState.itemLoc.shroud==='worn'?cemeteryShroudAtlas():null;
       if(renderRoom==='reservoir'||renderRoom==='underwater'){
         drawSwimmer(ctx,renderRoom,player,time,motion.moving,costumeAtlas);
@@ -860,6 +894,7 @@ function render() {
       if(renderRoom.startsWith('underground_')&&engine.state.has('lantern')){
         renderUndergroundSprite(ctx,{kind:'lantern',x:player.x+7,y:player.y-9},renderState,clock);
       }
+      ctx.restore();
     }});
   }
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y,renderState);});
@@ -870,6 +905,14 @@ function render() {
     drawBottomVisibility(ctx,player,reservoirBottomLit(renderState),bottomLight,lantern);
   }
   director.draw(ctx, renderRoom, engine.state, clock);
+  if(story.currentEvent==='bird_optics'){
+    const bird=renderObjects.find(object=>object.kind==='companion_bird');
+    if(bird){
+      const [x,y]=bird.drawAt;
+      drawBirdThroughOptics(ctx,story.elapsed,story.duration,propImage,{x,y});
+    }
+    return;
+  }
   if (portrait && pages.length) drawStoryPortrait(ctx, portrait, 25, 45, 85, 95);
   if(focusedItem==='paper_bird'&&pages.length){
     const box=paperDetailLayout();
@@ -1212,6 +1255,7 @@ window.render_game_to_text = () => JSON.stringify({
   art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
   closet:['closet','assembly_room'].includes(engine.state.room)?closetView(engine.state):null,
+  roadrunner:['desert','ranch','islet'].includes(engine.state.chapter)?roadrunnerView(engine.state):null,
   isletDoor:engine.state.room==='islet'?isletDoorView(engine.state):null,
   dialShadow:engine.state.room==='vertex'?vertexShadowView(engine.state):null,
   shackDoor:engine.state.room==='shack'?{open:shackDoorOpen(engine.state)}:null,

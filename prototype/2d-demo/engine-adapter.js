@@ -5,6 +5,8 @@ import { ferryView, startFerry } from './ferry-state.js';
 import { advanceFerry, leaveFerry } from './ferry-voyage.js';
 import { unseenFerryTarget } from './ferry-shore.js';
 import { missingSandbarFeature } from './sandbar-ground.js';
+import { initializeRoadrunner, restoreRoadrunner, birdAtOpenDoor, advanceRoadrunner, roadrunnerAction,
+  missingRoadrunnerTarget, performRoadrunnerAction, roadrunnerWait, recordSceneryFocus } from './roadrunner-story.js';
 import { Parser } from '../js/parser.js';
 import { ITEMS, restorePaperback, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
@@ -27,6 +29,10 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
 class ExplorationParser extends Parser {
   parse(input){
     const text=input.trim().toLowerCase();
+    const birdOptics=text.match(/^observe (?:the )?(roadrunner|bird) (with|through) (?:the )?(?:pair of )?binoculars$/);
+    if(birdOptics)return super.parse('look at '+birdOptics[1]+' '+birdOptics[2]+' binoculars');
+    if(/^用(?:双筒)?望远镜(?:看|观察)(?:那只)?(?:走鹃|鸟)$/.test(text))
+      return super.parse('look at roadrunner through binoculars');
     if (/^用(?:小)?(?:铲子?|铁铲|锹)(?:撬开|打开)(?:石棺|棺盖)$/.test(text))
       return super.parse('open crypt with spade');
     if (/^(?:untie (?:the )?bandage|解开(?:绷带|布条))$/.test(text))return super.parse('take bandage');
@@ -58,6 +64,7 @@ class ExplorationEngine extends GameEngine {
     restorePaperback(this.state,save.state);
     restoreVertexInstallation(this.state,save.state);
     restoreShadow(this.state);
+    restoreRoadrunner(this.state);
     if (['the_river','sand_bar'].includes(this.state.room)) startFerry(this.state);
     return true;
   }
@@ -65,6 +72,7 @@ class ExplorationEngine extends GameEngine {
   async _runCommandTurn(command) {
     const state = this.state;
     this._shadowTurnStart=state.turns;
+    this._birdDoorOpenAtStart=birdAtOpenDoor(state);
     if (state.room==='assembly_room' || state.room==='closet') {
       const {closetFreeResponse}=await import('./ranch-closet-story.js');
       const notice=closetFreeResponse(state,command);
@@ -75,6 +83,9 @@ class ExplorationEngine extends GameEngine {
       const absent=unavailablePaperback(state,action);
       if (absent) { this.print(absent); return true; }
     }
+    const birdAction=roadrunnerAction(state,command);
+    const birdRefusal=missingRoadrunnerTarget(state,birdAction,command);
+    if(birdRefusal) {this.print(birdRefusal);return true;}
     if (command?.type==='direction' && command.dir==='out' && state.room==='shack') {
       this.print('[Which way do you want to go out?]\n\n[你想往哪个方向出去？]');
       return true;
@@ -116,12 +127,32 @@ class ExplorationEngine extends GameEngine {
   }
 
   async _handleAction(command) {
+    const birdAction=roadrunnerAction(this.state,command);
+    if(birdAction) {
+      performRoadrunnerAction(this.state,this,birdAction,command);
+      return true;
+    }
     const action=paperbackAction(command,this.state);
     if (action) {
       handlePaperback(this.state,this,action);
       return true;
     }
-    return super._handleAction(command);
+    const handled=await super._handleAction(command);
+    if(handled) recordSceneryFocus(this.state,command);
+    return handled;
+  }
+
+  _handleMetaCmd(command) {
+    if(command==='wait' && !this.currentRoom().onWait && roadrunnerWait(this.state)) this.state.turns++;
+    return super._handleMetaCmd(command);
+  }
+
+  _handleMeta(input) {
+    // The shared text entry point precharges raw meta commands. On the
+    // recorded bird route, checking one's score or pockets costs no move.
+    if(this.state.hasFlag('river_ferry_crossed') && ['islet','desert','ranch'].includes(this.state.chapter)
+      && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase())) this.state.turns--;
+    return super._handleMeta(input);
   }
 
   async _handleDirection(dir) {
@@ -150,8 +181,10 @@ class ExplorationEngine extends GameEngine {
 
   _postTurn() {
     if (this.state.chapter==='wabe') initializeShadow(this.state);
+    const islandWasOpen=this._birdDoorOpenAtStart || birdAtOpenDoor(this.state);
     advanceShadow(this.state,Math.max(1,this.state.turns-this._shadowTurnStart));
     advanceFerry(this.state,this);
+    advanceRoadrunner(this.state,this,islandWasOpen);
     super._postTurn();
   }
 }
@@ -175,5 +208,6 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
   });
   engine.registerTimerHandlers(TIMERS);
   initializeVertexInstallation(engine.state);
+  initializeRoadrunner(engine.state);
   return engine;
 }

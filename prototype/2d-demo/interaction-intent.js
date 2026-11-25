@@ -5,6 +5,9 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(!object)return null;
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
+  if(object.kind==='companion_bird')return heldItem==='binoculars'?'look at roadrunner through binoculars':'examine roadrunner';
+  if(object.kind==='ruby_box_lid')return heldItem==='ruby'?'put ruby on box':null;
+  if(object.kind==='tower_ruby' || object.kind==='beak_ruby')return seen?'take ruby':'examine ruby';
   if(object.kind==='shack_door' || object.kind==='sundial_lever')return actions[0]?.command;
   if(object.kind==='paperback' && !object.visualOptions?.onShelf){
     if(heldItem==='slip')return 'put slip in book';

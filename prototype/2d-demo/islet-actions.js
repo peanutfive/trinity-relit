@@ -4,6 +4,7 @@ import { ferryView } from './ferry-state.js';
 import { ferryShoreGeometry, FERRY_ABOARD_POINTS } from './ferry-visual-layout.js';
 import { ISLET_LAYOUT, ISLET_POINTS } from './islet-layout.js';
 import { DESERT_ARRIVAL_LAYOUT } from './desert-arrival-layout.js';
+import { companionHotspots } from './roadrunner-layout.js';
 
 const action = (label, command) => ({ label, command });
 const examineBoat = action('观察渡船', 'examine dory');
@@ -48,7 +49,7 @@ export function getRiverFerryHotspots(state) {
   return state.room === 'the_river' ? ferryObjects(state,ISLET_POINTS.river) : [];
 }
 
-export function getIsletHotspots(state) {
+export function getIsletHotspots(state,options={}) {
   const { room, chapter } = state;
   const layout = ISLET_LAYOUT[room] || DESERT_ARRIVAL_LAYOUT[room];
   if (!layout) return [];
@@ -89,7 +90,7 @@ export function getIsletHotspots(state) {
     }
   }
 
-  return [...objects, ...groundItems(state, layout.looseAnchor, ['toadstool_islet'])];
+  return [...objects,...companionHotspots(state,layout,options),...groundItems(state, layout.looseAnchor, ['toadstool_islet'])];
 }
 
 export function getIsletInventoryActions(id, state) {
