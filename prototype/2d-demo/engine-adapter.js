@@ -65,6 +65,11 @@ class ExplorationEngine extends GameEngine {
   async _runCommandTurn(command) {
     const state = this.state;
     this._shadowTurnStart=state.turns;
+    if (state.room==='assembly_room' || state.room==='closet') {
+      const {closetFreeResponse}=await import('./ranch-closet-story.js');
+      const notice=closetFreeResponse(state,command);
+      if(notice){this.print(notice);return true;}
+    }
     const action=paperbackAction(command,state);
     if (action) {
       const absent=unavailablePaperback(state,action);

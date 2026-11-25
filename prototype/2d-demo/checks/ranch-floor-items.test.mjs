@@ -83,7 +83,7 @@ test('厨房与东南房间的物品落在手边，取走相邻一件不会重�
 });
 
 test('旧存档只记了物品所在房间，两件都可达，捡取一件后另一件仍在原处',async()=>{
-  for(const room of ['kitchen','se_room','nw_room','spare_room','bedroom','bathroom','hallway','icehouse']) {
+  for(const room of ['kitchen','se_room','nw_room','spare_room','bedroom','bathroom','hallway','icehouse','closet','assembly_room']) {
     // Old saves have item locations but no per-item visual coordinates.
     const state=new GameState();
     state.chapter='ranch';

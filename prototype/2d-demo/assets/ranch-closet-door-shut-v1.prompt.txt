@@ -1,0 +1,7 @@
+Original registered change over ranch-closet-v1 made with OpenAI ImageGen, using a 232 by 266 crop at (514,215) in the 1280 by 768 frame and the outer closed state as material reference. The inner face shows the shared door with knob on the left. The local light pool at the sill dims. Full-frame transparent PNG drawn at 480 by 288.
+
+Produced for this game's distribution using only original project visual inputs.
+
+Drawing instruction
+
+EDIT the supplied original tiny closet door view (first image) to a precisely REGISTERED closed state. Only the warm floor-filled opening inside the fixed rectangular frame changes. Close the door with the SAME simple plain old natural medium-brown wooden vertical-plank door as the reference image 2. Since we view the INSIDE of that same leaf, its small round old knob is on the LEFT, hinges at the RIGHT. Modest top and bottom cross rails only. Absolutely no door leaf or handle in the middle. Darken the wood across the threshold a little and mute only the localized bright patch on the boards just in front of the door, because the warm light source in the outer room has been blocked. A faint line of light under the door, natural bounce still makes the inside floor readable. Actual opening, sill, frame, tiny surrounding room and camera crop stay registered EXACTLY. Do not enlarge the frame, change perspective, or add other features/words. The left door in reference 2 was photographed from the OPPOSITE side (just a material and design reference).

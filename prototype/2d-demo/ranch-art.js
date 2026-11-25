@@ -1,6 +1,7 @@
 import { paintCharacter } from './character.js';
 import { cemeteryShroudAtlas } from './cemetery-art.js';
 import { propImage } from './art.js';
+import { closetView } from './ranch-closet-story.js';
 
 const art = new Map();
 function plate(name) {
@@ -18,6 +19,10 @@ export function warmWindmillArt(room) {
   }
 }
 export function drawRanchProp(c,object) {
+  if(object.kind==='ranch_snake'){
+    drawClosetSnake(c,object.x,object.y,21);
+    return true;
+  }
   const tableware=object.kind==='ranch_tableware'||object.itemId==='knife';
   if (!tableware && object.kind!=='binoculars') return false;
   const image=tableware?propImage('./assets/ranch-tableware-v1.png'):plate('ranch-binoculars');
@@ -26,6 +31,28 @@ export function drawRanchProp(c,object) {
     c.drawImage(image,object.x-width/2,object.y-height,width,height);
   }
   return true;
+}
+function drawClosetSnake(c,x,y,width){
+  const image=propImage('./assets/ranch-closet-snake-v1.png');
+  if(!image)return;
+  const height=width*image.naturalHeight/image.naturalWidth;
+  c.drawImage(image,x-width/2,y-height,width,height);
+}
+export function drawClosetThreshold(c,state,scene){
+  if(closetView(state).snake==='atDoor')drawClosetSnake(c,...scene.snakeAt,scene.snakeWidth);
+}
+export function drawClosetLight(c,state,player,objects){
+  const {doorOpen,lit}=closetView(state);
+  if(doorOpen)return;
+  if(!lit){c.fillStyle='#080706';c.fillRect(0,0,480,288);return;}
+  const lantern=state.hasFlag?.('lantern_on') ?? state.flags?.includes?.('lantern_on');
+  const near=id=>['closet','inventory'].includes(state.itemLoc?.[id]);
+  const source=lantern&&near('lantern')?'lantern':'splinter';
+  const at=objects.find(object=>object.itemId===source) || player;
+  const glow=c.createRadialGradient(at.x,at.y-4,5,at.x,at.y-4,source==='lantern'?161:111);
+  glow.addColorStop(0,source==='lantern'?'#e6b66639':'#dad68a2d');
+  glow.addColorStop(.36,'#21191258');glow.addColorStop(1,'#0c0806e8');
+  c.fillStyle=glow;c.fillRect(0,0,480,288);
 }
 function ellipse(c,x,y,rx,ry,color) {
   c.strokeStyle=color;c.lineWidth=.6;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.stroke();

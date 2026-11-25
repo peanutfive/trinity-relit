@@ -600,14 +600,14 @@ async function checkOtherDeckDoor() {
   assert.ok(before.flags.includes(deckLeftDoor.flag));
   assert.ok(!before.flags.includes(rightDeckFlag));
   assert.ok(!before.exits.some(exit=>['w','in'].includes(exit.dir)));
-  const right = [101,85];
-  await point(right,true);
-  await until(s=>!s.processing&&!s.navigation.path.length,'点击右门后未结算');
-  await tick(180);
-  const after = await drain();
-  assert.deepEqual(story(after),story(before),'点右门改动了左门或故事状态');
-  steps.push({from:before.room,to:after.room,command:'right-door-touch',input:'touch',point:right,foot:feet(after)});
-  await shot('phone-right-door-untouched');
+  const right = {noun:'right door',flag:rightDeckFlag,label:'右门'};
+  const opened = await toggleDoor(right,true,{point:[101,75],touch:true});
+  assert.ok(opened.flags.includes(deckLeftDoor.flag));
+  const leaf=SCENES.front_deck.doorPlacements.find(door=>door.flag===rightDeckFlag).openLeafShape.points;
+  const center=leaf.reduce(([x,y],[px,py])=>[x+px/leaf.length,y+py/leaf.length],[0,0]);
+  const shut=await toggleDoor(right,false,{point:center,touch:true});
+  assert.ok(shut.flags.includes(deckLeftDoor.flag));
+  assert.deepEqual(shut.inventory,before.inventory);
 }
 
 async function checkRoomDoorOcclusion() {

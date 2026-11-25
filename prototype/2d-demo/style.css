@@ -24,3 +24,4 @@ main,main:fullscreen{width:100%;height:100%;height:100dvh;margin:0;padding:0;max
 .crypt-leave {position:absolute;top:3%;right:2%;padding:.4em .8em;color:#e8dbc0;border:1px solid #a7916b;background:#17231e}
 .game-shell.is-reading .crypt-plate button {pointer-events:none}
 @media (pointer:coarse) { .crypt-plate {width:91%} }
+.compass.south-view path {transform-origin:20px 24px;transform:rotate(180deg)}

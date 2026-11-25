@@ -1,5 +1,7 @@
 import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
 import { RANCH_KITCHEN_LAYOUT } from './ranch-kitchen-layout.js';
+import { RANCH_CLOSET_LAYOUT } from './ranch-closet-layout.js';
+import { closetView } from './ranch-closet-story.js';
 import { RANCH_EAST_YARDS_LAYOUT } from './ranch-east-yards-layout.js';
 import { RANCH_DECK_LAYOUT } from './ranch-deck-layout.js';
 import { ITEMS } from './exploration-items.js';
@@ -14,7 +16,7 @@ import { passageHotspots } from './scene-passages.js';
 
 const layouts = {...RANCH_PERIMETER_LAYOUT,...RANCH_RESERVOIR_LAYOUT,
   ...RANCH_WINDMILL_LANDING_LAYOUT,...RANCH_WATER_LAYOUT,...RANCH_DECK_LAYOUT,...RANCH_EAST_YARDS_LAYOUT,
-  ...RANCH_HOUSE_ACCESS_LAYOUT,...RANCH_KITCHEN_LAYOUT};
+  ...RANCH_HOUSE_ACCESS_LAYOUT,...RANCH_KITCHEN_LAYOUT,...RANCH_CLOSET_LAYOUT};
 
 const ROOM_ITEM_SLOTS={splinter:[293,154],paper_bird:[276,182],umbrella:[247,133],bag:[333,190],ball:[348,145]};
 function reserveSiltSlot(id){
@@ -26,8 +28,16 @@ export function ranchDoors(layout) {
   return layout?.doorPlacements || (layout?.doorPlacement ? [layout.doorPlacement] : []);
 }
 
+// Saved scenes carry plain flag arrays, live scenes carry a GameState.
+// The original closet stores a closed flag because it starts open.
+export function ranchDoorOpen(state, door) {
+  const flags=state?.flags;
+  const set=state?.hasFlag?.(door.flag) ?? (flags instanceof Set ? flags.has(door.flag) : flags?.includes(door.flag));
+  return door.closedOverlay ? !set : Boolean(set);
+}
+
 function doorHotspots(state,layout,door) {
-  const open=state.hasFlag(door.flag);
+  const open=ranchDoorOpen(state,door);
   const [x,y]=open && door.openLeafApproach ? door.openLeafApproach : door.approach;
   const handle={id:door.id,kind:'ranch_outside_door',baked:true,label:door.label,x,y,
     radius:door.radius||18,pointerShape:open && door.openLeafShape?{...door.openLeafShape,touchPadding:7}:door.pointerShape,
@@ -75,6 +85,27 @@ export function getRanchHotspots(state) {
   if (!layout) return [];
   const objects = passageHotspots(state,layout,ROOMS[state.room]);
   for(const door of ranchDoors(layout)) objects.push(...doorHotspots(state,layout,door));
+  // The player can feel for the only door in the dark. Loose objects have
+  // no visible target until light reaches the boards again.
+  if(state.room==='closet' && !closetView(state).lit)return objects;
+  if(state.room==='assembly_room' && closetView(state).snake==='warning'){
+    const [x,y]=layout.snakeAt;
+    objects.push({id:'assembly_room:rattlesnake',kind:'ranch_snake',label:'响尾蛇',x,y,radius:16,
+      pointerShape:{kind:'ellipse',x,y:y-4,rx:10,ry:6,priority:3},
+      actions:[{label:'观察',command:'examine rattlesnake'}]});
+  }
+  for(const x of layout.windowCenters || []){
+    const id=state.room+':window:'+x;
+    const part=(suffix,label,dx,regions,commands)=>({id:id+suffix,kind:'ranch_window',label,baked:true,x:x+dx,y:95,
+      radius:15,pointerShape:{kind:'polygons',polygons:regions.map(points=>points.map(([offset,y])=>[x+offset,y])),priority:3},
+      actions:commands.map(command=>({label,command}))});
+    objects.push(
+      part('','窗玻璃',0,[[[-10,29],[10,29],[10,48],[-10,48]]],['examine window','look through window']),
+      part(':tape','窗边的胶带',-12,[[[-16,24],[15,24],[15,28],[-16,28]],
+        [[-16,28],[-11,28],[-11,51],[-16,51]],[[11,28],[15,28],[15,51],[10,51]]],['examine tape']),
+      part(':sash','窗扇',12,[[[-11,49],[9,49],[9,51],[14,51],[14,55],[-14,55],[-14,52],[-11,52]]],['open window'])
+    );
+  }
   if(layout.wallPlacement){
     const {approach,approachSpan,pointerShape}=layout.wallPlacement;
     objects.push({id:'icehouse:cold-wall',kind:'ranch_cold_wall',baked:true,label:'墙面',x:approach[0],y:approach[1],radius:20,

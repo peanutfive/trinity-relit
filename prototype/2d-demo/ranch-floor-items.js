@@ -1,15 +1,18 @@
 import { ITEMS } from './exploration-items.js';
 import { LOGICAL_SIZE, isSegmentWalkable } from './world.js';
 
-const interiors = new Set(['kitchen', 'se_room', 'nw_room', 'spare_room', 'bedroom', 'bathroom', 'hallway', 'icehouse']);
+const interiors = new Set(['kitchen', 'se_room', 'nw_room', 'spare_room', 'bedroom', 'bathroom', 'hallway', 'icehouse','assembly_room','closet']);
 const possessions = new Set(['inventory', 'pocket', 'worn']);
 const catalogue = Object.keys(ITEMS);
 const direction = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] };
 
 // Older saves have item locations but no coordinates. Reserve one stable spot
 // per item in the original display area of each room.
-function legacyFloorPoint(id, [baseX, baseY]) {
+function legacyFloorPoint(id, [baseX, baseY], room) {
   const index = catalogue.indexOf(id);
+  // A full-size room's fallback grid would put restored items beyond the
+  // walls of the closet. Keep each slot on the boards, clear of the sill.
+  if(room==='closet')return {x:201+(index%10)*8,y:170+Math.floor(index/10)*7};
   return { x: baseX + (index % 7 - 3) * 18, y: baseY + (Math.floor(index / 7) - 2) * 16 };
 }
 
@@ -18,7 +21,7 @@ export function indoorFloorPoint(state, id, anchor) {
   const key = `ranch_floor_${state.room}_${id}`;
   const x = state.cnt(key + '_x'), y = state.cnt(key + '_y');
   if (x > 0 && x < LOGICAL_SIZE.width && y > 0 && y < LOGICAL_SIZE.height) return { x, y };
-  return legacyFloorPoint(id, anchor);
+  return legacyFloorPoint(id, anchor,state.room);
 }
 
 export function nearbyDrop(player, scene, occupied) {
@@ -48,9 +51,9 @@ export function rememberIndoorDrops(before, state, scene) {
     const key = `ranch_floor_${state.room}_${id}`;
     let point = nearbyDrop(before.visual.player, scene, occupied);
     if (!point) {
-      const oldSpots = catalogue.map(candidate => legacyFloorPoint(candidate, scene.looseAnchor));
+      const oldSpots = catalogue.map(candidate => legacyFloorPoint(candidate, scene.looseAnchor,state.room));
       point = oldSpots.find(p => occupied.every(other => Math.hypot(p.x - other.x, p.y - other.y) >= 15))
-        || legacyFloorPoint(id, scene.looseAnchor);
+        || legacyFloorPoint(id, scene.looseAnchor,state.room);
     }
     state.setCnt(key + '_x', point.x);
     state.setCnt(key + '_y', point.y);

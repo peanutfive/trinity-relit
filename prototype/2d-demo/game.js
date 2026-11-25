@@ -1,7 +1,8 @@
 import { createCryptInspection, tombArtView } from './cemetery-inspection.js';
 import { drawCemeteryTomb, renderCemeteryItem, cemeteryShroudAtlas } from './cemetery-art.js';
-import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt } from './ranch-art.js';
-import { positionWaterTarget, ranchDoors } from './ranch-actions.js';
+import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt, drawClosetThreshold, drawClosetLight } from './ranch-art.js';
+import { closetView } from './ranch-closet-story.js';
+import { positionWaterTarget, ranchDoorOpen, ranchDoors } from './ranch-actions.js';
 import { rememberIndoorDrops } from './ranch-floor-items.js';
 import { restoreKitchenState, restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
@@ -182,6 +183,12 @@ function updateLabels(roomId=engine.state.room) {
   const english = aboard ? 'The River, in the dory' : room.name;
   if ($('#room').textContent !== name) $('#room').textContent = name;
   if($('#room-en').textContent!==english)$('#room-en').textContent = english;
+  const compass=$('.compass'),southView=Boolean(scenes[roomId]?.northAtBottom);
+  if(compass.classList.contains('south-view')!==southView){
+    compass.classList.toggle('south-view',southView);
+    compass.setAttribute('aria-label',southView?'北在下方':'北在上方');
+    compass.querySelector('text').setAttribute('y',southView?'46':'9');
+  }
 }
 
 function updateHud() {
@@ -432,6 +439,8 @@ function enterOpening() {
 
 function persistProgress({force=false}={}) {
   if (!started || engine.state.dead || (busy&&!force)) return {ok:false,skipped:true};
+  // The bite gives one final turn. Keep the most recent playable position for Continue.
+  if (engine.state.chapter==='ranch' && closetView(engine.state).snake==='bitten')return {ok:false,skipped:true};
   const result = saveStore.write(engine,visualSavePosition(),ferryDeparture);
   if (!result.ok && !result.skipped) $('#save-message').textContent = '进度未能保存：' + result.error.message;
   return result;
@@ -618,7 +627,7 @@ function navigationScene(){
   const scene=scenes[engine.state.room];
   const bodies=bodyObstacles();
   for(const door of ranchDoors(scene)){
-    const doorBody=engine.state.hasFlag(door.flag)?door.openObstacles:door.closedObstacles;
+    const doorBody=ranchDoorOpen(engine.state,door)?door.openObstacles:door.closedObstacles;
     if(doorBody)bodies.push(...doorBody);
   }
   const plate = currentPlate(scene.background,engine.state);
@@ -762,7 +771,8 @@ function visibleRouteMarker() {
   const x = anchor?.[0] ?? Math.max(52, Math.min(416, route.x));
   const y = anchor?.[1] ?? ({ ne: Math.max(49, route.y - 10), nw: Math.max(49, route.y - 10),
     n: Math.max(27, route.y - 10), s: Math.min(268, route.y - 7) }[dir] ?? route.y - 10);
-  const text = exit ? `${{ n: '↑ ', w: '← ' }[dir] ?? ''}${exit.label}${{ e: ' →', s: ' ↓' }[dir] ?? ''}` : '前方场景制作中';
+  const screenDir=scenes[engine.state.room].northAtBottom?({n:'s',s:'n',e:'w',w:'e'}[dir]||dir):dir;
+  const text = exit ? `${{ n: '↑ ', w: '← ' }[screenDir] ?? ''}${exit.label}${{ e: ' →', s: ' ↓' }[screenDir] ?? ''}` : '前方场景制作中';
   ctx.save();
   ctx.font = '8px serif';
   const width = ctx.measureText(text).width + 14, height = 14;
@@ -777,7 +787,7 @@ function visibleRouteMarker() {
   const obstacles = [{ left: player.x - halfWidth, right: player.x + halfWidth,
     top: player.y - (floating ? 54 : 40), bottom: player.y + (floating ? 20 : 7) }];
   for(const door of ranchDoors(scenes[engine.state.room])){
-    const shapes=engine.state.hasFlag(door.flag)?[door.openingShape,door.openLeafShape]:[door.pointerShape];
+    const shapes=ranchDoorOpen(engine.state,door)?[door.openingShape,door.openLeafShape]:[door.pointerShape];
     for(const shape of shapes){
       if(!shape?.points?.length)continue;
       const xs=shape.points.map(([px])=>px),ys=shape.points.map(([,py])=>py);
@@ -823,6 +833,7 @@ function render() {
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   warmWindmillArt(renderRoom);
   drawScene(ctx, renderRoom, clock, preferences.video.effects,renderState);
+  if(renderRoom==='closet')drawClosetThreshold(ctx,renderState,scenes[renderRoom]);
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
@@ -837,7 +848,12 @@ function render() {
         renderOrbitPlayer(ctx,player,time);
       }else{
         const animation=animationState();
-        animation.sceneScale=shackRouteCharacterScale(renderRoom,player.y);
+        const scene=scenes[renderRoom], perspective=scene?.actorPerspective;
+        animation.sceneScale=scene?.actorScale ?? shackRouteCharacterScale(renderRoom,player.y);
+        if(perspective){
+          const depth=Math.max(0,Math.min(1,(player.y-perspective.backY)/(perspective.frontY-perspective.backY)));
+          animation.sceneScale=perspective.backScale+depth*(perspective.frontScale-perspective.backScale);
+        }
         animation.costumeAtlas=costumeAtlas;
         drawActor(ctx,player.x,player.y,'#bca071',player.face,player.walk,false,animation);
       }
@@ -847,6 +863,7 @@ function render() {
     }});
   }
   actors.sort((a, b) => a.y - b.y).forEach(actor => {actor.draw();drawOcclusion(ctx,renderRoom,actor.y,renderState);});
+  if(renderRoom==='closet')drawClosetLight(ctx,renderState,player,renderObjects);
   if(renderRoom==='underwater'){
     const lantern=reservoirLanternLit(renderState);
     const bottomLight=renderObjects.find(o=>o.itemId===(lantern?'lantern':'splinter'));
@@ -1194,6 +1211,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 window.render_game_to_text = () => JSON.stringify({
   art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
+  closet:['closet','assembly_room'].includes(engine.state.room)?closetView(engine.state):null,
   isletDoor:engine.state.room==='islet'?isletDoorView(engine.state):null,
   dialShadow:engine.state.room==='vertex'?vertexShadowView(engine.state):null,
   shackDoor:engine.state.room==='shack'?{open:shackDoorOpen(engine.state)}:null,

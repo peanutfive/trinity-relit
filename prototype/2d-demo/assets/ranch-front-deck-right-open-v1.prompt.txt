@@ -1,0 +1,7 @@
+Original registered change to the existing project-owned ranch-front-deck-v1.png. A 180 by 282 crop at (255,97) from its native 1619 by 971 image supplied the base. The leaf swings into the house and the dark interior floor can be seen at the original sill. Full-frame transparent overlay drawn at 480 by 288.
+
+Produced for this game's distribution using only original project visual inputs.
+
+Drawing instruction
+
+Edit the existing small rustic wooden front door in this ORIGINAL game artwork to its OPEN state, maintaining EXACT registration of the supplied crop. Keep building wall and porch unchanged. The door swings INWARD to the interior of the house on the top/right (northern, farther) hinge side, so the entire old outward-facing panel disappears into the house; a skinny sliver of its inner framing is visible just inside the far/right jamb, and the rest of the aperture now reveals a DIM warm-brown farmhouse interior with scuffed level timber FLOOR at the bottom and soft dim umber interior wall up top. Normal unlit room through door; no solid-black void. Retain jamb and stone/wood sill and surrounding old ochre plaster. The rest of the image including the weathered porch boards must remain registered. No new object, hardware, text or outside-swinging door leaf.

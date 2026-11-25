@@ -14,6 +14,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='orbit_membrane')return heldItem==='axe'&&state.room==='orbit_satellite'?find('break bubble'):find('examine ');
   if(object.kind==='binoculars' && object.physicalHint)return find('take ');
   if(object.kind==='ranch_outside_door')return find('open ')||find('close ');
+  if(object.kind==='ranch_window')return (seen && find('look through ')) || actions[0]?.command;
   if(object.kind==='ranch_floor_mark')return find('examine ');
   if(object.kind==='ranch_cold_wall')return find('touch ');
   if(object.kind==='ranch_wall_map')return seen?find('take '):find('examine ');

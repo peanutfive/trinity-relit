@@ -205,14 +205,15 @@ test('从厨房取道东南房间进入前廊，左门两侧共用开关，右�
   await enter('w','kitchen');
 });
 
-test('西北房间的东侧止于制作边界，不出现歧义方向的路牌', async () => {
+test('西北房间的东门通往隔壁，歧义方向不显示为路牌', async () => {
   const room='nw_room';
   const {engine}=await ranchFixture(room);
   const exits=sceneExits(room,engine.state,ROOMS);
-  assert.ok(exits.every(exit=>exit.target!==room && exit.target!=='assembly_room'));
-  const boundaries=sceneBoundaries(room,engine.state,ROOMS);
-  assert.deepEqual(boundaries.map(route=>[route.dir,route.target]),[['e','assembly_room']]);
-  assert.ok(findPath(SCENES[room],SCENES[room].spawn,boundaries[0]).length);
+  assert.ok(exits.every(exit=>exit.target!==room));
+  const east=exits.filter(exit=>exit.target==='assembly_room');
+  assert.deepEqual(east.map(route=>route.dir),['e']);
+  assert.deepEqual(sceneBoundaries(room,engine.state,ROOMS),[]);
+  assert.ok(findPath(SCENES[room],SCENES[room].spawn,east[0]).length);
 });
 
 test('厨房、西北房、浴室和冰库的实际门槛、地面和墙体与脚下通路一致', () => {

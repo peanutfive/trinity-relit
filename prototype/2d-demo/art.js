@@ -1,6 +1,6 @@
 import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
-import { ranchDoors } from './ranch-actions.js';
+import { ranchDoorOpen, ranchDoors } from './ranch-actions.js';
 import { doorwayLayer } from './shack-route-art.js';
 // The atlas has three independent landscape paintings, stacked vertically.
 const backgrounds = new Map(), pending = new Map();
@@ -27,7 +27,7 @@ function loadPlate(src){
     image.src=new URL(src,import.meta.url).href;
   });pending.set(src,promise);return promise;
 }
-const doorImage=door=>`./assets/${door.openOverlay}-v1.png`;
+const doorImage=door=>`./assets/${door.closedOverlay || door.openOverlay}-v1.png`;
 export function ensureSceneArt(room,state){
   const scene=SCENES[room],src=backgroundSource(scene?.background,state);
   if(!src)return Promise.reject(sceneArtError('场景画面尚未制作。'));
@@ -65,7 +65,7 @@ export function drawScene(c,room,time,effects=true,state={}){
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   drawDoorwayLayer(c,room,state);
   for(const door of ranchDoors(SCENES[room])){
-    if(!flagActive(state,door.flag))continue;
+    if(ranchDoorOpen(state,door) === Boolean(door.closedOverlay))continue;
     const layer=backgrounds.get(doorImage(door));
     if(layer?.complete && layer.naturalWidth)c.drawImage(layer,0,0,480,288);
   }
@@ -120,8 +120,8 @@ export function drawOcclusion(c,room,footY,state){
     c.restore();
   }
   for(const door of ranchDoors(scene)){
-    if(door.openLeafDepthY==null || footY>=door.openLeafDepthY || !flagActive(state,door.flag))continue;
-    const leaf=backgrounds.get(doorImage(door));
+    if(door.openLeafDepthY==null || footY>=door.openLeafDepthY || !ranchDoorOpen(state,door))continue;
+    const leaf=door.closedOverlay ? atlas : backgrounds.get(doorImage(door));
     if(!leaf?.complete || !leaf.naturalWidth)continue;
     c.save();
     clipOutline(c,door.openLeafShape.points);

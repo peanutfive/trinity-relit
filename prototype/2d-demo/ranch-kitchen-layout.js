@@ -51,6 +51,7 @@ export const RANCH_KITCHEN_LAYOUT = {
     sourceArrivals:{
       kitchen:{x:78,y:164,face:'right',entrance:'w'},
       front_deck:{x:398,y:175,face:'left',entrance:'e'},
+      assembly_room:{x:228,y:113,face:'down',entrance:'n'},
     },
     doorPlacement:{
       id:'se_room:front-door',flag:'front_deck_left_door_open',noun:'front door',label:'前门',dir:'e',
@@ -71,7 +72,8 @@ export const RANCH_KITCHEN_LAYOUT = {
       [[407,131],[431,127],[436,144],[435,155],[413,159]],
     ],
     exitAnchors:{n:[232,55],s:[229,255],e:[426,143]},hiddenExitDirs:['in','out'],showUnmadeExits:true,
-    sourceArrivals:{spare_room:{x:232,y:97,face:'down',entrance:'n'},kitchen:{x:229,y:215,face:'up',entrance:'s'}},
+    sourceArrivals:{spare_room:{x:232,y:97,face:'down',entrance:'n'},kitchen:{x:229,y:215,face:'up',entrance:'s'},
+      assembly_room:{x:386,y:143,face:'left',entrance:'e'}},
   },
   bathroom:{
     objectId:175,spawn:[238,151],looseAnchor:[242,166],

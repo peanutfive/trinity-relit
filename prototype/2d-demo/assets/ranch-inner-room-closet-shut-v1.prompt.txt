@@ -1,0 +1,7 @@
+Full-frame transparent registered change to ranch-inner-room-v1, produced using a 300 by 356 crop at (458,2) in the 1280 by 768 canvas. The old protruding door and its small shadow are replaced with cleaned wall/floor, and the hollow jamb is occupied by the same shut door. Pixels outside the feathered aperture and leaf remain transparent.
+
+Produced for this game's distribution using only original project visual inputs.
+
+Drawing instruction
+
+Edit ONLY the open vertical wood-plank closet door and its shadow in this project-owned game-art crop to make a registered CLOSED state. Same camera, outside wall, floor perspective, original rectangular frame, existing warm light, pivot on LEFT jamb. Shut the door inside its back-wall frame like a normal door: a simple plain vertically boarded leaf with plain narrow horizontal rails and one modest round brass knob near its RIGHT edge. Current protruding open door at the LEFT disappears, reveal the corresponding existing burnt-ochre plaster and thin dark baseboard behind it, and the existing wood floor/shadow underneath. The sole dark aperture is completely covered with the closed wooden leaf. No extra hardware, items, windows or text. Preserve crop edges and prior textures perfectly; touch only the physical leaf, old shadow and inside jamb.

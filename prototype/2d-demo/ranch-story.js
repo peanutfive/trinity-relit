@@ -1,5 +1,6 @@
 import { ROOMS as RANCH } from '../js/data/ranch.js';
 import { ITEMS } from '../js/data/items.js';
+import { afterClosetBite, closetRooms } from './ranch-closet-story.js';
 
 const optics = 'binoculars';
 const strain = 'windmill_strain';
@@ -202,6 +203,8 @@ const screenDoor = {flag:'back_yard_screen_door_open',name:'screen door',cn:'纱
 const hallDoor = {flag:'hallway_outer_door_open',name:'outer door',cn:'外门',nouns:['outer door','door','外门','门']};
 const frontDoor = {flag:'front_deck_left_door_open',name:'front door',cn:'前门',nouns:['front door','door','前门','门']};
 const deckLeftDoor = {...frontDoor,name:'left door',cn:'左边的门',nouns:['left door','左门','左边的门']};
+const rightFrontDoor = {...frontDoor,flag:'front_deck_right_door_open'};
+const deckRightDoor = {...rightFrontDoor,name:'right door',cn:'右边的门',nouns:['right door','右门','右边的门']};
 
 function doorEvents(roomId, door) {
   const {flag, name, cn, nouns} = door;
@@ -427,8 +430,10 @@ const hallway = roomWithDoors('hallway', [[hallDoor,['e']]], [{
 
 export const RANCH_STORY_ROOMS = {
   ...RANCH,
-  front_deck:roomWithDoors('front_deck', [[deckLeftDoor,['sw']]]),
-  se_room:roomWithDoors('se_room', [[frontDoor,['e']]]),
+  ...closetRooms(roomWithDoors('assembly_room',[[rightFrontDoor,['e']]]), RANCH.closet),
+  front_deck:afterClosetBite(roomWithDoors('front_deck', [[deckLeftDoor,['sw']],[deckRightDoor,['nw']]]),'front_deck'),
+  se_room:afterClosetBite(roomWithDoors('se_room', [[frontDoor,['e']]]),'se_room'),
+  nw_room:afterClosetBite(RANCH.nw_room,'nw_room'),
   ne_yard:roomWithDoors('ne_yard', [[outsideDoor,['w','in']]]),
   bedroom:roomWithDoors('bedroom', [[outsideDoor,['e']]], [{
     id:'bedroom_inspect_corner', match:{verb:['examine'],noun:['corner','area','角落','印迹','痕迹']},
