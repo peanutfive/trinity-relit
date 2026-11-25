@@ -30,6 +30,7 @@ export const ISLET_LAYOUT = {
   sand_bar: {
     chapter: 'islet', objectId: 501, image: './assets/islet-sand-bar-v1.png',
     spawn: [220, 183], looseAnchor: [224, 197],
+    sourceArrivals: { the_river: { x: 255, y: 151, face: 'left', entrance: 'ferry' } },
     occluders: [{depthY: 210, points: [[94,159],[103,151],[123,140],[142,134],[157,135],[169,139],
       [180,148],[184,154],[182,161],[175,166],[158,170],[155,182],[157,199],[156,207],
       [145,209],[122,208],[121,203],[126,180],[126,173],[109,171],[98,167]]}],

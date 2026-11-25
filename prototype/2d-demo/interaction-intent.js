@@ -29,11 +29,14 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');
   if (object.kind === 'islet_gate') return seen ? find('enter door') : find('examine ') || find('look');
   if (object.kind === 'islet_ferry' || object.kind === 'islet_oarsman') {
-    const payment = heldItem === 'silver_coin' && find('give silver coin');
-    if (payment) return payment;
+    const offering = heldItem && actions.find(action => action.itemId === heldItem && action.command.startsWith('give '));
+    if (offering) return offering.command;
+    if (find('exit dory')) return 'exit dory';
     const observe = find('examine ') || find('look');
-    return seen ? find('in') || find('out') || observe : observe;
+    return seen ? find('enter dory') || find('in') || find('out') || find('wait') || observe : observe;
   }
+  if (object.kind==='sandbar_water' || object.kind==='completion_river') return (seen && find('wait')) || find('examine ');
+  if (object.kind==='sandbar_sand') return find('examine ');
   if(object.kind==='pacific_box')return seen?find('open box')||find('look'):find('look');
   if(['pacific_switch','pacific_button'].includes(object.kind))return find('push ')||find('look');
   // Doorways are navigation: carrying a prop must not lock the player inside.

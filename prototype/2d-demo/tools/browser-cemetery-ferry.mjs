@@ -6,11 +6,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { VISUAL_SAVE_KEY } from '../save.js';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-cemetery-ferry');
+const checkpointStage = process.argv.includes('--river-checkpoint') ? 'river' : process.argv.includes('--crater-checkpoint') ? 'crater' : null;
 const prelude = join(output, 'fresh-prologue');
 await mkdir(output, { recursive: true });
 const smoke = fileURLToPath(new URL('./browser-smoke.mjs', import.meta.url));
@@ -273,7 +273,7 @@ async function reachRiver() {
   await travel('se','craters_edge');
   await travel('w','under_cliff');
   await travel('sw','bottom_of_stairs');
-  await dial(6);
+  assert.equal((await state()).sundialSymbol,1);
   await travel('se','the_river');
   await record('river-before-board');
 }
@@ -291,11 +291,11 @@ async function inspectCrypt() {
   await inspection.waitFor({ state:'visible' });
 }
 
-async function checkCommand(input, command, points = 0, screenshot) {
+async function checkCommand(input, command, points = 0, screenshot, turns = 1) {
   const before = await state();
   await input();
   const after = await until(s => !s.processing && s.lastCommand===command && s.turns>before.turns, `未完成 ${command}`);
-  assert.equal(after.turns,before.turns+1);
+  assert.equal(after.turns,before.turns+turns);
   assert.equal(after.score,before.score+points);
   receipts.push({ command,room:after.room,turn:after.turns,points });
   if (screenshot) await shot(screenshot);
@@ -424,54 +424,188 @@ async function testCrypt() {
   assert.equal(dressed.itemLoc.silver_coin,'inventory');
 }
 
+async function checkPhase(phase,visible,docked = false) {
+  const current = await state();
+  assert.equal(current.ferry.phase,phase);
+  assert.equal(current.ferry.visible,visible);
+  assert.equal(current.ferry.docked,docked);
+  assert.equal(current.objects.some(object => object.id===`${current.room}:ferry`),visible);
+  receipts.push({ phase,visible,docked,room:current.room,turn:current.turns });
+  return current;
+}
+
+async function pressWait(turns = 1) {
+  return checkCommand(() => page.keyboard.press('r'),'wait',0,undefined,turns);
+}
+
+async function touchFerry(kind, command, touch = false) {
+  const current = await state();
+  const object = current.objects.find(entry => entry.id===`${current.room}:${kind}`);
+  assert.ok(object?.actions.some(action => action.command===command),`${current.room} 缺少 ${command}`);
+  const polygon = object.pointerShape.points;
+  const midpoint = polygon.reduce(([x,y],[px,py]) => [x+px/polygon.length,y+py/polygon.length],[0,0]);
+  return checkCommand(() => clickAt(midpoint,touch),command);
+}
+
+async function changeShroud(command) {
+  await holdItem('裹尸布');
+  await page.keyboard.press('i');
+  await checkCommand(() => page.locator('#inventory-wear-shroud').click(),command);
+  const clear = page.locator('#clear-hand');
+  if (await clear.isVisible()) await clear.click();
+}
+
+async function checkPaidCrossing() {
+  await holdItem('银币');
+  const arrival = await checkCommand(() => page.keyboard.press('f'),'give silver coin to oarsman');
+  assert.equal(arrival.room,'sand_bar');
+  assert.equal(arrival.chapter,'islet');
+  assert.equal(arrival.navigation.arrival?.entrance,'ferry');
+  assert.equal(arrival.navigation.arrival?.fromRoom,'the_river');
+  assert.equal(arrival.inventory.includes('silver_coin'),false);
+  assert.equal(arrival.ferry.crossed,true);
+  assert.equal(arrival.ferry.legacyPaid,false);
+  assert.ok(!arrival.exits.some(exit => exit.dir==='out'));
+  await record('paid-sand-bar');
+}
+
+async function crossFromFirstSighting() {
+  await checkPhase(0,true);
+  await touchFerry('ferry','examine dory');
+  await pressWait();
+  await checkPhase(2,true,true);
+  await approachF([306,165],'d','the_river:ferry');
+  const boarded = await pressF('enter dory');
+  assert.equal(boarded.ferry.onboard,true);
+  await checkPaidCrossing();
+}
+
 async function testFerry() {
-  const shoreOarsman = [403,132];
-  const recognized = await checkCommand(() => clickAt(shoreOarsman),'examine oarsman');
-  assert.equal(recognized.room,'the_river');
+  const initial = await checkPhase(0,true);
+  await tick(2400);
+  assert.deepEqual((await state()).ferry,initial.ferry);
+  await page.keyboard.press('m');
+  assert.equal((await state()).mode,'map');
+  await page.keyboard.press('m');
+  assert.equal((await state()).turns,initial.turns);
+  await touchFerry('ferry','examine dory');
+  await checkPhase(1,true);
+  const recognized = await touchFerry('oarsman','examine oarsman');
   assert.match(recognized.dialogue?.text,/兜帽/);
   assert.ok(recognized.flags.includes('river_oarsman_recognized'));
-  await approachF([307,153],'d','the_river:oarsman');
-  await pressF('examine oarsman');
+  await checkPhase(2,true,true);
   await holdItem('银币');
-  const refused = await checkCommand(() => clickAt(shoreOarsman),'give silver coin to oarsman',0,'shore-payment-message');
+  const refused = await touchFerry('oarsman','give silver coin to oarsman');
   assert.equal(refused.room,'the_river');
   assert.match(refused.dialogue?.text,/先上船/);
   assert.ok(refused.inventory.includes('silver_coin'));
   assert.ok(!refused.flags.includes('ferry_paid'));
   await record('shore-payment-refused');
   await page.locator('#clear-hand').click();
+  await checkPhase(3,true,true);
+  await pressWait();
+  await checkPhase(4,true,true);
+  await shot('river-docked');
+  await pressWait();
+  await checkPhase(5,true);
+  await shot('river-departure');
+  await pressWait();
+  await checkPhase(6,false);
+  await shot('river-no-ferry');
+  await pressWait(4);
+  await checkPhase(10,false);
+  await pressWait(2);
+  const again = await checkPhase(0,true);
+  assert.equal(again.turns,initial.turns+12);
+  await shot('river-return-after-twelve');
 
+  await changeShroud('remove shroud');
+  await pressWait();
+  await checkPhase(2,true,true);
   await approachF([306,165],'d','the_river:ferry');
-  await pressF('examine dory');
-  const boarded = await pressF('in','islet');
-  assert.equal(boarded.navigation.arrival?.entrance,'ferry');
-  assert.ok(boarded.inventory.includes('silver_coin'));
-  assert.equal(boarded.flags.includes('ferry_paid'),false);
-  await travel('n','sand_bar');
-  await approachF([245,154],'d','sand_bar:ferry');
-  await holdItem('银币');
-  const paid = await checkCommand(() => page.keyboard.press('f'),'give silver coin to oarsman');
-  assert.equal(paid.inventory.includes('silver_coin'),false);
-  assert.equal(paid.flags.includes('ferry_paid'),true);
-  assert.equal(paid.exits.find(exit => exit.dir==='out')?.target,'the_river');
-  assert.ok(!paid.objects.some(object => object.actions.some(action => action.command==='give silver coin to oarsman')));
-  await reopen('sand-bar-payment-restored');
+  const rejected = await pressF('enter dory');
+  assert.equal(rejected.ferry.onboard,false);
+  assert.ok(rejected.flags.includes('river_ferry_shorts_seen'));
+  await changeShroud('wear shroud');
+  await checkPhase(4,true,true);
+  const boarded = await pressF('enter dory');
+  assert.equal(boarded.ferry.onboard,true);
+  assert.equal(boarded.ferry.selection,'oarsman');
+  assert.deepEqual(boarded.exits,[]);
+  await reopen('aboard-restored');
+  await page.keyboard.press('ArrowLeft');
+  assert.equal((await state()).ferry.selection,'ferry');
+  await page.keyboard.press('ArrowRight');
+  assert.equal((await state()).ferry.selection,'oarsman');
+  assert.equal((await state()).turns,boarded.turns);
+  assert.equal((await pressWait()).ferry.onboard,true);
+  assert.equal((await pressWait()).ferry.onboard,false);
+  await checkPhase(5,true);
+  for (const turns of [1,4,2,1,1]) await pressWait(turns);
+  await checkPhase(2,true,true);
+  assert.equal((await touchFerry('ferry','enter dory')).ferry.onboard,true);
+  await page.keyboard.press('ArrowLeft');
+  assert.equal((await pressF('exit dory')).ferry.onboard,false);
+  await checkPhase(3,true,true);
   await page.setViewportSize({width:390,height:844});
-  const returned = await checkCommand(() => clickAt([342,141],true),'out');
-  assert.equal(returned.room,'the_river');
-  assert.equal(returned.navigation.arrival?.fromRoom,'sand_bar');
-  assert.ok(returned.flags.includes('ferry_paid'));
-  await record('phone-paid-return');
+  assert.equal((await touchFerry('ferry','enter dory',true)).ferry.onboard,true);
+  await shot('phone-aboard');
+  await page.setViewportSize({width:1440,height:900});
+  await checkPaidCrossing();
+}
+
+async function testSandBar() {
+  await checkPhase(10,true);
+  await reopen('sand-bar-payment-restored');
+  await checkPhase(10,true);
+  await page.setViewportSize({width:390,height:844});
+  for (const [point,command] of [[[225,239],'examine sand'],[[294,239],'examine river']]) {
+    const examined = await checkCommand(() => clickAt(point,true),command);
+    assert.match(examined.dialogue?.text,/南边的沙地/);
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await travel('s','islet');
+  const island = await checkCommand(() => page.keyboard.press('l'),'look');
+  assert.match(island.dialogue?.text,/十来码|脚步|每一步/);
+  assert.ok(!/南边的沙地/.test(island.dialogue?.text));
+  await travel('n','sand_bar');
+  while ((await state()).ferry.phase!==8) await checkCommand(() => page.keyboard.press('l'),'look');
+  await touchFerry('ferry','examine dory');
+  await checkPhase(9,true,true);
+  const turnedAway = await touchFerry('ferry','enter dory');
+  assert.equal(turnedAway.room,'sand_bar');
+  assert.equal(turnedAway.ferry.onboard,false);
+  assert.match(turnedAway.dialogue?.text,/摇了摇头|推开/);
+  await record('sand-bar-ferry-refusal');
+}
+
+async function enterCrater() {
+  await travel('s','islet');
+  await approachF([343,166],'d','islet:gate');
+  await pressF('examine toadstool');
+  const crater = await pressF('enter door','shallow_crater');
+  assert.equal(crater.navigation.arrival?.entrance,'door');
+  assert.equal(crater.navigation.arrival?.fromRoom,'islet');
+  await record('crater-from-islet');
 }
 
 try {
   await reachCemetery();
   await testCrypt();
   await reachRiver();
-  await testFerry();
+  await exportProgress(join(output,'river-played.json'));
+  if (checkpointStage !== 'river') {
+    if (checkpointStage === 'crater') await crossFromFirstSighting();
+    else {
+      await testFerry();
+      await testSandBar();
+    }
+    await enterCrater();
+    await exportProgress(join(output,'crater-played.json'));
+  }
   assert.deepEqual(errors,[]);
   await writeFile(join(output,'result.json'),JSON.stringify({pass:true,receipts,errors},null,2));
-  console.log('正常取得铲子和墓地物品，刷新续玩及银币付船资返河通过');
+  console.log('正常探索墓地、河岸候船及渡船起程通过');
 } catch (error) {
   await shot('failure').catch(() => {});
   await writeFile(join(output,'failure.json'),JSON.stringify({message:error.message,state:await state().catch(() => null),receipts,errors},null,2));

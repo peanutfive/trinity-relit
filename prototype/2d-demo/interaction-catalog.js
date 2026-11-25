@@ -5,6 +5,7 @@ import {getPacificHotspots,getPacificInventoryActions} from './pacific-actions.j
 import {getPacificPassages} from './pacific-passages.js';
 import {getTundraHotspots,getTundraInventoryActions} from './tundra-actions.js';
 import {getRiverFerryHotspots,getIsletHotspots,getIsletInventoryActions} from './islet-actions.js';
+import {ferryView} from './ferry-state.js';
 import { getHotspots as getPrologueHotspots, getInventoryActions as getPrologueInventoryActions } from './prologue-actions.js';
 import { getWabeHotspots, getWabeInventoryActions } from './wabe-actions.js';
 import { getJapanHotspots, getJapanInventoryActions } from './japan-actions.js';
@@ -13,6 +14,7 @@ import { applyTerrainHotspotAdjustments } from './terrain.js';
 
 // A visual action catalog only. State mutation remains inside engine commands.
 export function getHotspots(state,options={}) {
+  if(state.room==='the_river' && ferryView(state).onboard)return getRiverFerryHotspots(state);
   const objects=state.chapter==='wabe'?[...getWabeHotspots(state),...getRiverFerryHotspots(state)]
     :state.chapter==='japan'?getJapanHotspots(state)
       :state.chapter==='underground'?getUndergroundHotspots(state)

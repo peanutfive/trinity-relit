@@ -8,7 +8,8 @@ import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
 import {renderCompletionSprite,completionArtStatus,completionBoyMotion} from './wabe-completion-art.js';
 import {renderPacificSprite,pacificArtStatus,pacificControlState} from './pacific-art.js';
-import {renderIsletSprite,isletArtStatus} from './islet-art.js';
+import {renderIsletSprite,renderFerryAboard,isletArtStatus} from './islet-art.js';
+import {ferryView} from './ferry-state.js';
 import {renderTundraSprite,tundraArtStatus} from './tundra-art.js';
 import {renderArborOrbitSprite,renderOrbitPlayer,arborOrbitArtStatus} from './arbor-orbit-art.js';
 import {filterVisualPresence} from './visual-text-policy.js';
@@ -75,6 +76,7 @@ let started = false;
 let discovery = createDiscovery();
 let observedObjects = new Set();
 let heldItem = null;
+let boatSelection = 'oarsman';
 let focusedItem = null;
 let walkPath = [];
 let walkTarget = null;
@@ -165,9 +167,12 @@ function reset() {
 
 function updateLabels(roomId=engine.state.room) {
   const room = engine.rooms[roomId];
-  const name = scenes[roomId]?.mapLabel || room.cn;
+  const labelState=previousScene?.room===roomId && engine.state.room!==roomId ? previousScene : engine.state;
+  const aboard=roomId==='the_river' && ferryView(labelState).onboard;
+  const name = aboard ? '河流 · 平底船上' : scenes[roomId]?.mapLabel || room.cn;
+  const english = aboard ? 'The River, in the dory' : room.name;
   if ($('#room').textContent !== name) $('#room').textContent = name;
-  if($('#room-en').textContent!==room.name)$('#room-en').textContent = room.name;
+  if($('#room-en').textContent!==english)$('#room-en').textContent = english;
 }
 
 function updateHud() {
@@ -317,6 +322,10 @@ async function command(input, actions = [], observedId = null) {
     await engine.processInput(input);
     const destination = engine.state;
     const moved = before.room !== destination.room;
+    if(destination.room==='the_river' && ferryView(destination).onboard && !ferryView(before).onboard) {
+      boatSelection='oarsman';
+      stopMovement();
+    }
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
     if (moved) {
       cryptInspection.hide();
@@ -425,6 +434,7 @@ async function restoreProgress(input) {
     $('#save-message').textContent = restored.repositioned ? '已恢复进度，角色已移至附近安全位置。' : '已恢复探索进度。';
     $('#title-save-message').textContent = '';
     started = true; director = createNarrativeDirector(); portrait = null; resetWabeArt();
+    boatSelection='oarsman';
     previousScene=null;
     lastArrival=null;
     cryptInspection.hide();
@@ -456,7 +466,8 @@ function objects() {
   const persistent=director.getState(engine.state).persistentActors.filter(object=>object.room===engine.state.room&&!ids.has(object.id));
   return [...listed,...persistent].map(object=>object.kind==='orbit_membrane'?{...object,x:player.x,y:player.y,pointerShape:{...object.pointerShape,x:player.x,y:player.y-17}}:object.id==='palace_gate:self'?{...object,visual:false}:positionWaterTarget(object,player));
 }
-function exits() { return sceneExits(engine.state.room, engine.state, engine.rooms); }
+function aboard() { return engine.state.room==='the_river' && ferryView(engine.state).onboard; }
+function exits() { return aboard() ? [] : sceneExits(engine.state.room, engine.state, engine.rooms); }
 function pendingObject(){
   const current=objects().find(object=>object.id===walkTarget?.id);
   return current && (current.approachSpan||current.shoreline) ? positionWaterTarget(current,walkTarget) : current;
@@ -464,6 +475,7 @@ function pendingObject(){
 
 function nearby() {
   const targets=objects();
+  if(aboard()) return targets.find(object=>object.id==='the_river:'+boatSelection);
   return nearbyTarget(targets.filter(object=>!object.actorRelative),player) || targets.find(object=>object.actorRelative);
 }
 
@@ -481,8 +493,13 @@ function interact() {
 }
 
 function interactWith(object) {
-  if(busy||paused||director.getState().busy||!withinReach(player,object))return;
-  faceObject(object);
+  if(busy||paused||director.getState().busy)return;
+  if(aboard()){
+    boatSelection=object.kind==='islet_oarsman'?'oarsman':'ferry';
+  }else{
+    if(!withinReach(player,object))return;
+    faceObject(object);
+  }
   const input=resolveInteraction(engine.state,object,{heldItem,observed:observedObjects});
   if(!input){sound.playUi('click');$('#hand-status').textContent='没有反应。';return;}
   portrait=object.kind==='woman'?(engine.state.room==='broad_walk'?'bird_woman':'umbrella_woman'):null;
@@ -582,7 +599,7 @@ async function transition(exit) {
 
 function canMovePlayer() {
   return started && !pages.length && !busy && !paused && !cryptInspection.open && !chapterMap.isOpen()
-    && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram')
+    && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram') && !aboard()
     && $('#quest').hidden;
 }
 
@@ -745,6 +762,11 @@ function render() {
   updateLabels(renderRoom);
   const crossing=renderRoom!==engine.state.room;
   const renderState=crossing&&previousScene?.room===renderRoom?previousScene:engine.state;
+  if(renderRoom==='the_river' && ferryView(renderState).onboard){
+    renderFerryAboard(ctx,{shrouded:renderState.itemLoc.shroud==='worn',phase:ferryView(renderState).phase},preferences.video.effects?clock:0);
+    if(story.currentEvent==='ferry_crossing')director.draw(ctx,renderRoom,engine.state,clock);
+    return;
+  }
   const renderObjects=crossing?(previousScene?.room===renderRoom?previousScene.visual.hotspots:[]):objects();
   warmWindmillArt(renderRoom);
   drawScene(ctx, renderRoom, clock, preferences.video.effects,renderState);
@@ -825,6 +847,10 @@ canvas.addEventListener('pointerdown',event=>{
   stopMovement();
   const point=pointerPoint(event),padding=event.pointerType==='touch'?Math.min(10,12*480/canvas.clientWidth):0;
   const target=pointedObject(point,padding);
+  if(aboard()){
+    if(target)interactWith(target);
+    return;
+  }
   const touchedDoor=target?.kind==='ranch_outside_door'||target?.id.endsWith(':opening');
   const labelExit=touchedDoor?null:pointedExitLabel(point);
   // A ferry's shore point is for approaching its hull. Clicking the sand walks there.
@@ -1020,6 +1046,11 @@ window.addEventListener('keydown', event => {
   // by a room change, dialogue, map, pause or loss of focus.
   if (event.repeat) return;
   if (isMovementKey(key)) {
+    if(aboard()&&!pages.length&&!busy&&$('#quest').hidden){
+      boatSelection=['ArrowLeft','ArrowDown',preferences.bindings.left,preferences.bindings.down].includes(key)?'ferry':'oarsman';
+      updateHud();
+      return;
+    }
     if (canMovePlayer()) keys.add(key);
     return;
   }
@@ -1105,6 +1136,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 window.render_game_to_text = () => JSON.stringify({
   art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
+  ferry:['the_river','sand_bar'].includes(engine.state.room)?{...ferryView(engine.state),selection:aboard()?boatSelection:null}:null,
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
   removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), routeMarker:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,

@@ -1,10 +1,9 @@
-// Real keyboard and canvas inputs. Only the separately labelled payment case seeds an item.
+// Real touch, keyboard and canvas inputs after a ferry trip with legitimately acquired fare.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createPrologueSession } from '../engine-adapter.js';
-import { makeVisualSave } from '../save.js';
+import { playedFerryCheckpoint } from './played-ferry-checkpoint.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = new URL(process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/');
@@ -13,31 +12,6 @@ roadsOnly.searchParams.set('reviewRoutes', '1');
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-t27-browser');
 const receipts = [];
 const errors = [];
-
-const startRoute = [
-  'e', 'take ball', 'nw', 'unscrew gnomon', 'take gnomon',
-  'n', 'take paper bird', 'open paper bird', 'w', 'buy crumbs', 'feed birds',
-  'take ruby', 'n', 'push pram', 'push pram', 'wait', 'throw ball at tree',
-  'take umbrella', 'push pram', 'open pram', 'enter pram', 'open umbrella',
-  'take paper bird', 'take gnomon', 'enter water', 'enter door', 'e', 'u',
-];
-
-async function riverSave({ open, seedCoin = false }) {
-  const engine = createPrologueSession();
-  engine.moveTo(engine.state.room);
-  for (const command of startRoute) await engine.processInput(command);
-  assert.equal(engine.state.room, 'vertex');
-  if (open) {
-    for (let i = 0; i < 7 && engine.state.sundialSymbol !== 6; i++) await engine.processInput('turn ring');
-  }
-  assert.equal(engine.state.sundialSymbol === 6, open);
-  for (const command of ['d', 'se']) await engine.processInput(command);
-  assert.equal(engine.state.room, 'the_river');
-  assert.equal(engine.state.dead, false);
-  assert.equal(engine.state.has('silver_coin'), false);
-  if (seedCoin) engine.state.placeItem('silver_coin', 'inventory');
-  return makeVisualSave(engine, { room: 'the_river', x: 285, y: 165, face: 'right' });
-}
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, hasTouch: true });
@@ -77,16 +51,25 @@ async function drain() {
   throw Error('对话或演出未结束');
 }
 
-async function importSave(save) {
+async function importSave(file, room) {
   await drain();
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: '探索进度' }).click();
-  await page.locator('#save-file').setInputFiles({
-    name: 'river.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(save)),
-  });
-  assert.equal((await until(s => !s.processing && s.mode !== 'paused', '存档未恢复')).room, 'the_river');
+  await page.locator('#save-file').setInputFiles(file);
+  assert.equal((await until(s => !s.processing && s.mode !== 'paused' && s.room===room, '存档未恢复')).room, room);
   await drain();
-  assert.equal((await state()).sundialSymbol, save.engine.state.sundialSymbol);
+}
+
+async function exportSave(name) {
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab', { name: '探索进度' }).click();
+  await page.locator('#save-now').click();
+  const downloaded = page.waitForEvent('download');
+  await page.locator('#export-save').click();
+  const path = join(output,name);
+  await (await downloaded).saveAs(path);
+  await page.keyboard.press('Escape');
+  return path;
 }
 
 async function canvasPoint(x, y) {
@@ -143,43 +126,59 @@ async function pressF(command, target) {
   assert.equal(before.mode, 'exploring');
   await page.keyboard.press('f');
   const current = await until(s => !s.processing && s.lastCommand === command
-    && (!target || s.room === target), `F 未执行 ${command}`);
+    && s.turns>before.turns && (!target || s.room === target), `F 未执行 ${command}`);
   if (target && target !== before.room) {
     receipts.push({ case: 'F-passage', from: before.room, target, command, turn: current.turns });
     await shot(`${before.room}-to-${target}`);
   }
-  const pages = await drain();
-  if (before.room === 'the_river' && target === 'islet') {
-    assert.ok(pages.length >= 2 && pages.some(text => text.includes('脚步声')));
-    assert.equal(new Set(pages).size, pages.length, '渡口抵达描述只显示一次');
-    assert.ok(current.removedPresence.includes('islet-toadstool-presence'));
-  }
+  await drain();
   return current;
 }
 
-async function boardFromRiver() {
-  const ferry = await approach('islet_ferry', [306, 165], 'd');
-  assert.ok(ferry.actions.some(action => action.command === 'in'));
+async function touchVessel(id, command) {
   const before = await state();
-  assert.equal(before.exits.find(exit => exit.dir === 'in')?.interactionOnly, true);
-  assert.equal(before.boundaries.some(exit => exit.dir === 'in'), false);
-  // Clicking the old exit anchor on the beach acts as a ground click.
-  await walkTo(324, 165);
-  assert.deepEqual(gameState(await state()), gameState(before));
-  // Walking to the water cannot take the interaction-only passage either.
-  await tapDirection('d', 350);
-  assert.deepEqual(gameState(await state()), gameState(before));
-  await approach('islet_ferry', [306, 165], 'd');
-  await pressF('examine dory');
-  const oneWay = !before.flags.includes('ferry_paid') && !before.inventory.includes('silver_coin');
-  if (oneWay) {
-    await page.locator('#hint').filter({ hasText: '单程' }).waitFor();
-    await shot('river-ready-to-board');
+  const object = before.objects.find(entry => entry.id===`${before.room}:${id}`);
+  assert.ok(object?.actions.some(action => action.command===command));
+  const {points} = object.pointerShape;
+  const midpoint = points.reduce(([x,y],[px,py]) => [x+px/points.length,y+py/points.length],[0,0]);
+  await page.touchscreen.tap(...await canvasPoint(...midpoint));
+  const after = await until(s => !s.processing && s.turns>before.turns && s.lastCommand===command, `触摸未完成 ${command}`);
+  assert.equal(after.turns,before.turns+1);
+  const pages = await drain();
+  assert.equal(new Set(pages).size,pages.length,'渡口抵达描述只显示一次');
+  receipts.push({case:'touch',command,from:before.room,target:after.room,turn:after.turns});
+  return after;
+}
+
+async function crossFromRiver() {
+  const first = await state();
+  assert.equal(first.ferry.phase,0);
+  assert.ok(first.ferry.visible && !first.ferry.docked);
+  await walkTo(324,165);
+  await tapDirection('d',350);
+  assert.deepEqual(gameState(await state()),gameState(first));
+  await page.setViewportSize({width:844,height:390});
+  for (const phase of [1,2]) {
+    const before = await state();
+    await page.keyboard.press('r');
+    await until(s => !s.processing && s.turns===before.turns+1 && s.ferry.phase===phase,'渡船阶段未推进');
+    await drain();
   }
-  const arrival = await pressF('in', 'islet');
-  assert.equal(arrival.navigation.arrival?.fromRoom, 'the_river');
-  assert.equal(arrival.navigation.arrival?.entrance, 'ferry');
-  assert.equal((await state()).chapter, 'islet');
+  await touchVessel('ferry','examine dory');
+  const boarded = await touchVessel('ferry','enter dory');
+  assert.ok(boarded.ferry.onboard);
+  assert.equal(boarded.room,'the_river');
+  await shot('phone-dory-aboard');
+  await page.keyboard.press('i');
+  await page.getByRole('button',{name:'银币',exact:true}).click();
+  const paid = await touchVessel('oarsman','give silver coin to oarsman');
+  assert.equal(paid.room,'sand_bar');
+  assert.equal(paid.navigation.arrival?.entrance,'ferry');
+  assert.equal(paid.navigation.arrival?.fromRoom,'the_river');
+  assert.ok(paid.ferry.crossed && !paid.ferry.legacyPaid);
+  assert.ok(!paid.inventory.includes('silver_coin') && !paid.exits.some(exit => exit.dir==='out'));
+  await shot('phone-sand-bar-arrival');
+  await page.setViewportSize({width:1440,height:900});
 }
 
 async function goToSandBar() {
@@ -211,34 +210,15 @@ async function checkMap(chapter, rooms, connections, screenshot) {
 }
 
 try {
+  const {file} = await playedFerryCheckpoint({stage:'river',url,output});
   await page.goto(roadsOnly.href);
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click();
-  await importSave(await riverSave({ open: false }));
-  const closed = gameState(await state());
-  await tapDirection('d', 620);
-  const blocked = await state();
-  assert.deepEqual(gameState(blocked), closed);
-  assert.equal(blocked.objects.some(object => object.kind === 'islet_ferry'), false);
-  assert.equal(blocked.exits.some(exit => exit.dir === 'in'), false);
-  assert.equal(blocked.boundaries.some(exit => exit.dir === 'in'), false);
-  await shot('river-closed');
-
-  await importSave(await riverSave({ open: true }));
-  await boardFromRiver();
+  await importSave(file,'the_river');
+  await crossFromRiver();
+  const sandBarSave = await exportSave('sand-bar-paid-played.json');
+  await walkRoad([[210, 255]], 's', 'islet', 'n');
   await goToSandBar();
-  const unpaid = await state();
-  assert.equal(unpaid.exits.some(exit => exit.dir === 'out'), false);
-  assert.equal(unpaid.inventory.includes('silver_coin'), false);
-  assert.equal(unpaid.objects.some(o => o.actions.some(action => action.command === 'give silver coin to oarsman')), false);
-  await approach('islet_ferry', [245, 154], 'd');
-  await pressF('look');
-  const denied = await pressF('out');
-  assert.equal(denied.room, 'sand_bar');
-  assert.ok(denied.dialogue?.text, '无法返航时应反馈原因');
-  assert.deepEqual(denied.inventory, unpaid.inventory);
-  assert.equal(denied.flags.includes('ferry_paid'), false);
-  receipts.push({ case: 'unpaid-return-denied', room: denied.room, turns: [unpaid.turns, denied.turns] });
   await checkMap('islet', ['islet', 'sand_bar'], [['islet', 'sand_bar']], 'islet-map');
   await walkRoad([[210, 255]], 's', 'islet', 'n');
   await approach('islet_gate', [343, 166], 'd');
@@ -283,50 +263,28 @@ try {
   assert.equal(restored.routeMarker?.exit?.target, 'desert_7');
   await shot('desert-east-route-restored');
   await walkRoad([], 'd', 'desert_7', 'w');
-  receipts.push({ case: 'main-route', fixture: '现有引擎指令到达的河岸存档' });
+  receipts.push({ case: 'main-route', source: '正常取得银币并付费到达沙洲的实玩进度' });
 
-  // Silver coin has no acquisition path in the current project data.
-  await importSave(await riverSave({ open: true, seedCoin: true }));
-  await boardFromRiver();
-  await goToSandBar();
-  await approach('islet_ferry', [245, 154], 'd');
-  await page.keyboard.press('i');
-  await page.getByRole('button', { name: '银币', exact: true }).click();
-  const beforePayment = await state();
-  const payment = await pressF('give silver coin to oarsman');
-  assert.equal(payment.turns, beforePayment.turns + 1);
-  assert.equal(payment.flags.includes('ferry_paid'), true);
-  assert.equal(payment.inventory.includes('silver_coin'), false);
-  assert.equal(payment.heldItem, null);
-  const paid = await state();
-  assert.equal(paid.exits.find(exit => exit.dir === 'out')?.target, 'the_river');
-  assert.equal(paid.objects.some(o => o.actions.some(action => action.command === 'give silver coin to oarsman')), false);
-  await shot('paid-ferry');
-  await pressF('out', 'the_river');
-  assert.equal((await state()).flags.includes('ferry_paid'), true);
-  receipts.push({ case: 'paid-return', fixture: '河岸存档追加一枚不可在当前流程中获得的银币' });
-
-  // On a phone-sized frame, tap the actual hull rather than the ground anchor.
-  await approach('islet_ferry', [306, 165], 'd');
-  await page.setViewportSize({ width: 844, height: 390 });
-  await page.touchscreen.tap(...await canvasPoint(371, 152));
-  const touched = await until(s => !s.processing && s.room === 'islet', '触控登船未抵达小岛');
-  assert.equal(touched.lastCommand, 'in');
-  assert.equal(touched.inventory.includes('silver_coin'), false);
-  await drain();
-  await shot('phone-islet-touch-arrival');
-  receipts.push({ case: 'touch-boarding', from: 'the_river', target: 'islet' });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await goToSandBar();
+  await importSave(sandBarSave,'sand_bar');
   await approach('islet_gate', [174, 214], 'a');
   await pressF('look');
   const fromSandBar = await pressF('enter door', 'shallow_crater');
   assert.equal(fromSandBar.navigation.arrival?.fromRoom, 'sand_bar');
   assert.equal(fromSandBar.navigation.arrival?.entrance, 'door');
 
+  if (process.env.PLAYED_LEGACY_SAND_BAR) {
+    await importSave(process.env.PLAYED_LEGACY_SAND_BAR,'sand_bar');
+    const old = await state();
+    assert.equal(old.ferry.legacyPaid,true);
+    await approach('islet_ferry',[245,154],'d');
+    if (!old.observed.includes('sand_bar:ferry')) await pressF('examine dory');
+    await pressF('out','the_river');
+    receipts.push({case:'legacy-paid-return',source:'旧版本正式游玩导出'});
+  }
+
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({ receipts, errors }, null, 2)}\n`);
-  console.log('通过河岸条件、单程、付费返航、实路通行、章节地图、沙漠连接与续玩检查');
+  console.log('通过触摸登艇付费、沙洲与小岛、两侧白门、地图及沙漠续玩检查');
 } catch (error) {
   await shot('failure').catch(() => {});
   const current = await state().catch(() => null);

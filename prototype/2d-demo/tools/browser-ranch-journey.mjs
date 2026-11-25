@@ -1,29 +1,19 @@
-// Produces a fresh browser-played Prologue checkpoint, then continues via the normal UI.
+// Continues via the normal UI from a real opening, ferry crossing and crater entry.
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
 import { SCENES } from '../scene-manifest.js';
 import { VISUAL_SAVE_KEY } from '../save.js';
+import { playedFerryCheckpoint } from './played-ferry-checkpoint.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-ranch-journey');
 const gatewayOnly = process.argv.includes('--gateway-only');
 const windmillCheckpoint = process.argv.includes('--windmill-checkpoint');
-const prelude = join(output, 'fresh-prologue');
 await mkdir(output, { recursive: true });
-const smoke = fileURLToPath(new URL('./browser-smoke.mjs', import.meta.url));
-await promisify(execFile)(process.execPath, [smoke], { env: { ...process.env, DEMO_URL: url, QA_OUTPUT: prelude } });
-const prologue = JSON.parse(await readFile(join(prelude, 'result.json'), 'utf8'));
-assert.equal(prologue.pass, true);
-assert.deepEqual(prologue.errors, []);
-const checkpoint = join(prelude, 'hd2d-export.json');
-const exported = JSON.parse(await readFile(checkpoint, 'utf8'));
-assert.equal(exported.engine.state.room, 'bottom_of_stairs');
+const {file:checkpoint,save:exported} = await playedFerryCheckpoint({stage:'crater',url,output});
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, hasTouch: true });
@@ -106,17 +96,6 @@ async function walkUnderSign([x, y], room) {
   throw Error(`${room} 无法步行到标识下的 ${x},${y}`);
 }
 
-async function clickExit(dir, target) {
-  await drain();
-  const before = await state();
-  const exit = before.exits.find(candidate => candidate.dir === dir);
-  assert.equal(exit?.target, target);
-  await tick(600);
-  await clickAt([exit.x, exit.y]);
-  await until(s => s.room === target && !s.processing, `${before.room}.${dir} 未到达 ${target}`);
-  await drain();
-}
-
 async function pointerAction(objectId, point, command, target, touch = false) {
   for (let attempt = 0; attempt < 3; attempt++) {
     await drain();
@@ -166,27 +145,13 @@ async function reachCrater() {
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: '探索进度' }).click();
   await page.locator('#save-file').setInputFiles(checkpoint);
-  await until(s => s.room === exported.engine.state.room && !s.processing, '浏览器生成的序章续玩未载入');
+  await until(s => s.room === 'shallow_crater' && !s.processing, '浏览器实走到浅坑的续玩未载入');
   await drain();
   assert.equal((await state()).turns, exported.engine.state.turns);
-
-  await pointerAction('bottom_of_stairs:stairs', [245, 102], 'u', 'vertex');
-  for (let turn = 0; turn < 7 && (await state()).sundialSymbol !== 6; turn++) {
-    await pointerAction('vertex:ring', [286, 132], 'turn ring');
-  }
-  assert.equal((await state()).sundialSymbol, 6);
-  await pointerAction('vertex:stairs', [200, 222], 'd', 'bottom_of_stairs');
-  await clickExit('se', 'the_river');
-  await approachF([306, 165], 'd', 'the_river:ferry');
-  await pressF('examine dory');
-  await pressF('in', 'islet');
-  await approachF([343, 166], 'd', 'islet:gate');
-  await pressF('examine toadstool');
-  await pressF('enter door', 'shallow_crater');
   assert.equal((await state()).chapter, 'desert');
   assert.ok((await state()).inventory.includes('gnomon'));
   assert.ok((await state()).inventory.includes('splinter'), '正常序章路线应已从南沼泽拾到发光木片');
-  await shot('crater-from-islet');
+  await shot('crater-checkpoint');
 }
 
 async function cross({ dir, target, entrance, points, keys, screenshot }) {
@@ -541,7 +506,7 @@ try {
   }
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), `${JSON.stringify({
-    start: '独立浏览器从新标题实玩后导出的续档，经普通导入接续；全过程使用已注册的正式游戏页面。',
+    start: '从实际开局取得墓地道具并正常付费过河的浅坑续档，经普通导入接续。',
     checkpoint: exported.engine.state.room, receipts, windmillPreset, errors,
   }, null, 2)}\n`);
   console.log(windmillCheckpoint ? '正常走到风车下并导出带木片的进度' : gatewayOnly

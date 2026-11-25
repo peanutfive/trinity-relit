@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createPrologueSession } from '../engine-adapter.js';
-import { makeVisualSave } from '../save.js';
 import { SCENES } from '../scene-manifest.js';
+import { playedFerryCheckpoint } from './played-ferry-checkpoint.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = new URL(process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/');
@@ -37,27 +36,6 @@ const roadPoints = {
   foothills_3: { n: [[226, 138], [230, 99], [246, 62], [249, 43]], e: [[226, 138], [353, 135], [437, 132]],
     w: [[226, 138], [142, 142], [43, 131]] },
 };
-
-async function craterSave() {
-  const engine = createPrologueSession();
-  engine.moveTo(engine.state.room);
-  for (const command of [
-    'e', 'take ball', 'nw', 'unscrew gnomon', 'take gnomon',
-    'n', 'take paper bird', 'open paper bird', 'w', 'buy crumbs', 'feed birds',
-    'take ruby', 'n', 'push pram', 'push pram', 'wait', 'throw ball at tree',
-    'take umbrella', 'push pram', 'open pram', 'enter pram', 'open umbrella',
-    'take paper bird', 'take gnomon', 'enter water', 'enter door', 'e', 'u',
-  ]) await engine.processInput(command);
-  assert.equal(engine.state.room, 'vertex');
-  for (let i = 0; i < 7 && engine.state.sundialSymbol !== 6; i++) await engine.processInput('turn ring');
-  assert.equal(engine.state.sundialSymbol, 6);
-  for (const command of ['d', 'se', 'in', 'enter door']) await engine.processInput(command);
-  assert.equal(engine.state.room, 'shallow_crater');
-  assert.equal(engine.state.dead, false);
-  assert.equal(engine.state.has('gnomon'), true);
-  const { x, y, face } = SCENES.shallow_crater.sourceArrivals.islet;
-  return makeVisualSave(engine, { room: 'shallow_crater', x, y, face });
-}
 
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -212,14 +190,14 @@ async function retrieveGnomon(id) {
 }
 
 try {
+  const { file } = await playedFerryCheckpoint({stage:'crater',url,output});
   await page.goto(roadsOnly.href);
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click();
   await drain();
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: '探索进度' }).click();
-  await page.locator('#save-file').setInputFiles({ name: 'crater.json', mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(await craterSave())) });
+  await page.locator('#save-file').setInputFiles(file);
   await until(s => s.room === 'shallow_crater' && !s.processing, '浅坑存档未载入');
   await drain();
   assert.equal(desert.size, 13);

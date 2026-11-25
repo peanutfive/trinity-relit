@@ -234,27 +234,25 @@ test('交付画中的毒菌、药床和巨人鞋沿与命中及占位一致，�
   assert.equal(isBlocked(SCENES.herb_garden,365,185),false,'观察点在树干前的真实土路上');
 });
 
-test('河岸渡口只在开启的符号下显示，观察和看地图保持进度', async () => {
-  for (const open of [false, true]) {
+test('渡船首见与日晷指向无关，远船不能登艇，查看地图不会推进船班', async () => {
+  for (const symbol of [2,6]) {
     const game = await meadow(), {engine} = game;
     await run(game, ['e', 'u']);
-    await setSymbol(game, open ? 6 : 2);
+    await setSymbol(game,symbol);
     await run(game, ['d', 'se']);
-    assert.equal(engine.state.room, 'the_river');
+    assert.equal(engine.state.room,'the_river');
     const before = snapshot(engine);
-    const exits = sceneExits('the_river', engine.state, engine.rooms).filter(exit => exit.dir === 'in');
-    assert.deepEqual(exits.map(({target, interactionOnly}) => ({target, interactionOnly})),
-      open ? [{target: 'islet', interactionOnly: true}] : []);
-    assert.equal(sceneBoundaries('the_river', engine.state, engine.rooms).some(exit => exit.dir === 'in'), false);
-    const boats = getHotspots(engine.state).filter(object => object.kind === 'islet_ferry');
-    assert.equal(boats.length, Number(open));
-    if (open) {
-      assert.equal(resolveInteraction(engine.state, boats[0]), 'examine dory');
-      assert.equal(resolveInteraction(engine.state, boats[0], {observed: new Set([boats[0].id])}), 'in');
-    }
-    const map = buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});
-    assert.ok(map.nodes.every(node => node.id !== 'islet'));
-    assert.deepEqual(snapshot(engine), before);
+    const ferry = () => getHotspots(engine.state).find(object=>object.kind==='islet_ferry');
+    const observed = new Set([ferry().id]);
+    assert.equal(resolveInteraction(engine.state,ferry()),'examine dory');
+    assert.equal(resolveInteraction(engine.state,ferry(),{observed}),'wait');
+    assert.equal(sceneExits('the_river',engine.state,engine.rooms).some(exit=>exit.dir==='in'),false);
+    assert.equal(sceneBoundaries('the_river',engine.state,engine.rooms).some(exit=>exit.dir==='in'),false);
+    const map = buildChapterMap({state:engine.state,rooms:engine.rooms,scenes:SCENES});
+    assert.ok(map.nodes.every(node=>!['islet','sand_bar'].includes(node.id)));
+    assert.deepEqual(snapshot(engine),before);
+    await run(game,['examine dory','examine oarsman']);
+    assert.equal(resolveInteraction(engine.state,ferry(),{observed}),'enter dory');
   }
 });
 

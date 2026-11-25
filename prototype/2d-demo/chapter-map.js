@@ -1,12 +1,12 @@
 import { MAP_SIZE, illustratedMapNodes, chartConnection, chartRoadPath } from './map-geography.js';
 import { terrainMarkup, mapIconPath } from './chapter-map-art.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
-import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
+import { ROOMS as WABE_ROOMS } from './cemetery-story.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
 import { ROOMS as ORBIT_ROOMS } from '../js/data/orbit.js';
 import { ROOMS as PACIFIC_ROOMS } from '../js/data/pacific.js';
 import { ROOMS as TUNDRA_ROOMS } from '../js/data/tundra.js';
-import { ROOMS as ISLET_ROOMS } from '../js/data/islet.js';
+import { ISLET_ROOMS } from './ferry-islet.js';
 import { ROOMS as RANCH_ROOMS } from './ranch-story.js';
 import { ROOMS as DESERT_ROOMS } from '../js/data/desert.js';
 

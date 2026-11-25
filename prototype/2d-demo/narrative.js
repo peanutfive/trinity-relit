@@ -120,6 +120,9 @@ export function createNarrativeDirector() {
     if(orbitMotion)push(orbitMotion.type,{id:`${orbitMotion.type}:${after.turns}`,room:before.room,motion:orbitMotion,duration:orbitMotion.duration});
     if(cliffMotion)push('cliff_passage',{id:`cliff_passage:${after.turns}`,room:before.room,motion:cliffMotion,duration:cliffMotion.duration});
     const gained=flag=>!has(before,flag)&&has(after,flag);
+    if(before.room==='the_river' && after.room==='sand_bar' && gained('river_ferry_crossed')) {
+      push('ferry_crossing',{room:before.room,duration:2.4});
+    }
     const japan=(type,room=after.room)=>{
       const motion=createJapanMotion(type,before);
       push(type,{id:`${type}:${after.turns}`,room,motion,duration:motion.duration});
@@ -199,7 +202,8 @@ export function createNarrativeDirector() {
     if(type==='boy_startled')hiddenKinds.push('boy','teenager','dish');
     const ranch=type?.startsWith('ranch_');
     if(type==='ranch_fall')hiddenKinds.push('binoculars');
-    const sceneRoom=ranch?ranchMotionRoom(active.motion,active.elapsed/active.duration):active?.room||state.room||lastRoom;
+    let sceneRoom=ranch?ranchMotionRoom(active.motion,active.elapsed/active.duration):active?.room||state.room||lastRoom;
+    if(type==='ferry_crossing' && active.elapsed >= active.duration/2) sceneRoom=active.toRoom;
     // Available commands can disappear without the people leaving the scene.
     // Return these actors to the caller's shared depth/collision pass; draw()
     // must never paint them above foreground objects after that pass has ended.
@@ -244,6 +248,17 @@ export function createNarrativeDirector() {
     return {currentEvent:type,eventId:active?.id||null,elapsed:active?.elapsed||0,duration:active?.duration||0,busy:Boolean(active?.busy||queue.some(event=>event.busy)),sceneRoom,hidePlayer:ranch||japanFrame.hidePlayer||['pram_push','pram_runaway','pram_board','pram_tumble','umbrella_travel','door_cross','cliff_passage','orbit_drift','orbit_return'].includes(type),hiddenKinds,persistentActors,actorVisuals,visibleActorActions,groundActors,playerLanding:pushEvent?.motion.landing||null,queued:queue.map(event=>event.type),triggered:[...triggered],history:history.map(entry=>({...entry})),grading:null,sourceReview:{ravens:{status:'verified_once_at_phase_4',visualEnabled:false},door_cross:{status:'source_verified',visualSequence:'conditional_roadrunner_and_short_fade',fullShellAnimationPending:true}}};
   }
   function draw(c,room,state=latest||{},clock=0) {
+    if(active?.type==='ferry_crossing'){
+      const t=active.elapsed/active.duration;
+      // Change shore only while the fog completely covers the picture.
+      const opacity=smooth(Math.min(t/.45,(1-t)/.45));
+      c.save();
+      c.fillStyle='#a6b4ae';
+      c.globalAlpha=opacity;
+      c.fillRect(0,0,480,288);
+      c.restore();
+      return;
+    }
     const tundra=room.startsWith('tundra_')||['under_platform','platform','cliff_edge'].includes(room);
     if(!room.startsWith('orbit_')&&!tundra&&!['islet','desert','ranch'].includes(state.chapter))drawLeaves(c,clock,leafOffset,latest?windChanged:has(state,'wind_changed'),active?.type==='wind_reversal'?active.elapsed/active.duration:null);
     if(active?.type.startsWith('ranch_')){

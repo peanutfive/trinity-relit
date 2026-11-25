@@ -1,94 +1,218 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ROOMS as TEXT_WABE } from '../../js/data/wabe.js';
-import { matchingEvent } from '../../js/intent.js';
+import { ROOMS as TEXT_ISLET } from '../../js/data/islet.js';
 import { createPrologueSession } from '../engine-adapter.js';
-import { withFerryShore } from '../ferry-shore.js';
+import { ferryView } from '../ferry-state.js';
 
 function session() {
   const lines=[];
   const engine=createPrologueSession({ui:{
     text:value=>lines.push(value),system:value=>lines.push(value),location(){},inventory(){},userInput(){},
   }});
-  return {engine,async enter(input){
-    const turn=engine.state.turns;
-    lines.length=0;
-    await engine.processInput(input);
-    assert.equal(engine.state.turns,turn+1);
-    return lines.join('\n');
-  }};
+  return {
+    engine,lines,view:()=>ferryView(engine.state),
+    async enter(input) {
+      lines.length=0;
+      await engine.processInput(input);
+      return lines.join('\n');
+    },
+  };
 }
 
-async function river() {
+async function river(symbol=2,elapsed=0) {
   const run=session();
-  await run.engine.transitionChapter({to:'wabe',roomCandidates:['the_river']});
-  run.engine.state.sundialSymbol=6;
+  run.engine.state.turns=elapsed;
+  run.engine.state.sundialSymbol=symbol;
+  await run.engine.transitionChapter({to:'wabe',roomCandidates:['bottom_of_stairs']});
+  assert.match(await run.enter('se'),/lone vessel/);
   return run;
 }
 
-test('同一处河岸可分别看船、船夫和水面，重看与读档不会改变行程',async()=>{
-  const {engine,enter}=await river();
-  assert.match(await enter('examine dory'),/ancient design/);
-  assert.equal(engine.state.hasFlag('river_oarsman_recognized'),false);
-  assert.match(await enter('examine oarsman'),/hooded cloak/);
-  assert.equal(engine.state.hasFlag('river_oarsman_recognized'),true);
-  assert.match(await enter('look at boatman'),/hooded cloak/);
-  assert.match(await enter('look in the boat'),/ancient design/);
-  assert.match(await enter('examine river'),/dark and still/);
-  const other=session();
-  await other.engine.deserialize(JSON.parse(JSON.stringify(engine.serialize())));
-  assert.equal(other.engine.state.room,'the_river');
-  assert.equal(other.engine.state.hasFlag('river_oarsman_recognized'),true);
-  assert.equal(other.engine.currentRoom().exits(other.engine.state).in.to,'islet');
+async function dock(run,phase=2) {
+  for (let i=0;i<phase;i++) await run.enter('look');
+  assert.equal(run.view().phase,phase);
+  assert.ok(run.view().docked);
+}
+
+async function restore(run) {
+  const next=session();
+  await next.engine.deserialize(JSON.parse(JSON.stringify(run.engine.serialize())));
+  assert.deepEqual(next.view(),run.view());
+  return next;
+}
+
+test('七个日晷符号从初抵这天起排班，每十二个有效回合循环，离岸活动也推进',async()=>{
+  for (let symbol=1;symbol<=7;symbol++) {
+    const run=await river(symbol,symbol*5);
+    assert.equal(run.view().phase,0);
+    assert.equal(run.engine.currentRoom().exits(run.engine.state).in,undefined);
+    for(let i=1;i<=12;i++) {
+      await run.enter('look');
+      assert.equal(run.view().phase,i%12);
+      assert.equal(run.view().visible,i<=5 || i===12);
+      assert.equal(run.view().docked,i>=2 && i<=4);
+    }
+    await run.enter('nw');
+    await run.enter('look');
+    await run.enter('se');
+    assert.equal(run.view().phase,3);
+  }
 });
 
-test('从口袋递币会先拿出来，在岸上递交和展示都保留手中银币',async()=>{
-  const {engine,enter}=await river();
-  engine.state.toPocket('silver_coin');
-  const first=await enter('give silver coin to oarsman');
+test('看船首遇能辨识船夫，消失后猜船不耗回合，重新出现时保持认知',async()=>{
+  const run=await river();
+  assert.equal(run.engine.state.hasFlag('river_oarsman_recognized'),false);
+  const first=await run.enter('examine oarsman');
+  assert.match(first,/hooded cloak/);
+  assert.doesNotMatch(first,/make out a dark oarsman/);
+  assert.match(await run.enter('look in the boat'),/ancient design/);
+  assert.match(await run.enter('examine river'),/dark and still/);
+  await run.enter('wait');await run.enter('wait');await run.enter('wait');
+  assert.equal(run.view().visible,false);
+  const again=await restore(run);
+  const turn=again.engine.state.turns;
+  assert.match(await again.enter('examine dory'),/can't see any dory/);
+  assert.match(await again.enter('examine oarsman'),/can't see any oarsman/);
+  assert.equal(again.engine.state.turns,turn);
+  await again.enter('wait');
+  assert.equal(again.engine.state.turns,turn+4);
+  assert.match(await again.enter('wait'),/reappears/);
+  assert.equal(again.view().phase,0);
+  assert.doesNotMatch(await again.enter('wait'),/make out a dark oarsman/);
+});
+
+test('从岸边递交、出示、猜银币或掉在岸上的银币都不能买票',async()=>{
+  const run=await river();
+  const state=run.engine.state;
+  state.take('coin');
+  assert.match(await run.enter('give silver coin to oarsman'),/not holding that/);
+  assert.equal(state.itemAt('silver_coin'),undefined);
+  state.placeItem('silver_coin','the_river');
+  assert.match(await run.enter('give silver coin to oarsman'),/not holding a silver coin/);
+  state.toPocket('silver_coin');
+  const first=await run.enter('give silver coin to oarsman');
   assert.match(first,/taking the silver coin out of your pocket first/);
   assert.match(first,/get in the dory/);
-  assert.equal(engine.state.itemAt('silver_coin'),'inventory');
-  for(const command of ['show silver coin to oarsman','give silver coin to boatman']) {
-    const text=await enter(command);
-    assert.doesNotMatch(text,/pocket/);
-    assert.match(text,/get in the dory/);
-    assert.equal(engine.state.itemAt('silver_coin'),'inventory');
-    assert.equal(engine.state.room,'the_river');
-    assert.equal(engine.state.hasFlag('ferry_paid'),false);
-    assert.equal(engine.state.score,0);
-  }
+  assert.match(await run.enter('show silver coin to oarsman'),/get in the dory/);
+  assert.equal(state.itemAt('silver_coin'),'inventory');
+  assert.equal(state.itemAt('coin'),'inventory');
+  assert.equal(state.hasFlag('ferry_paid'),false);
 });
 
-test('放在地上或从未持有的银币既不转移也不被当作普通硬币',async()=>{
-  const {engine,enter}=await river();
-  engine.state.take('coin');
-  assert.match(await enter('give silver coin to oarsman'),/not holding that/);
-  assert.equal(engine.state.itemAt('silver_coin'),undefined);
-  engine.state.placeItem('silver_coin','the_river');
-  assert.match(await enter('give silver coin to oarsman'),/not holding a silver coin/);
-  assert.equal(engine.state.itemAt('silver_coin'),'the_river');
-  assert.equal(engine.state.itemAt('coin'),'inventory');
-  assert.equal(engine.state.hasFlag('ferry_paid'),false);
+test('三个停泊时刻皆可登艇，未穿或只手持衣物会被赶回；太早、太晚均够不到',async()=>{
+  for(const phase of [0,1,2,3,4,5]) {
+    const run=await river();
+    run.engine.state.wear('shroud');
+    for(let i=0;i<phase;i++) await run.enter('look');
+    const text=await run.enter('enter dory');
+    const canBoard=phase>=2 && phase<=4;
+    assert.equal(run.view().onboard,canBoard);
+    assert.match(text,canBoard?/skeletal hand/:/where you're standing/);
+    if(canBoard)assert.equal(run.view().phase,phase);
+  }
+  const run=await river();
+  run.engine.state.take('shroud');
+  await dock(run);
+  assert.match(await run.enter('enter dory'),/London vacation shorts/);
+  assert.equal(run.view().onboard,false);
+  assert.match(await run.enter('enter dory'),/vacation shorts and kicks/);
+  assert.equal(run.engine.state.room,'the_river');
 });
 
-test('二维河岸仅在既有渡船可见时启用专属命令，保留原章节和岛上付款',async()=>{
-  const original=TEXT_WABE.the_river;
-  const shore=withFerryShore(original);
-  assert.equal(shore.exits,original.exits);
-  assert.deepEqual(shore.events.slice(-original.events.length),original.events);
-  assert.ok(!original.events.some(event=>event.id==='river_examine_dory'));
-  const {engine,enter}=await river();
-  for(const symbol of [2,6]){
-    engine.state.sundialSymbol=symbol;
-    const visible=engine.currentRoom().exits(engine.state).in.to==='islet';
-    for(const input of ['examine oarsman','examine dory','give silver coin to oarsman'])
-      assert.equal(Boolean(matchingEvent(engine,engine.parser.parse(input))),visible);
+test('停船催资和离艇按实际动作计时，读艇内存档保持位置与余下时限',async()=>{
+  const run=await river();
+  run.engine.state.wear('shroud');
+  await dock(run);
+  await run.enter('enter dory');
+  const again=await restore(run);
+  assert.match(await again.enter('n'),/while you're in the dory/);
+  assert.equal(again.view().phase,2);
+  const late=await restore(again);
+  assert.match(await late.enter('wait'),/swift kick/);
+  assert.equal(late.view().onboard,false);
+  assert.equal(late.view().phase,3);
+  const early=await restore(run);
+  assert.match(await early.enter('exit dory'),/clamber out/);
+  assert.equal(early.view().phase,3);
+  const turn=run.engine.state.turns;
+  assert.match(await run.enter('out'),/clamber out/);
+  assert.equal(run.engine.state.turns,turn);
+  assert.equal(run.view().phase,2);
+  await run.enter('in');
+  assert.equal(run.engine.state.turns,turn);
+  assert.equal(run.view().onboard,true);
+});
+
+test('信用卡不能充作船资，船夫撕卡后仍等真币；一回合的催资后仍可成功交付',async()=>{
+  const run=await river();
+  const state=run.engine.state;
+  state.wear('shroud');
+  state.toPocket('silver_coin');
+  await dock(run,4);
+  await run.enter('enter dory');
+  const card=await run.enter('give credit card to oarsman');
+  assert.match(card,/rips the card in half/);
+  assert.match(card,/growing impatience/);
+  assert.equal(state.itemAt('credit_card'),'destroyed');
+  assert.equal(state.hasFlag('ferry_paid'),false);
+  const receipt=await run.enter('give silver coin to oarsman');
+  assert.match(receipt,/taking the silver coin out of your pocket/);
+  assert.match(receipt,/accepts the silver coin/);
+  assert.match(receipt,/empty dory away from the shore/);
+  assert.equal(state.room,'sand_bar');
+  assert.equal(state.chapter,'islet');
+  assert.equal(state.itemAt('silver_coin'),'destroyed');
+  assert.equal(state.hasFlag('wabe_to_islet_used'),false);
+  assert.equal(run.view().crossed,true);
+  assert.equal(run.view().legacyPaid,false);
+  assert.equal(run.view().phase,10);
+  const ashore=await restore(run);
+  assert.equal(ashore.engine.currentRoom().exits(ashore.engine.state).out,undefined);
+  const phases=[];
+  for(let i=0;i<5;i++){await ashore.enter('wait');phases.push(ashore.view().phase);}
+  assert.deepEqual(phases,[11,3,7,8,9]);
+  assert.match(await ashore.enter('enter dory'),/pushes you away from the dory/);
+  assert.equal(ashore.engine.state.room,'sand_bar');
+  await ashore.enter('s');
+  assert.equal(ashore.engine.state.room,'islet');
+  await ashore.enter('enter door');
+  assert.equal(ashore.engine.state.room,'shallow_crater');
+});
+
+test('旧河岸档第一次恢复启动排班，旧票已付与旧岛尚未付两类都保留原路',async()=>{
+  const original=await river(6,12);
+  const snapshot=original.engine.serialize();
+  snapshot.state.flags=snapshot.state.flags.filter(f=>!f.startsWith('river_ferry_'));
+  snapshot.state.counters={};
+  const reloaded=session();
+  await reloaded.engine.deserialize(snapshot);
+  assert.equal(reloaded.view().phase,0);
+  await reloaded.enter('look');
+  assert.equal(reloaded.view().phase,1);
+  for(const room of ['islet','sand_bar']){
+    const old=session();
+    await old.engine.transitionChapter({to:'islet',roomCandidates:[room]});
+    old.engine.state.sundialSymbol=6;
+    old.engine.state.setFlag('wabe_to_islet_used');
+    old.engine.state.take('silver_coin');
+    const next=await restore(old);
+    assert.equal(next.view().legacyUnpaid,true);
+    assert.equal(next.view().docked,true);
+    assert.match(await next.enter('examine dory'),/ancient design/);
+    assert.match(await next.enter('examine oarsman'),/hooded cloak/);
+    await next.enter('give silver coin to oarsman');
+    assert.equal(next.engine.state.itemAt('silver_coin'),'destroyed');
+    assert.equal(next.view().legacyPaid,true);
+    assert.match(await next.enter('examine oarsman'),/hooded cloak/);
+    if(room==='islet')await next.enter('n');
+    await next.enter('out');
+    assert.equal(next.engine.state.room,'the_river');
+    next.engine.state.sundialSymbol=4;
+    assert.match(await next.enter('examine dory'),/ancient design/);
+    await next.enter('in');
+    assert.equal(next.engine.state.room,'islet');
   }
-  engine.state.take('silver_coin');
-  await enter('in');
-  assert.equal(engine.state.room,'islet');
-  await enter('give silver coin to oarsman');
-  assert.equal(engine.state.itemAt('silver_coin'),'destroyed');
-  assert.ok(engine.state.hasFlag('ferry_paid'));
+  assert.ok(TEXT_WABE.the_river.exits(original.engine.state).in);
+  assert.ok(TEXT_ISLET.sand_bar.events.some(event=>event.id==='give_coin_to_oarsman_sb'));
 });

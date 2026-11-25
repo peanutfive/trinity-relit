@@ -3,10 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createPrologueSession } from '../engine-adapter.js';
-import { makeVisualSave } from '../save.js';
 import { SCENES } from '../scene-manifest.js';
-import { roomArrival } from '../arrivals.js';
+import { playedFerryCheckpoint } from './played-ferry-checkpoint.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const url = new URL(process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/');
@@ -20,6 +18,9 @@ const photographed = new Set(), visited = new Set(), receipts = [], cornerProbes
 
 // Final approach samples are on the painted carriageway or the unpaved shoulder.
 const painted = {
+  shallow_crater: { w: [30,145] },
+  desert_5: { w: [33,184] },
+  desert_4: { s: [245,250] },
   foothills_1: { w: [43,121] },
   foothills_2: { w: [43,139] },
   foothills_3: { w: [43,133] },
@@ -30,28 +31,6 @@ const painted = {
   paved_road_5: { n: [185,83], s: [244,245], e: [447,70] },
   paved_road_6: { n: [236,77], s: [224,245] },
 };
-
-async function checkpoint() {
-  const engine = createPrologueSession();
-  engine.moveTo(engine.state.room);
-  const commands = ['e', 'take ball', 'nw', 'unscrew gnomon', 'take gnomon',
-    'n', 'take paper bird', 'open paper bird', 'w', 'buy crumbs', 'feed birds',
-    'take ruby', 'n', 'push pram', 'push pram', 'wait', 'throw ball at tree',
-    'take umbrella', 'push pram', 'open pram', 'enter pram', 'open umbrella',
-    'take paper bird', 'take gnomon', 'enter water', 'enter door', 'e', 'u'];
-  for (const command of commands) await engine.processInput(command);
-  assert.equal(engine.state.room, 'vertex');
-  for (let i = 0; i < 7 && engine.state.sundialSymbol !== 6; i++) await engine.processInput('turn ring');
-  assert.equal(engine.state.sundialSymbol, 6);
-  for (const command of ['d','se','in','enter door','w','w','s']) await engine.processInput(command);
-  const id = hill(2), scene = SCENES[id];
-  assert.equal(engine.state.room, id);
-  assert.equal(engine.state.dead, false);
-  assert.ok(engine.state.has('gnomon'));
-  for (const room of engine.state.visited) if (SCENES[room]?.chapter === 'desert') visited.add(room);
-  const arrival = roomArrival(scene, { fromRoom: 'desert_4', direction: 's', exits: scene.exits });
-  return makeVisualSave(engine, { room: id, x: arrival.x, y: arrival.y, face: arrival.face });
-}
 
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch(), page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -185,15 +164,20 @@ async function checkShoulderCorner() {
 }
 
 try {
-  const save = await checkpoint();
+  const { file } = await playedFerryCheckpoint({stage:'crater',url,output});
   await page.goto(roadsOnly.href);
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click(); await drain();
   await page.keyboard.press('Escape');
   await page.getByRole('tab', {name:'探索进度'}).click();
-  await page.locator('#save-file').setInputFiles({ name:'hill.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(save)) });
-  await until(s => s.room === hill(2) && !s.processing && s.mode !== 'paused','山麓读档失败');
+  await page.locator('#save-file').setInputFiles(file);
+  await until(s => s.room === 'shallow_crater' && !s.processing && s.mode !== 'paused','浅坑读档失败');
   await drain();
+  visited.add('shallow_crater');
+  await travel('w','desert_5');
+  await travel('w','desert_4');
+  await travel('s',hill(2));
+  const entryRoads = receipts.splice(0);
   await checkMap('before-roads');
   await travel('w', road(4));
   await checkMap('first-road');
@@ -224,7 +208,7 @@ try {
     .map(receipt => receipt.from + '>' + receipt.target));
   assert.equal(travelled.size, 16, '六段公路和三条山麓支路均应双向实走');
   assert.deepEqual(errors,[]);
-  await writeFile(join(output,'result.json'),JSON.stringify({checkpoint:hill(2),rooms:[...visited],receipts,cornerProbes,errors},null,2));
+  await writeFile(join(output,'result.json'),JSON.stringify({checkpoint:'shallow_crater',entryRoads,rooms:[...visited],receipts,cornerProbes,errors},null,2));
   console.log('通过六段铺装路、三个山麓岔口、四处制作边界、地图与续玩验收');
 } catch (error) {
   await shot('failure').catch(() => {});

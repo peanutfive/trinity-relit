@@ -11,16 +11,17 @@ import {WABE_COMPLETION_LAYOUT} from './wabe-completion-layout.js';
 import {PACIFIC_LAYOUT} from './pacific-layout.js';
 import {TUNDRA_LAYOUT} from './tundra-layout.js';
 import {ISLET_LAYOUT} from './islet-layout.js';
+import {FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART} from './ferry-art-assets.js';
 import {DESERT_ARRIVAL_LAYOUT} from './desert-arrival-layout.js';
 import {RANCH_PERIMETER_LAYOUT} from './ranch-perimeter-layout.js';
 import {RANCH_RESERVOIR_LAYOUT} from './ranch-reservoir-layout.js';
 import {ROOMS as RANCH_ROOMS} from './ranch-story.js';
-import {ROOMS as ISLET_ROOMS} from '../js/data/islet.js';
+import { ISLET_ROOMS } from './ferry-islet.js';
 import {ROOMS as DESERT_ROOMS} from '../js/data/desert.js';
 import {ROOMS as TUNDRA_ROOMS} from '../js/data/tundra.js';
 import {ROOMS as PACIFIC_ROOMS} from '../js/data/pacific.js';
 import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
-import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
+import { ROOMS as WABE_ROOMS } from './cemetery-story.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
 import { JAPAN_ROUTE_LAYOUT } from './japan-route-layout.js';
 import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
@@ -221,6 +222,8 @@ for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOU
 SCENES.under_windmill.background.variant = {
   flag: 'binoculars_broken', image: './assets/ranch-reservoir-under_windmill-damaged-v1.png',
 };
+SCENES.the_river.preloadArt = [FERRY_ABOARD_ART, FERRY_PASSENGER_ART, FERRY_BOAT_ART];
+SCENES.sand_bar.preloadArt = [FERRY_PASSENGER_ART, FERRY_BOAT_ART];
 // The shared story calls these places simply Desert or Foothills. Use the
 // landmarks on the delivered plates for the explorer's map and signposts.
 const desertLabels = {

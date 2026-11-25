@@ -1,43 +1,50 @@
 import { groundItems, carriedItemActions } from './loose-items.js';
-import { ROOMS as WABE_ROOMS } from '../js/data/wabe.js';
+import { ferryView } from './ferry-state.js';
+import { ferryShoreGeometry, FERRY_ABOARD_POINTS } from './ferry-visual-layout.js';
 import { ISLET_LAYOUT, ISLET_POINTS } from './islet-layout.js';
 import { DESERT_ARRIVAL_LAYOUT } from './desert-arrival-layout.js';
 
 const action = (label, command) => ({ label, command });
-const ellipse = (x, y, rx, ry, priority) => ({ kind: 'ellipse', x, y, rx, ry, priority });
+const examineBoat = action('观察渡船', 'examine dory');
+const examineOarsman = action('观察船夫', 'examine oarsman');
+const offerCoin = {itemId:'silver_coin', ...action('递交银币', 'give silver coin to oarsman')};
 
-function ferryObjects(state, mooring, passage) {
-  const { room } = state;
-  const river = room === 'the_river';
-  const paid = state.hasFlag('ferry_paid');
-  const hasCoin = state.has('silver_coin');
-  const offerCoin = action('递交银币', 'give silver coin to oarsman');
-  const fare = !river && hasCoin && !paid ? [offerCoin] : [];
-  const { drawAt } = mooring;
-  let navigationHint = '登船';
-  if (river && !paid && !hasCoin) navigationHint = '前往小岛 · 单程';
-  if (room === 'sand_bar' && !paid) navigationHint = '尝试登船';
+function ferryObjects(state, mooring) {
+  const view = ferryView(state);
+  const river = state.room === 'the_river';
+  const hull = {id:state.room+':ferry', kind:'islet_ferry', label:'渡船', ...mooring, radius:35};
+  const rower = {id:state.room+':oarsman', kind:'islet_oarsman', label:'船夫', ...mooring, radius:24, baked:true};
+  const coin = state.has('silver_coin') ? [offerCoin] : [];
 
+  if (view.onboard) {
+    const possessions = [
+      ['credit_card','递出信用卡','give credit card to oarsman'],
+      ['spade','递出铲子','give spade to oarsman'],
+    ];
+    const offers = possessions.filter(([id]) => state.has(id))
+      .map(([itemId,label,command]) => ({itemId,label,command}));
+    return [
+      {...hull, pointerShape:FERRY_ABOARD_POINTS.hull, navigationHint:'离艇', actions:[action('离艇','exit dory')]},
+      {...rower, pointerShape:FERRY_ABOARD_POINTS.oarsman, inspectionHint:'观察船夫', actions:[examineOarsman,...coin,...offers]},
+    ];
+  }
+  const picture = ferryShoreGeometry(state.room,view);
+  if (!picture) return [];
+  const oldFare = !river && view.legacyUnpaid;
+  let travel = view.docked ? action('登艇','enter dory') : action('候船','wait');
+  if (view.fixedBerth) {
+    travel = view.legacyPaid && state.room !== 'islet' ? action('登艇',river ? 'in' : 'out') : null;
+  }
   return [
-    {
-      id: `${room}:ferry`, kind: 'islet_ferry', label: '渡船', ...mooring, radius: 35,
-      depthY: drawAt.y, visualOptions: { drawAt }, navigationHint,
-      pointerShape: ellipse(drawAt.x, drawAt.y - 10, 43, 13, 2),
-      ...(river ? { eventId: 'river_examine_dory' } : {}),
-      actions: [action('观察', river ? 'examine dory' : 'look'), ...(passage ? [action('乘船', passage)] : []), ...fare],
-    },
-    {
-      id: `${room}:oarsman`, kind: 'islet_oarsman', label: '船夫', ...mooring, radius: 35,
-      baked: true, pointerOnly: !river, pointerShape: ellipse(drawAt.x + 18, drawAt.y - 32, 9, 20, 4),
-      ...(river ? {y:mooring.y-12, radius:24, eventId:'river_examine_oarsman'} : {}),
-      actions: [action('观察', river ? 'examine oarsman' : 'look'), ...(river && hasCoin ? [offerCoin] : fare)],
-    },
+    {...hull, depthY:picture.y, visualOptions:{ferryVisual:picture}, navigationHint:'登艇',
+      pointerShape:picture.hull, actions:[examineBoat,...(travel ? [travel] : []),...(oldFare ? coin : [])]},
+    {...rower, y:river ? mooring.y-12 : mooring.y+12,
+      pointerShape:picture.oarsman, actions:[examineOarsman,...(river || oldFare ? coin : [])]},
   ];
 }
 
 export function getRiverFerryHotspots(state) {
-  if (state.room !== 'the_river' || WABE_ROOMS.the_river.exits(state).in?.to !== 'islet') return [];
-  return ferryObjects(state, ISLET_POINTS.river, 'in');
+  return state.room === 'the_river' ? ferryObjects(state,ISLET_POINTS.river) : [];
 }
 
 export function getIsletHotspots(state) {
@@ -55,7 +62,18 @@ export function getIsletHotspots(state) {
       ...(onIslet ? { itemId: 'toadstool_islet' } : {}),
       actions: [action('观察', onIslet ? 'examine toadstool' : 'look'), action('进入', 'enter door')],
     });
-    objects.push(...ferryObjects(state, points.ferry, onIslet ? null : 'out'));
+    objects.push(...ferryObjects(state,points.ferry));
+    if (!onIslet) {
+      objects.push({
+        id:'sand_bar:water',kind:'sandbar_water',label:'河水',x:242,y:214,radius:21,baked:true,
+        pointerShape:{kind:'ellipse',x:294,y:239,rx:17,ry:8,priority:1},
+        eventId:'sandbar_examine_ground',actions:[action('观察河水','examine river'),action('等候','wait')],
+      },{
+        id:'sand_bar:sand',kind:'sandbar_sand',label:'沙纹',x:225,y:233,radius:15,baked:true,
+        pointerShape:{kind:'ellipse',x:225,y:239,rx:10,ry:4,priority:1},
+        eventId:'sandbar_examine_ground',actions:[action('察看沙地','examine sand')],
+      });
+    }
   }
 
   return [...objects, ...groundItems(state, layout.looseAnchor, ['toadstool_islet'])];

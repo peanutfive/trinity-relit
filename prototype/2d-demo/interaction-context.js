@@ -1,7 +1,10 @@
 import {resolveInteraction} from './interaction-intent.js';
 const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
-const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water)$/;
+const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water|enter dory|exit dory)$/;
 function physicalHint(command,target){
+  if(command==='give silver coin to oarsman')return '递出银币';
+  if(command==='give credit card to oarsman')return '递出信用卡';
+  if(command==='give spade to oarsman')return '递出铲子';
   if(command==='take map'||command==='take sink'||command==='take stove pipes')return '试着取下';
   if(command?.endsWith(' in cupboard'))return '放进橱柜';
   if(target.kind==='ranch_tableware'||target.visualOptions?.onShelf && command?.startsWith('take '))return '拿起';
@@ -20,7 +23,7 @@ export function keyboardInteraction(state,target,{heldItem=null,observed=new Set
   const command=resolveInteraction(state,target,{heldItem,observed});
   const inspecting=/^(examine |read |look$)/.test(command||'');
   const physical=physicalHint(command,target);
-  const hint=target.physicalHint|| (navigation.test(command||'')?target.navigationHint||'通行':command==='wait'?'等候':inspecting?'观察':physical|| (heldItem?'使用手中物品':observed.has(target.id)?target.label:'观察'));
+  const hint=target.physicalHint|| (navigation.test(command||'')?target.navigationHint||'通行':command==='wait'?'等候':inspecting?target.inspectionHint||'观察':physical|| (heldItem?'使用手中物品':observed.has(target.id)?target.label:'观察'));
   return {type:'target',target,command,hint};
 }
 export const chapterObjective=chapter=>({

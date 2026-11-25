@@ -23,8 +23,14 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
     'wait','throw ball at tree','take umbrella','push pram','open pram','enter pram',
     'open umbrella','take paper bird','take gnomon','enter water','enter door','e','u']);
   assert.equal(engine.state.room, 'vertex');
-  for (let i=0; i<7 && engine.state.sundialSymbol!==6; i++) await play(['turn ring']);
-  await play(['d','se','in','enter door']);
+  for (let i=0; i<7 && engine.state.sundialSymbol!==1; i++) await play(['turn ring']);
+  await play(['d','e','e','in','wait','give umbrella to girl','e','take spade',
+    'give paper to girl','w','ride bird','n','nw','e','s']);
+  assert.equal(engine.state.room,'cemetery');
+  await play(['open crypt with spade','take shroud','wear shroud','take bandage','take silver coin',
+    's','w','se','w','sw','se','wait','wait','enter dory','give silver coin to oarsman']);
+  assert.equal(engine.state.room,'sand_bar');
+  await play(['s','enter door']);
   const state = engine.state;
   assert.equal(state.room, 'shallow_crater');
   assert.ok(state.has('gnomon'));

@@ -1,4 +1,5 @@
 import {ITEMS} from '../js/data/items.js';
+import {ferryView} from './ferry-state.js';
 import {COMPLETION_POINTS as P, COMPLETION_LOOSE_ANCHORS} from './wabe-completion-points.js';
 
 export const COMPLETION_WABE_ROOMS = Object.freeze([
@@ -71,8 +72,8 @@ export function getCompletionHotspots(state) {
   );
   if (state.room === 'the_river') objects.push(prop(
     'the_river:water', P.river, '河流', 'completion_river',
-    [action('观察河流', 'examine river')],
-    {baked:true,eventId:'examine_river',radius:45,pointerOnly:state.sundialSymbol===6,pointerShape:ellipse(385,172,45,21)},
+    [action('观察河流', 'examine river'), ...(!ferryView(state).visible ? [action('等候','wait')] : [])],
+    {baked:true,eventId:'examine_river',radius:45,pointerOnly:ferryView(state).visible,pointerShape:ellipse(385,172,45,21)},
   ));
 
   const [baseX, baseY] = COMPLETION_LOOSE_ANCHORS[state.room];
