@@ -17,6 +17,19 @@
       <button class="crypt-leave" type="button">返回墓地</button>
     </section>
     <section id="dialogue" hidden aria-live="polite"><div class="dialogue-top"><span id="speaker"></span><span id="page"></span></div><div id="text"></div><div id="choices"></div><button id="next">继续 F</button></section>
+    <section id="river-ending" hidden role="dialog" aria-modal="true" aria-labelledby="ending-title">
+      <h2 id="ending-title"></h2>
+      <div class="ending-caption">
+        <div id="ending-text" aria-live="polite" tabindex="-1"></div>
+        <p id="ending-error" role="status" hidden></p>
+        <div class="ending-actions">
+          <button id="ending-next" type="button"></button>
+          <button id="ending-restore" type="button" hidden></button>
+          <button id="ending-restart" type="button" hidden></button>
+          <button id="ending-quit" type="button" hidden></button>
+        </div>
+      </div>
+    </section>
   <section id="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
     <div class="pause-window">
       <div class="pause-heading"><div><span class="eyebrow">时间在此停留</span><h2 id="pause-title">暂停</h2></div><button id="resume">继续探索 <kbd>Esc</kbd></button></div>

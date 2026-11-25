@@ -12,6 +12,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const output = process.env.QA_OUTPUT || join(tmpdir(), 'trinity-ranch-closet');
 const checkpointOnly = process.argv.includes('--checkpoints-only');
+const endingCheckpoint = process.argv.includes('--ending-checkpoint');
 const prior = process.env.PLAYED_RANCH_SAVE;
 const legacy = process.env.LEGACY_RANCH_HALLWAY_SAVE;
 const upstream = join(output, 'normal-route');
@@ -307,9 +308,12 @@ async function checkSnakeReturn({ current, pages }) {
   assert.match(pages.join(' '), /咬|毒牙|毒蛇/, '响尾蛇应实际咬伤');
 
   await page.keyboard.press('r');
-  const fatal = await until(s => !s.processing && s.turns > current.turns, '咬伤后的下一回合结算');
-  assertInput(current, fatal, 'wait', 'assembly_room');
-  assert.equal(fatal.dead, true, '下一次耗回合行动后应倒下');
+  const fatal = await until(s => !s.processing && s.dead, '咬伤后的下一次行动应倒下');
+  assert.equal(fatal.lastCommand, 'wait');
+  assert.equal(fatal.room, 'assembly_room');
+  assert.equal(fatal.turns, current.turns, '结局保留最后可行动时的回合数');
+  assert.equal(fatal.score, current.score);
+  assert.deepEqual(fatal.inventory, current.inventory);
   await shot('snake-next-turn-consequence');
   await drain();
   steps.push({ input: 'R', command: 'wait', room: fatal.room, turn: fatal.turns, dead: fatal.dead });
@@ -352,6 +356,7 @@ async function exerciseCloset() {
   const closed = await state();
   assertDoorBlocks(closed, closetDoor, ['s', 'out']);
   await checkpoint('closet-closed-played', true);
+  if (endingCheckpoint) return;
   await mapCheck('closet-closed-map', {
     connected: [['front_deck','assembly_room'],['assembly_room','closet']], closed: ['assembly_room','closet'],
   });
@@ -525,18 +530,22 @@ try {
   await page.waitForFunction(() => window.render_game_to_text && JSON.parse(window.render_game_to_text()).art === 'loaded');
   await page.locator('#start').click();
   await importProgress(source);
-  const approaches = await collectApproaches(await reachDeck());
+  const deck = await reachDeck();
+  const approaches = endingCheckpoint ? { deck } : await collectApproaches(deck);
   if (!checkpointOnly) {
     await importProgress(approaches.deck);
     await testFrontEntry();
     await exerciseCloset();
-    await checkOtherEntrances(approaches);
-    await checkWindows(approaches.northwest);
-    await checkUnlitCloset(approaches.deck);
+    if (!endingCheckpoint) {
+      await checkOtherEntrances(approaches);
+      await checkWindows(approaches.northwest);
+      await checkUnlitCloset(approaches.deck);
+    }
   }
   assert.deepEqual(errors, []);
   await writeFile(join(output, 'result.json'), JSON.stringify({ pass: true, source, legacy, approaches, steps, errors }, null, 2));
-  console.log(checkpointOnly ? '正式入口到前廊、东南房间和西北房间通过' : '三个真实壁橱入口、两面门态、关闭路线、刷新、窗户和响尾蛇事件通过');
+  if (endingCheckpoint) console.log('已从正式入口生成危机前的壁橱存档');
+  else console.log(checkpointOnly ? '正式入口到前廊、东南房间和西北房间通过' : '三个真实壁橱入口、两面门态、关闭路线、刷新、窗户和响尾蛇事件通过');
 } catch (error) {
   await shot('failure').catch(() => {});
   await writeFile(join(output, 'failure.json'), JSON.stringify({

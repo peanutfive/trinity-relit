@@ -25,3 +25,32 @@ main,main:fullscreen{width:100%;height:100%;height:100dvh;margin:0;padding:0;max
 .game-shell.is-reading .crypt-plate button {pointer-events:none}
 @media (pointer:coarse) { .crypt-plate {width:91%} }
 .compass.south-view path {transform-origin:20px 24px;transform:rotate(180deg)}
+
+#river-ending {
+  position:absolute; inset:0; z-index:6;
+  display:flex; flex-direction:column; align-items:flex-start;
+  justify-content:space-between; padding:clamp(8px,2cqw,26px);
+  color:#eee9d6; background:linear-gradient(0deg,#10201e40,transparent 45%);
+}
+.stage:has(#river-ending:not([hidden])) > :is(.location,#hint,#hand-kit,#skip-event,#surface-water) {visibility:hidden}
+#ending-title {
+  margin:0; padding:.35em .8em; border-left:2px solid #b29a70;
+  background:#192521d9; font-weight:normal; font-size:clamp(13px,1.7cqw,23px); letter-spacing:.12em;
+}
+.ending-caption {
+  align-self:center; width:min(100%,68em); max-height:53%; min-height:0; display:flex; flex-direction:column;
+  padding:clamp(7px,1.2cqw,17px) clamp(10px,2cqw,28px);
+  background:linear-gradient(115deg,#192722f5,#13201df5); border:1px solid #ad9670;
+}
+#ending-text {
+  min-height:0; overflow:auto; white-space:pre-line; overscroll-behavior:contain;
+  line-height:1.58; font-size:clamp(13px,1.42cqw,21px);
+}
+.ending-actions {display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; margin-top:.5em}
+.ending-actions button {font-size:clamp(12px,1.12cqw,16px); line-height:1.3}
+#ending-error {font-size:.85em; margin:.3em 0 0; color:#efcbab}
+@container (max-width:600px) {
+  .ending-caption {max-height:55%}
+  .ending-actions {margin-top:4px}
+  .ending-actions button {min-height:40px; padding:4px 9px}
+}

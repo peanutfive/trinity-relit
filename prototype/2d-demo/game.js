@@ -16,6 +16,9 @@ import {shackDoorOpen} from './shack-story.js';
 import { roadrunnerView } from './roadrunner-story.js';
 import { recordCompanionArrival, rememberRubyDrop, TOWER_BOX } from './roadrunner-layout.js';
 import { drawBirdThroughOptics, drawRoadrunner, drawRoadrunnerRuby, drawTowerBox } from './roadrunner-art.js';
+import {riverEndingResult} from './river-ending-story.js';
+import {createRiverEndingView} from './river-ending-view.js';
+import {drawRiverEnding,warmRiverEndingArt} from './river-ending-art.js';
 import {rememberDesertBookDrop,rememberBookmarkDrop} from './shack-route-actions.js';
 import {shackRouteCharacterScale} from './shack-route-layout.js';
 import {renderTundraSprite,tundraArtStatus} from './tundra-art.js';
@@ -81,6 +84,23 @@ const cachedNavigationScene=createNavigationSceneCache();
 let browserStorage;
 try { browserStorage = window.localStorage; } catch { browserStorage = null; }
 const saveStore = createVisualSaveStore({ storage: browserStorage, scenes, prepareRoom: ensureSceneArt });
+const ending=createRiverEndingView($('#river-ending'),{
+  onRestore(){
+    if(busy)return;
+    const saved=saveStore.read();
+    if(saved.ok && saved.save)restoreProgress(saved.save);
+    else ending.showError('未找到可读取的探索进度。');
+  },
+  onRestart(){if(!busy)reset();},
+  onQuit(){
+    if(busy)return;
+    started=false;
+    $('#overlay').hidden=false;
+    sound.setPaused(true);
+    reset();
+    ($('#continue-save').hidden?$('#start'):$('#continue-save')).focus({preventScroll:true});
+  },
+});
 let ferryDeparture = null;
 
 let engine;
@@ -162,6 +182,7 @@ const ui = {
 
 function reset() {
   if (busy) return;
+  ending.close();
   engine = createPrologueSession({ ui });
   director = createNarrativeDirector();
   resetWabeArt();
@@ -237,6 +258,12 @@ function paginate(text) {
     while (rest.length > max) {
       let cut = rest.lastIndexOf(language === 'cn' ? '。' : ' ', max);
       cut = cut < max / 3 ? max : cut + 1;
+      // Give the last scene change its own sentence break instead of leaving
+      // the final place name alone on a new page.
+      if(ending.pending && language!=='cn'){
+        const lastStop=Array.from(rest.slice(0,max).matchAll(/[.!?](?=\s)/g)).at(-1);
+        if(lastStop)cut=lastStop.index+1;
+      }
       result.push(rest.slice(0, cut));
       rest = rest.slice(cut).trim();
     }
@@ -276,7 +303,7 @@ function paintDialog() {
     button.onclick = action.run;
     $('#choices').append(button);
   }
-  $('#next').textContent = `${last?'收起':'继续'} ${keyLabel(preferences.bindings.interact)}`;
+  $('#next').textContent = `${ending.pending && language==='en'?'→':last && !ending.pending?'收起':'继续'} ${keyLabel(preferences.bindings.interact)}`;
   updateHud();
 }
 
@@ -317,7 +344,10 @@ function next() {
   if (!pages.length) return;
   if (inventoryOpen) { closeDialog(); return; }
   if (pageIndex < pages.length - 1) { pageIndex++; paintDialog(); }
-  else closeDialog();
+  else {
+    closeDialog();
+    if(ending.pending){director.skip();ending.advance();}
+  }
 }
 
 function animateAction(action) {
@@ -343,7 +373,7 @@ function visualSavePosition() {
     knowledge:{observed:[...observedObjects],paper:discovery.snapshot()}};
 }
 async function command(input, actions = [], observedId = null) {
-  if (busy || paused) return;
+  if (busy || paused || ending.active) return;
   lastCommand=input;
   busy = true;
   const before = gameSnapshot();
@@ -428,6 +458,13 @@ async function command(input, actions = [], observedId = null) {
       cryptInspection.update(destination,heldItem);
     }
     updateLabels();
+    const conclusion=riverEndingResult(before,destination);
+    if(conclusion){
+      ending.prepare(conclusion,{language,binding:keyLabel(preferences.bindings.interact),canRestore:Boolean(saveStore.read().save)});
+      warmRiverEndingArt();
+      output=output.filter(line=>!line.startsWith('\n你死了。'));
+      output.push(conclusion.intro);
+    }
     if (output.length) {
       const text=output.join('\n\n');
       if(waitForArrivalBeat()) climbArrivalText={text,actions};
@@ -489,6 +526,7 @@ async function restoreProgress(input) {
   try {
     const restored = await saveStore.restore(engine, input);
     if (!restored.ok) throw restored.error;
+    ending.close();
     if(engine.state.chapter==='ranch'){
       restoreWindmillState(engine.state);
       if(engine.state.room==='kitchen')restoreKitchenState(engine.state);
@@ -516,6 +554,7 @@ async function restoreProgress(input) {
     persistProgress({force:true}); sound.setPaused(false); sound.unlock().catch(()=>{});
   } catch (error) {
     const message='无法读取这份存档：'+error.message;
+    if(ending.open)ending.showError(message);
     $('#save-message').textContent=message; $('#title-save-message').textContent=message;
   } finally { busy=false; paintSaveState(); updateHud(); render(); }
 }
@@ -689,6 +728,7 @@ function waitForArrivalBeat(){
 
 function update(dt) {
   if (paused || chapterMap.isOpen() || applyingCommand) return;
+  if(ending.open){ending.tick(dt);return;}
   clock += dt;
   director.update(dt);
   if(climbArrivalText && !waitForArrivalBeat()){
@@ -847,6 +887,10 @@ function render() {
   if (applyingCommand) return;
   const scale = preferences.video.resolution;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  if(ending.open){
+    drawRiverEnding(ctx,ending.artPhase,ending.elapsed,!preferences.video.effects);
+    return;
+  }
   const story = director.getState(engine.state);
   const renderRoom = story.sceneRoom && scenes[story.sceneRoom] ? story.sceneRoom : engine.state.room;
   updateLabels(renderRoom);
@@ -952,6 +996,7 @@ canvas.addEventListener('pointermove',event=>{
   canvas.style.cursor=active&&(pages.length?pointedPaperDetail(p):pointedObject(p)||pointedExitLabel(p)||pointedOpenPassage(p))?'pointer':'default';
 });
 canvas.addEventListener('pointerdown',event=>{
+  if(ending.open)return;
   if(!started||paused||busy||chapterMap.isOpen()||event.button!==0)return;
   if(pages.length){
     const point=pointerPoint(event);
@@ -1044,6 +1089,7 @@ function selectTab(tab) {
 }
 
 function setPaused(value) {
+  if(value && ending.active)return;
   if (paused === value) return;
   paused = value;
   captureBinding = null;
@@ -1104,6 +1150,16 @@ function isMovementKey(key) {
 }
 window.addEventListener('keydown', event => {
   const key = normalKey(event.key);
+  if(ending.active){
+    if(key===preferences.bindings.fullscreen){
+      event.preventDefault();if(!event.repeat)fullscreen();return;
+    }
+    if(ending.open)ending.key(event,key,preferences.bindings.interact);
+    else if(event.target!==$('#next') || !['Enter',' '].includes(key)){
+      event.preventDefault();if(key===preferences.bindings.interact && !event.repeat)next();
+    }
+    return;
+  }
   if (paused && captureBinding) {
     event.preventDefault();
     if (key === 'Escape') { captureBinding = null; paintBindings(); $('#binding-message').textContent = '已取消改键。'; return; }
@@ -1252,7 +1308,8 @@ for (const button of document.querySelectorAll('[data-key]')) {
 }
 
 window.render_game_to_text = () => JSON.stringify({
-  art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
+  ending:ending.snapshot(),
+  art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: ending.open ? 'ending' : chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
   closet:['closet','assembly_room'].includes(engine.state.room)?closetView(engine.state):null,
   roadrunner:['desert','ranch','islet'].includes(engine.state.chapter)?roadrunnerView(engine.state):null,
@@ -1262,7 +1319,7 @@ window.render_game_to_text = () => JSON.stringify({
   ferry:['the_river','sand_bar'].includes(engine.state.room)?{...ferryView(engine.state),selection:aboard()?boatSelection:null}:null,
   coordinateSystem: 'origin top-left; x right, y down; 480x288', room: engine.state.room,
   player: { x: Math.round(player.x), y: Math.round(player.y), facing: player.face, phase: player.walk, animation: animationState() },
-  removedPresence:[...new Set(removedPresence)], objects: objects(), obstacles: obstacles(), exits: exits(), routeMarker:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: nearby()?.label,
+  removedPresence:[...new Set(removedPresence)], objects: ending.open?[]:objects(), obstacles: ending.open?[]:obstacles(), exits: ending.open?[]:exits(), routeMarker:ending.open?null:visibleRouteMarker(), boundaries:sceneBoundaries(engine.state.room,engine.state,engine.rooms), narrative: director.getState(), nearby: ending.open?null:nearby()?.label,
   flags: [...engine.state.flags], turns: engine.state.turns, chapter: engine.state.chapter, dead:engine.state.dead,processing:busy,
   storyClock:prologueClock(engine.state),
   inventory: engine.state.inventoryList().map(item => item.id), heldItem, lastCommand, discovery:discovery.snapshot(), observed:[...observedObjects], navigation:{path:walkPath,target:walkTarget?.id??null,exit:walkExit,arrival:lastArrival}, score: engine.state.score, sundialSymbol:engine.state.sundialSymbol, flipped:engine.state.flipped,
