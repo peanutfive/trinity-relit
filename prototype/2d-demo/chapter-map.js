@@ -121,6 +121,7 @@ export function buildChapterMap({state={},rooms,scenes={},chapter,chapterRooms=D
     try{exits=typeof room?.exits==='function'?room.exits(view):room?.exits||{};}
     catch{warnings.push({room:id,reason:'exits-unavailable'});continue;}
     for(const direction of DIRECTION_ORDER){
+      if ((id==='north_arbor'||id==='south_arbor') && (direction==='in'||direction==='out')) continue;
       const exit=exits?.[direction],closed=typeof exit?.rememberedTo==='string';
       const to=closed?exit.rememberedTo:typeof exit==='string'?exit:exit?.to;
       if(typeof to!=='string'||!known.has(to)||owners[to]!==selected)continue;

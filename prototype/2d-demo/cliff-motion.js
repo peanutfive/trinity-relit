@@ -3,9 +3,10 @@ import {CLIFF_ROUTE_LAYOUT} from './cliff-route-layout.js';
 import {UG_ROUTE_LAYOUT} from './underground-route-layout.js';
 import {findPath} from './world.js';
 const pairs={
-  'trellises:top_of_arbor':'u','top_of_arbor:trellises':'d',
-  'top_of_arbor:north_arbor':'n','north_arbor:top_of_arbor':'s',
-  'top_of_arbor:south_arbor':'s','south_arbor:top_of_arbor':'n',
+  'arboretum:north_arbor':'n','north_arbor:arboretum':'d',
+  'arboretum:south_arbor':'s','south_arbor:arboretum':'d',
+  'top_of_arbor:north_arbor':'n','north_arbor:top_of_arbor':'u',
+  'top_of_arbor:south_arbor':'s','south_arbor:top_of_arbor':'u',
   'waterfall:orbit_satellite':'in',
   'cemetery:barrow':'n','barrow:cemetery':'s','barrow:ossuary':'in','ossuary:barrow':'out',
   'ossuary:underground_1':'in','underground_1:ossuary':'w',

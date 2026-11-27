@@ -20,7 +20,6 @@ const PAINTED_ROADS = {
     sw: [[240,155],[175,184],[99,228],[28,275]],
     w: [[240,155],[122,146],[16,146]],
     nw: [[240,155],[152,118],[76,59],[42,16]],
-    u: [[250,147],[278,131],[290,104],[299,80],[320,50],[342,33]],
   },
   south_bog: {
     n: [[240,153],[241,81],[240,16]],
@@ -44,19 +43,22 @@ const PAINTED_ROADS = {
     nw: [[240,154],[179,101],[121,71],[77,16]],
   },
   arboretum: {
-    e: [[240,185],[360,185],[464,185]],
-    w: [[240,185],[120,185],[16,185]],
+    n: [[240,184],[215,169],[228,153],[212,131],[223,114],[238,107]],
+    s: [[188,171],[148,180],[109,198],[92,219],[105,245],[139,264],[187,271],[239,261]],
+    e: [[240,184],[295,175],[380,176],[464,171]],
+    w: [[240,184],[205,175],[163,168],[94,174],[16,172]],
   },
   top_of_arbor: {
-    n: [[248,135],[233,109],[231,91],[244,69],[245,51],[230,21],[234,16]],
-    s: [[248,135],[247,156],[238,179],[245,213],[268,240],[278,275]],
-    d: [[248,135],[218,140],[183,149],[161,168],[141,183],[97,197]],
+    n: [[251,136],[238,115],[225,93],[247,60],[235,25],[234,16]],
+    s: [[251,136],[267,145],[256,165],[235,186],[229,201],[231,217],[260,249],[278,275]],
   },
   north_arbor: {
-    s: [[240,149],[248,174],[268,199],[270,220],[250,255],[231,275]],
+    d: [[245,171],[226,145],[227,126],[243,112],[254,99]],
+    u: [[240,149],[248,174],[268,199],[270,220],[250,255],[231,275]],
   },
   south_arbor: {
-    n: [[240,181],[263,142],[271,113],[258,87],[236,38],[242,16]],
+    d: [[248,174],[230,191],[211,223],[203,250],[218,267],[267,266]],
+    u: [[240,181],[263,142],[271,113],[258,87],[236,38],[242,16]],
   },
   arborvitaes_n: {
     nw: [[267,184],[251,153],[216,134],[184,115],[154,91],[131,71],[111,40],[95,16]],
@@ -120,7 +122,7 @@ function gateScene(state) {
     {x: gate.x-16, y: gate.y-5, w: 32, h: 10}]};
 }
 
-test('11张新制/重制地面图的38条绘画道路逐0.25像素连续可走', () => {
+test('11张新制/重制地面图的40条绘画道路逐0.25像素连续可走', () => {
   let roads = 0;
   for (const [room, exits] of Object.entries(PAINTED_ROADS)) {
     assert.equal(SCENES[room].terrain.status, 'art-ground-trace-v2');
@@ -129,7 +131,7 @@ test('11张新制/重制地面图的38条绘画道路逐0.25像素连续可走',
       roads++;
     }
   }
-  assert.equal(roads, 38);
+  assert.equal(roads, 40);
 });
 
 test('南侧藤架真实卡点的寻路每段逐0.1像素复检，不容许窄接缝被采样跳过', () => {
@@ -145,7 +147,7 @@ test('绘画里的水潭、沼水、藤墙、前景和侧藤架尽头拒绝落�
     ['south_bog',140,100],['south_bog',100,200],['south_bog',315,132],
     ['north_bog',170,100],['north_bog',310,235],
     ['forest_clearing',240,235],['forest_clearing',120,150],
-    ['arboretum',240,110],['arboretum',240,245],
+    ['arboretum',240,166],['arboretum',240,219],['arboretum',190,110],['arboretum',310,245],['top_of_arbor',97,197],['trellises',340,33],
     ['top_of_arbor',100,120],['top_of_arbor',400,180],
     ['north_arbor',240,80],['south_arbor',240,240],
     ['arborvitaes_n',140,115],['arborvitaes_n',250,240],['arborvitaes_n',430,170],
@@ -158,7 +160,7 @@ test('绘画里的水潭、沼水、藤墙、前景和侧藤架尽头拒绝落�
 test('两种翻转状态下每条画面道路均有出口或制作边界，内部门只由F触发', async () => {
   const e = await ready();
   for (const flipped of [false,true]) {
-    if (flipped) for (const input of ['u','n','s','d']) await e.processInput(input);
+    if (flipped) for (const input of ['se','w','n','u','s','d']) await e.processInput(input);
     assert.equal(e.state.flipped, flipped);
     const before = e.state.serialize();
     for (const room of VIEW_ROOMS) {
@@ -183,7 +185,7 @@ test('全部受影响新旧场景连接按来源落在安全内侧，两态连�
   const e = await ready();
   let checked = 0;
   for (const flipped of [false,true]) {
-    if (flipped) for (const input of ['u','n','s','d']) await e.processInput(input);
+    if (flipped) for (const input of ['se','w','n','u','s','d']) await e.processInput(input);
     assert.equal(e.state.flipped,flipped);
     const before = e.state.serialize();
     for (const room of Object.keys(SCENES)) {
@@ -224,15 +226,15 @@ test('登藤/越顶/返程短演出逐点接地，冻结/跳过/结束仅改变�
   const e = await ready(), director = createNarrativeDirector();
   const snap = () => ({...e.state.serialize(),visual:{room:e.state.room,
     player:{x:SCENES[e.state.room].spawn[0],y:SCENES[e.state.room].spawn[1]}}});
-  for(const input of ['u','n','s','s','n','d']) {
+  for(const input of ['se','w']) await e.processInput(input);
+  for(const input of ['n','u','s','d','s','u','n','d']) {
     director.skip();
     const before=snap();
     await e.processInput(input);
     const after=snap(), committed=e.state.serialize(), motion=createCliffPassage(before,after);
     assert.ok(motion,`${before.room}.${input}`);
-    for(const key of ['n','s']) {
-      if(before.room==='top_of_arbor'&&input===key)assert.notEqual(after.flipped,before.flipped);
-    }
+    if(after.room==='arboretum')assert.notEqual(after.flipped,before.flipped);
+    else assert.equal(after.flipped,before.flipped);
     densePath(SCENES[before.room],motion.path,`${before.room}.${input}: ground motion`);
     const steps=Math.max(1,Math.ceil(motion.distance/.25));
     for(let i=0;i<=steps;i++) {
@@ -253,6 +255,6 @@ test('登藤/越顶/返程短演出逐点接地，冻结/跳过/结束仅改变�
     director.skip();
     assert.deepEqual(e.state.serialize(),committed);
   }
-  assert.equal(e.state.room,'trellises');
+  assert.equal(e.state.room,'arboretum');
   assert.equal(e.state.flipped,false);
 });

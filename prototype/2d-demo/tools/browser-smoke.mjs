@@ -44,6 +44,14 @@ async function walk(dir, target) {
   const before = await state(), exit = before.exits.find(value => value.dir === dir);
   assert.ok(exit, `${before.room}: missing exit ${dir}`);
   assert.equal(exit.target, target, `${before.room}: unexpected target for ${dir}`);
+  const darkRoute = page.locator(`#arbor-dark-routes [data-dir="${dir}"]`);
+  if (await darkRoute.isVisible()) {
+    await darkRoute.click();
+    await page.waitForFunction(room => JSON.parse(window.render_game_to_text()).room===room, target);
+    routes.push({ from:before.room, direction:dir, target });
+    await drain();
+    return;
+  }
   const path = findPath(SCENES[before.room], before.player, exit, { nearest: true });
   assert.ok(path.length, `${before.room}: no ground path toward exit ${dir}`);
   await page.evaluate(() => window.advanceTime(550));
@@ -73,7 +81,7 @@ async function touch(object, input) {
   if (input === 'F') assert.ok(keyboard, `${object.id}: F must address the nearby object`);
   if(keyboard)await page.keyboard.press('f');
   else if(object.id==='vertex:ring')await clickLogical(286,132);
-  else if(object.pointerShape && (object.id.startsWith('vertex:') || ['trellises:ascent','top_of_arbor:descent'].includes(object.id)))await clickLogical(...pointerCenter(object));
+  else if(object.pointerShape && object.id.startsWith('vertex:'))await clickLogical(...pointerCenter(object));
   else {
     // Click the painted prop, not the old universal ten-pixels-above-foot
     // point (which is above a seven-pixel-high paper boat, for example).

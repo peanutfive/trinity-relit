@@ -51,15 +51,17 @@ test('轨道标记固定在地球弧面上方，多方向只共用漂行弧线�
   assert.ok(plate.includes('orbitscript-planet'));assert.equal(plate.includes('map-road'),false);assert.equal(plate.includes('>北</text>'),false);
 });
 
-test('藤架翻转只切换真实植物园东西出口，不执行顶部出口动作或补造侧面道路',()=>{
+test('两次镜像下的植物园固定四条路，地图显示两条坡道且不会触发翻转',()=>{
   const progress=state('arboretum',[...arbor,'palace_gate']),before=structuredClone(progress);
   const plain=buildChapterMap({state:progress,scenes}),a=plain.nodes.find(node=>node.id==='arboretum');
-  assert.deepEqual(a.exits.map(exit=>[exit.direction,exit.to]),[['e','arborvitaes_n'],['w','arborvitaes_s']]);
-  assert.deepEqual(plain.nodes.find(node=>node.id==='north_arbor').exits.map(exit=>[exit.direction,exit.to]),[['s','top_of_arbor']]);
-  assert.deepEqual(plain.nodes.find(node=>node.id==='south_arbor').exits.map(exit=>[exit.direction,exit.to]),[['n','top_of_arbor']]);
-  assert.deepEqual(progress,before,'地图不得执行顶部出口 act 来改变 flipped');
+  const connections = node => Object.fromEntries(node.exits.map(exit=>[exit.direction,exit.to]));
+  assert.deepEqual(connections(a),{e:'arborvitaes_n',w:'arborvitaes_s',n:'north_arbor',s:'south_arbor'});
+  for (const id of ['north_arbor','south_arbor']) {
+    assert.deepEqual(connections(plain.nodes.find(node=>node.id===id)),{u:'top_of_arbor',d:'arboretum'});
+  }
+  assert.deepEqual(progress,before);
   progress.flipped=true;const flippedBefore=structuredClone(progress),flipped=buildChapterMap({state:progress,scenes});
-  assert.deepEqual(flipped.nodes.find(node=>node.id==='arboretum').exits.map(exit=>[exit.direction,exit.to]),[['e','arborvitaes_s'],['w','arborvitaes_n']]);
+  assert.deepEqual(connections(flipped.nodes.find(node=>node.id==='arboretum')),connections(a));
   assert.deepEqual(progress,flippedBefore);assert.equal(flipped.nodes.length,arbor.length);
   const positions=model=>illustratedMapNodes(model).map(({id,x,y})=>({id,x,y}));assert.deepEqual(positions(plain),positions(flipped));
   assert.ok(flipped.edges.every(edge=>edge.to!=='palace_gate'&&edge.from!=='palace_gate'));

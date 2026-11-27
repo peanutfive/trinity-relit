@@ -9,6 +9,8 @@ import { initializeRoadrunner, restoreRoadrunner, birdAtOpenDoor, advanceRoadrun
   missingRoadrunnerTarget, performRoadrunnerAction, roadrunnerWait, recordSceneryFocus } from './roadrunner-story.js';
 import { ranchCollapseDue, RANCH_RIVER_ENDING } from './river-ending-story.js';
 import { beginPrologueTurn, finishPrologueTurn, restoreGardenMoves } from './prologue-ending-story.js';
+import {arborLight} from './arbor-light-state.js';
+import {freeArborAction,unlitArbor} from './arbor-story.js';
 import { Parser } from '../js/parser.js';
 import { ITEMS, restorePaperback, paperbackAction, unavailablePaperback, handlePaperback } from './exploration-items.js';
 import { ROOMS, TIMERS } from '../js/data/prologue.js';
@@ -61,6 +63,15 @@ class ExplorationParser extends Parser {
 }
 
 class ExplorationEngine extends GameEngine {
+  describeRoom() {
+    if (this.state.room==='top_of_arbor' && !arborLight(this.state)) {
+      this.ui.location('Darkness','黑暗');
+      this.print(unlitArbor);
+      return;
+    }
+    super.describeRoom();
+  }
+
   async deserialize(save) {
     await super.deserialize(save);
     restoreGardenMoves(this.state);
@@ -76,6 +87,12 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
+    const arbor=freeArborAction(state,command,this.items);
+    if (arbor) {
+      this.print(arbor.text);
+      if (arbor.save) this._autosave();
+      return true;
+    }
     if (state.room==='assembly_room' || state.room==='closet') {
       const {closetFreeResponse}=await import('./ranch-closet-story.js');
       const notice=closetFreeResponse(state,command);
@@ -149,7 +166,10 @@ class ExplorationEngine extends GameEngine {
       handlePaperback(this.state,this,action);
       return true;
     }
+    const upstairs=this.state.room==='top_of_arbor';
+    const oldAxeLocation=upstairs && this.state.itemAt('axe');
     const handled=await super._handleAction(command);
+    if (upstairs && this.state.itemAt('axe')!==oldAxeLocation) this.state.setFlag('arbor_axe_moved');
     if(handled) recordSceneryFocus(this.state,command);
     return handled;
   }
@@ -164,7 +184,8 @@ class ExplorationEngine extends GameEngine {
     // recorded bird route, checking one's score or pockets costs no move.
     const birdRoute=this.state.hasFlag('river_ferry_crossed') && ['islet','desert','ranch'].includes(this.state.chapter);
     const awaitingRanchEnding=this.state.chapter==='ranch' && this.state.hasFlag('ranch_snake_bitten');
-    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding)
+    const inArbor=this.state.chapter==='wabe' && ['arboretum','north_arbor','south_arbor','top_of_arbor','trellises'].includes(this.state.room);
+    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor)
       && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase()))) this.state.turns--;
     return super._handleMeta(input);
   }

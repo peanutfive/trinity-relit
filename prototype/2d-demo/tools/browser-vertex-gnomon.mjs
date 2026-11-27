@@ -7,12 +7,19 @@ import { access } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const mirrorLoop = [
+const crossing = [
   ['d','bottom_of_stairs','vertex:stairs'], ['s','trellises'],
-  ['u','top_of_arbor','trellises:ascent'], ['n','north_arbor'],
-  ['s','top_of_arbor'], ['d','trellises','top_of_arbor:descent'],
-  ['n','bottom_of_stairs'], ['u','vertex','bottom_of_stairs:stairs'],
+  ['se','arborvitaes_n'], ['w','arboretum'],
+  ['n','north_arbor'], ['u','top_of_arbor'], ['s','south_arbor'], ['d','arboretum'],
 ];
+
+async function crossArbor(step) {
+  for (const route of crossing) await step(...route);
+  await step('e','arborvitaes_n');
+  await step('nw','trellises');
+  await step('n','bottom_of_stairs');
+  await step('u','vertex','bottom_of_stairs:stairs');
+}
 
 export async function fitGnomonFixture(engine) {
   const s=engine.state;
@@ -23,19 +30,17 @@ export async function fitGnomonFixture(engine) {
   await engine.processInput('put gnomon in hole');
   assert.ok(s.carrying('gnomon'),'右旋孔不接受原有的左旋指针');
   assert.equal(s.score,score);
-  async function crossArbor() {
-    for(const [command,room] of mirrorLoop) {
+  const mirror = () => crossArbor(async (command,room) => {
       await engine.processInput(command);
       assert.equal(s.room,room,command);
-    }
-  }
-  await crossArbor();
+  });
+  await mirror();
   assert.equal(s.flipped,true);
   await engine.processInput('put gnomon in hole');
   assert.equal(s.has('gnomon'),false);
   assert.equal(s.score,score+5);
   // Downstream routes have measured entrances in the original orientation.
-  await crossArbor();
+  await mirror();
   assert.equal(s.flipped,false);
   assert.equal(s.has('gnomon'),false);
 }
@@ -45,12 +50,10 @@ export async function checkInstalledPointer({state,drain,hold,clearHand,perform,
   const hole='vertex:hole', fixed='vertex:fixed-gnomon', loose='vertex:dial-gnomon';
   const install='put gnomon in hole';
   const click=async (id,command,input)=>{await perform(command,{objectId:id,input});await drain();};
-  async function mirror() {
-    for(const [dir,room,hotspot] of mirrorLoop){
-      if(hotspot)await click(hotspot,dir); else await walk(dir,room);
-      assert.equal((await state()).room,room);
-    }
-  }
+  const mirror = () => crossArbor(async (dir,room,hotspot) => {
+    if(hotspot)await click(hotspot,dir); else await walk(dir,room);
+    assert.equal((await state()).room,room);
+  });
   async function carryPointer(){
     await clearHand();
     await hold('gnomon','日晷指针');

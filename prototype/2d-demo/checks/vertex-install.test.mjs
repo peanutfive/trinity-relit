@@ -28,7 +28,7 @@ async function freshVertex(){
   return g;
 }
 async function crossArbor(g){
-  await g.play('d','s','u','n','s','d','n','u');
+  await g.play('d','s','se','w','n','u','s','d','e','nw','n','u');
   assert.equal(g.engine.state.room,'vertex');
 }
 

@@ -1,9 +1,10 @@
 // Standing points and separate artwork anchors. Route/art integration can
 // calibrate these coordinates without changing commands or story state.
 export const ARBOR_POINTS = {
-  trellisesUp: {x: 335, y: 48},
-  axe: {x: 322, y: 134},
-  axeArt: {x: 339, y: 127},
+  crystal: {x: 240, y: 166},
+  crystalStand: {x: 241, y: 184},
+  axe: {x: 285, y: 140},
+  axeArt: {x: 301, y: 130},
   waterfall: {x: 300, y: 170},
   mushroom: {x: 350, y: 170},
 };

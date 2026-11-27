@@ -1,3 +1,4 @@
+import {arborLight} from './arbor-light-state.js';
 import {ITEMS} from '../js/data/items.js';
 import {ARBOR_POINTS as P, ARBOR_LOOSE_ANCHORS} from './arbor-points.js';
 
@@ -17,12 +18,12 @@ const prop = (id, point, label, kind, actions, extra = {}) => ({
 export function getArborHotspots(state) {
   if (!supported.has(state.room)) return [];
   const objects = [];
-  if (state.room === 'trellises') objects.push(prop(
-    'trellises:ascent', P.trellisesUp, '向上的藤蔓小径', 'passage',
-    [action('登上藤架', 'u')],
-    {baked: true, radius: 30, pointerShape: ellipse(341, 28, 18, 22)},
+  if (state.room === 'top_of_arbor' && !arborLight(state)) return [];
+  if (state.room === 'arboretum') objects.push(prop(
+    'arboretum:sculpture', P.crystalStand, '水晶雕塑', 'arbor_crystal',
+    [action('观察雕塑', 'examine sculpture')],
+    {baked: true, pointerShape: ellipse(P.crystal.x, P.crystal.y - 24, 15, 25)},
   ));
-  if(state.room==='top_of_arbor')objects.push(prop('top_of_arbor:descent',{x:113,y:190},'向下的藤蔓小径','passage',[action('走下藤架','d')],{baked:true,radius:37,pointerShape:ellipse(133,171,24,18)}));
   if (state.room === 'waterfall') objects.push(
     prop('waterfall:water', P.waterfall, '瀑布', 'arbor_waterfall',
       [action('观察瀑布', 'examine waterfall')],
@@ -37,7 +38,7 @@ export function getArborHotspots(state) {
   const [baseX, baseY] = ARBOR_LOOSE_ANCHORS[state.room];
   state.roomItems().filter(id => ITEMS[id]).forEach((id, index) => {
     const item = ITEMS[id], noun = item.aliases?.[0] || id;
-    const treeAxe = id === 'axe' && state.room === 'top_of_arbor';
+    const treeAxe = id === 'axe' && state.room === 'top_of_arbor' && !state.hasFlag('arbor_axe_moved');
     const point = treeAxe ? P.axe : {
       x: baseX + (index % 3 - 1) * 11,
       y: baseY + Math.floor(index / 3) * 8,

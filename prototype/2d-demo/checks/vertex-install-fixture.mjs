@@ -9,7 +9,7 @@ export async function installCarriedGnomon(engine) {
   assert.equal(state.carrying('gnomon'),true);
   const mount=vertexGnomonView(state);
   if(mount.boltThread!==mount.holeThread) {
-    for(const step of ['d','s','u','n','s','d','n','u']) await engine.processInput(step);
+    for(const step of ['d','s','se','w','n','u','s','d','e','nw','n','u']) await engine.processInput(step);
     assert.equal(state.room,'vertex');
   }
   await engine.processInput('put gnomon in hole');

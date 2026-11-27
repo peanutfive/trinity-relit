@@ -127,7 +127,7 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
 
 test('轨道持斧F使用泡膜、指向白门F通行；查询不破泡、不改变章节', async () => {
   const engine = await stairs();
-  await run(engine, ['s', 'u', 'take axe', 'd', 'n', 'u']);
+  await run(engine, ['s', 'se', 'w', 'n', 'u', 'take axe', 'n', 'd', 'e', 'nw', 'n', 'u']);
   for (let count = 0; engine.state.sundialSymbol !== 3 && count < 7; count++)
     await run(engine, ['turn ring']);
   await run(engine, ['d', 'ne', 'e', 'nw', 'e', 'take soap bubble', 'w', 'se', 'sw', 'w', 'w', 'w', 'in']);

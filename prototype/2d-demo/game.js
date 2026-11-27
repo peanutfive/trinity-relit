@@ -1,3 +1,6 @@
+import {arborLight} from './arbor-light-state.js';
+import {drawArborCrystal,drawArborTopLight} from './arbor-light-art.js';
+import {ARBOR_POINTS} from './arbor-points.js';
 import { createCryptInspection, tombArtView } from './cemetery-inspection.js';
 import { drawCemeteryTomb, renderCemeteryItem, cemeteryShroudAtlas } from './cemetery-art.js';
 import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt, drawClosetThreshold, drawClosetLight } from './ranch-art.js';
@@ -211,8 +214,9 @@ function updateLabels(roomId=engine.state.room) {
   const room = engine.rooms[roomId];
   const labelState=previousScene?.room===roomId && engine.state.room!==roomId ? previousScene : engine.state;
   const aboard=roomId==='the_river' && ferryView(labelState).onboard;
-  const name = aboard ? '河流 · 平底船上' : scenes[roomId]?.mapLabel || room.cn;
-  const english = aboard ? 'The River, in the dory' : room.name;
+  const dark = roomId === 'top_of_arbor' && !arborLight(labelState);
+  const name = dark ? '黑暗' : aboard ? '河流 · 平底船上' : scenes[roomId]?.mapLabel || room.cn;
+  const english = dark ? 'Darkness' : aboard ? 'The River, in the dory' : room.name;
   if ($('#room').textContent !== name) $('#room').textContent = name;
   if($('#room-en').textContent!==english)$('#room-en').textContent = english;
   const compass=$('.compass'),southView=Boolean(scenes[roomId]?.northAtBottom);
@@ -242,6 +246,7 @@ function updateHud() {
   const darkTouch=decision?.command==='u' && engine.state.room==='underwater'
     && navigator.maxTouchPoints>0 && !reservoirBottomLit(engine.state);
   $('#surface-water').hidden=!darkTouch;
+  $('#arbor-dark-routes').hidden = !canMovePlayer() || !darkArbor();
   const control=near?.actorRelative && matchMedia('(pointer: coarse)').matches ? '轻触人物' : keyLabel(preferences.bindings.interact);
   $('#hint').textContent=decision&&!darkTouch?`${control} · ${decision.hint}`:'';
   $('#hand-kit').hidden = !heldItem || !started || paused || reading || cryptInspection.open || director.getState().currentEvent==='bird_optics';
@@ -714,6 +719,10 @@ async function transition(exit) {
   render();
 }
 
+function darkArbor() {
+  return engine.state.room === 'top_of_arbor' && !arborLight(engine.state);
+}
+
 function canMovePlayer() {
   return started && !pages.length && !busy && !paused && !cryptInspection.open && !chapterMap.isOpen()
     && !engine.state.dead && !director.getState().busy && !engine.state.hasFlag('in_pram') && !aboard()
@@ -812,7 +821,7 @@ function pointedPaperDetail(point) {
 }
 
 function visibleRouteMarker() {
-  if (reviewRoutes || !canMovePlayer()) return null;
+  if (reviewRoutes || !canMovePlayer() || darkArbor()) return null;
   const routes = exits();
   let route = null, exit = null, bestDistance = Infinity;
   for (const candidate of routes) {
@@ -907,6 +916,10 @@ function render() {
   drawUndergroundAtmosphere(ctx,renderRoom,renderState,player,preferences.video.effects?clock:0,renderObjects);
   const inPram=engine.state.hasFlag('in_pram');
   const actors = renderObjects.filter(object => !(story.hiddenKinds || []).includes(object.kind) && !(object.kind==='dish' && renderObjects.some(actor=>actor.kind==='boy'))).map(object => ({ y: object.depthY??object.y, draw: () => drawStoryProp(ctx, {...object,visualOptions:{...object.visualOptions,...story.actorVisuals?.[object.id],...(object.kind==='pram'&&inPram?{rider:true,open:true}:{})}}, renderState, preferences.video.effects ? clock : 0) }));
+  if(renderRoom==='arboretum') {
+    const {x,y} = ARBOR_POINTS.crystal;
+    actors.push({y, draw:()=>drawArborCrystal(ctx,x,y,propImage,renderState.flipped)});
+  }
   if(renderRoom==='base_of_tower')actors.push({y:TOWER_BOX.y,draw:()=>drawTowerBox(ctx,propImage)});
   for(const object of story.groundActors||[])actors.push({y:object.depthY??object.y,draw:()=>drawStoryProp(ctx,object,renderState,clock)});
   if (!story.hidePlayer&&!inPram) {
@@ -948,6 +961,12 @@ function render() {
     drawBottomVisibility(ctx,player,reservoirBottomLit(renderState),bottomLight,lantern);
   }
   director.draw(ctx, renderRoom, engine.state, clock);
+  if(renderRoom==='top_of_arbor'){
+    const light=arborLight(renderState);
+    const floor=renderObjects.find(object=>object.itemId===light);
+    const source=floor || story.groundActors?.find(actor=>actor.kind==='cliff_traveller') || player;
+    drawArborTopLight(ctx,{lit:Boolean(light),x:source.x,y:source.y-(floor?4:17),lantern:light==='lantern'});
+  }
   if(story.currentEvent==='bird_optics'){
     const bird=renderObjects.find(object=>object.kind==='companion_bird');
     if(bird){
@@ -1221,6 +1240,11 @@ window.addEventListener('keydown', event => {
       updateHud();
       return;
     }
+    if (canMovePlayer() && darkArbor()) {
+      if ([preferences.bindings.up,'ArrowUp'].includes(key)) command('n');
+      if ([preferences.bindings.down,'ArrowDown'].includes(key)) command('s');
+      return;
+    }
     if (canMovePlayer()) keys.add(key);
     return;
   }
@@ -1233,6 +1257,10 @@ window.addEventListener('blur', stopMovement);
 $('#start').onclick = start;
 $('#held-item').onclick = useHeldItem;
 $('#clear-hand').onclick = () => {heldItem=null;$('#hand-status').textContent='';updateHud();canvas.focus({preventScroll:true});};
+$('#arbor-dark-routes').onclick = event => {
+  const dir=event.target.closest('button')?.dataset.dir;
+  if ((dir==='n'||dir==='s') && darkArbor() && canMovePlayer()) command(dir);
+};
 $('#continue-save').onclick = loadSavedProgress;
 $('#load-save').onclick = loadSavedProgress;
 $('#return-to-ferry-shore').onclick = () => {
@@ -1308,6 +1336,7 @@ for (const button of document.querySelectorAll('[data-key]')) {
 
 window.render_game_to_text = () => JSON.stringify({
   ending:ending.snapshot(),
+  arborLight: engine.state.room==='top_of_arbor' ? arborLight(engine.state) : null,
   art: artStatus(), backgrounds:requestedSceneArt(), isletSprites:isletArtStatus(), tundraSprites:tundraArtStatus(), pacificSprites:pacificArtStatus(), pacific:engine.state.chapter==='pacific'?pacificControlState(engine.state):null, completionSprites:completionArtStatus(), completionBoy:engine.state.room==='promontory'?completionBoyMotion(preferences.video.effects?clock:0):null, arborOrbitSprites:arborOrbitArtStatus(), sprites: spriteArtStatus(), noticeArt:noticeArtStatus(), heroArt:heroArtStatus(), wabeSprites:wabeArtStatus(), japanSprites:japanArtStatus(), cliffSprites:cliffArtStatus(), undergroundSprites:undergroundArtStatus(), map: chapterMap.getState(), mode: ending.open ? 'ending' : chapterMap.isOpen() ? 'map' : paused ? 'paused' : !started ? 'title' : pages.length ? 'dialogue' : !$('#quest').hidden ? 'hint' : cryptInspection.open ? 'inspect' : 'exploring',
   cryptInspection:cryptInspection.open?{selected:cryptInspection.selected()}:null,
   closet:['closet','assembly_room'].includes(engine.state.room)?closetView(engine.state):null,

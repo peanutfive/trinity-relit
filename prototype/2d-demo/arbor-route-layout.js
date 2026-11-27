@@ -1,18 +1,29 @@
+import {ARBOR_LIGHT_ART} from './arbor-light-art.js';
+
 // Foot-level traces measured against the delivered paintings. Compass names
 // belong to the chapter graph; approach vectors follow the visible local road.
 const strip=(points,width)=>{const left=[],right=[];points.forEach(([x,y],i)=>{const a=points[Math.max(0,i-1)],b=points[Math.min(points.length-1,i+1)],d=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/d,ny=(b[0]-a[0])/d;left.push([x+nx*width/2,y+ny*width/2]);right.push([x-nx*width/2,y-ny*width/2]);});return [...left,...right.reverse()];};
 export const ARBOR_ROUTE_LAYOUT={
-  trellises:{chapter:'wabe',objectId:317,image:'./assets/trellises-v2.png',spawn:[240,158],
-    walkablePolygons:[strip([[0,146],[120,146],[240,151],[360,146],[480,146]],33),strip([[240,0],[240,82],[240,151]],31),strip([[30,0],[75,58],[151,117],[240,151],[325,117],[394,60],[448,0]],30),strip([[8,288],[99,228],[174,184],[240,151],[324,189],[406,240],[480,288]],35),strip([[268,147],[289,117],[299,83],[320,50],[345,26]],27),[[190,130],[273,127],[291,161],[255,182],[194,179]]],
-    exitAnchors:{n:[240,16],ne:[436,16],e:[464,146],se:[457,273],sw:[28,275],w:[16,146],nw:[42,16],u:[340,33]},exitApproaches:{n:[0,-1],ne:[.7,-1],e:[1,0],se:[1,.6],sw:[-1,.65],w:[-1,0],nw:[-.7,-1],u:[.7,-1]},interactionExitDirs:['u'],showUnmadeExits:true},
-  arboretum:{chapter:'wabe',objectId:462,image:'./assets/arboretum-v1.png',spawn:[240,185],walkablePolygons:[strip([[0,185],[120,185],[240,185],[360,185],[480,185]],37)],exitAnchors:{e:[464,185],w:[16,185]},exitApproaches:{e:[1,0],w:[-1,0]}},
-  top_of_arbor:{chapter:'wabe',objectId:408,image:'./assets/arbor-top-v1.png',spawn:[248,135],
-    walkablePolygons:[strip([[237,0],[229,18],[244,49],[245,68],[231,90],[232,110],[248,134],[248,151],[238,179],[244,210],[270,242],[281,288]],27),strip([[248,134],[221,139],[183,149],[164,165],[146,181],[89,199]],29),[[185,116],[278,109],[309,116],[331,126],[327,149],[300,159],[260,170],[208,163],[183,149]]],
-    exitAnchors:{n:[234,16],s:[278,275],d:[97,197]},exitApproaches:{n:[-.4,-1],s:[.25,1],d:[-1,.4]},interactionExitDirs:['d'],occluders:[]},
-  north_arbor:{chapter:'wabe',objectId:4,image:'./assets/arbor-north-v1.png',spawn:[245,171],
-    walkablePolygons:[strip([[220,288],[251,255],[271,218],[269,198],[245,172],[238,145]],29),[[196,131],[229,113],[269,117],[287,134],[278,164],[249,176],[210,163]]],exitAnchors:{s:[231,275]},exitApproaches:{s:[-.7,1]}},
-  south_arbor:{chapter:'wabe',objectId:430,image:'./assets/arbor-south-v1.png',spawn:[248,174],
-    walkablePolygons:[strip([[246,0],[236,38],[257,85],[272,112],[262,142],[240,181]],28),[[210,150],[248,138],[276,150],[285,174],[271,200],[232,213],[200,195],[194,173]]],exitAnchors:{n:[242,16]},exitApproaches:{n:[.1,-1]}},
+  trellises:{chapter:'wabe',objectId:317,image:ARBOR_LIGHT_ART.trellises,spawn:[240,158],
+    walkablePolygons:[strip([[0,146],[120,146],[240,151],[360,146],[480,146]],33),strip([[240,0],[240,82],[240,151]],31),strip([[30,0],[75,58],[151,117],[240,151],[325,117],[394,60],[448,0]],30),strip([[8,288],[99,228],[174,184],[240,151],[324,189],[406,240],[480,288]],35),[[190,130],[273,127],[291,161],[255,182],[194,179]]],
+    exitAnchors:{n:[240,16],ne:[436,16],e:[464,146],se:[457,273],sw:[28,275],w:[16,146],nw:[42,16]},exitApproaches:{n:[0,-1],ne:[.7,-1],e:[1,0],se:[1,.6],sw:[-1,.65],w:[-1,0],nw:[-.7,-1]},showUnmadeExits:true},
+  arboretum:{chapter:'wabe',objectId:462,image:ARBOR_LIGHT_ART.arboretum,preloadArt:[ARBOR_LIGHT_ART.crystal],spawn:[240,184],
+    walkablePolygons:[
+      strip([[0,172],[94,174],[163,168],[205,174],[240,182],[296,174],[380,176],[480,170]],25),
+      strip([[240,182],[216,168],[230,154],[211,131],[223,113],[238,107],[246,99]],28),
+      strip([[189,171],[148,179],[109,198],[92,219],[104,246],[139,264],[187,272],[236,263],[249,257]],26),
+    ],
+    obstacles:[{x:233,y:161,w:14,h:7}],
+    exitAnchors:{n:[238,107],s:[239,261],e:[464,171],w:[16,172]},
+    exitApproaches:{n:[.7,-1],s:[1,-.2],e:[1,0],w:[-1,0]},
+    exitPointerPolygons:{n:[[224,80],[250,80],[254,108],[220,113]],s:[[219,231],[257,231],[262,254],[251,266],[216,266]]}},
+  top_of_arbor:{chapter:'wabe',objectId:408,image:ARBOR_LIGHT_ART.top_of_arbor,spawn:[251,136],
+    walkablePolygons:[strip([[230,0],[235,25],[248,60],[225,93],[237,115],[267,145],[256,165],[235,186],[229,201],[231,217],[260,249],[284,277],[289,288]],36),[[247,125],[276,125],[293,133],[294,147],[258,160],[243,153]]],
+    exitAnchors:{n:[234,16],s:[278,275]},exitApproaches:{n:[-.4,-1],s:[.25,1]},occluders:[]},
+  north_arbor:{chapter:'wabe',objectId:4,image:ARBOR_LIGHT_ART.north_arbor,spawn:[245,171],
+    walkablePolygons:[strip([[220,288],[251,255],[271,218],[269,198],[245,172],[228,146],[226,128],[246,111],[255,92]],29),[[196,131],[229,113],[269,117],[287,134],[278,164],[249,176],[210,163]]],exitAnchors:{u:[231,275],d:[254,99]},exitApproaches:{u:[-.7,1],d:[.35,-1]},hiddenExitDirs:['in','out']},
+  south_arbor:{chapter:'wabe',objectId:430,image:ARBOR_LIGHT_ART.south_arbor,spawn:[248,174],
+    walkablePolygons:[strip([[246,0],[236,38],[257,85],[272,112],[262,142],[240,181],[220,202],[211,223],[203,250],[218,267],[267,266],[279,260]],28),[[210,150],[248,138],[276,150],[285,174],[271,200],[232,213],[200,195],[194,173]]],exitAnchors:{u:[242,16],d:[267,266]},exitApproaches:{u:[.1,-1],d:[1,0]},hiddenExitDirs:['in','out'],exitPointerPolygons:{d:[[242,238],[282,233],[293,257],[278,273],[241,273]]}},
   arborvitaes_n:{chapter:'wabe',objectId:418,image:'./assets/arborvitaes-n-v1.png',spawn:[230,181],
     walkablePolygons:[strip([[0,173],[140,180],[270,184]],32),strip([[270,184],[250,150],[185,115],[130,70],[85,0]],31),[[249,168],[278,166],[287,182],[277,197],[254,194],[243,182]]],exitAnchors:{nw:[95,16],w:[16,174]},exitApproaches:{nw:[-.5,-1],w:[-1,0]}},
   arborvitaes_s:{chapter:'wabe',objectId:580,image:'./assets/arborvitaes-s-v1.png',spawn:[260,176],

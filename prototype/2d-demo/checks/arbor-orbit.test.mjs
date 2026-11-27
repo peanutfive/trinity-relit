@@ -57,7 +57,7 @@ async function trellises() {
 }
 
 async function takeAxe(g) {
-  await command(g, 'u');
+  await commands(g, ['se','w','n','u']);
   assert.equal(stateOf(g).room, 'top_of_arbor');
   const axe = getHotspots(stateOf(g)).find(object => object.itemId === 'axe');
   assert.ok(axe, '独立斧头只能在真实物品位置出现');
@@ -83,7 +83,7 @@ async function waterfall({axe = true, bubble = true, symbol = 3} = {}) {
   const g = await trellises();
   if (axe) {
     await takeAxe(g);
-    await commands(g, ['n', 's', 'd']);
+    await commands(g, ['s', 'd', 'e', 'nw']);
     assert.equal(stateOf(g).flipped, true);
   }
   await commands(g, ['n', 'u']);
@@ -117,15 +117,14 @@ function checkArboretum(g, flipped) {
   assert.equal(stateOf(g).room, 'arboretum');
   assert.equal(stateOf(g).flipped, flipped);
   const before = snapshot(g);
-  const expected = flipped
-    ? {w: 'arborvitaes_n', e: 'arborvitaes_s'}
-    : {e: 'arborvitaes_n', w: 'arborvitaes_s'};
+  const expected = {n:'north_arbor',s:'south_arbor',e:'arborvitaes_n',w:'arborvitaes_s'};
   for (let count = 0; count < 3; count++) {
     const exits = sceneExits('arboretum', stateOf(g), g.engine.rooms);
     assert.deepEqual(Object.fromEntries(exits.map(exit => [exit.dir, exit.target])), expected);
     const map = buildChapterMap({state: stateOf(g), rooms: g.engine.rooms, scenes: SCENES});
+    const exploredTargets=Object.fromEntries(Object.entries(expected).filter(([,to])=>stateOf(g).visited.has(to)));
     assert.deepEqual(Object.fromEntries(map.edges.filter(edge => edge.from === 'arboretum')
-      .map(edge => [edge.direction, edge.to])), expected);
+      .map(edge => [edge.direction, edge.to])), exploredTargets);
     for (const hedge of ['arborvitaes_n', 'arborvitaes_s']) {
       const direction = hedge === 'arborvitaes_n' ? 'w' : 'e';
       const landing = roomArrival(SCENES.arboretum, {fromRoom: hedge, direction, exits});
@@ -142,26 +141,22 @@ function checkArboretum(g, flipped) {
   assert.deepEqual(snapshot(g), before, '地图/入口/热点查询不可推进回合、翻转或移动物品');
 }
 
-test('真实序章接入藤架，斧头先观察再取；南北越顶各翻转一次，返程不重复翻转', async () => {
-  const g = await trellises();
+test('真实序章接入藤架，取得原位物品；折返不翻转，完整穿越只在下坡时翻转', async () => {
+  const g=await trellises();
   await takeAxe(g);
-  assert.equal(stateOf(g).flipped, false);
-  await command(g, 'n');
-  assert.equal(stateOf(g).room, 'north_arbor');
-  assert.equal(stateOf(g).flipped, true);
-  assert.deepEqual(sceneExits('north_arbor', stateOf(g), g.engine.rooms).map(exit => exit.dir), ['s']);
-  await command(g, 's');
-  assert.equal(stateOf(g).room, 'top_of_arbor');
-  assert.equal(stateOf(g).flipped, true);
-  await command(g, 's');
-  assert.equal(stateOf(g).room, 'south_arbor');
-  assert.equal(stateOf(g).flipped, false);
-  assert.deepEqual(sceneExits('south_arbor', stateOf(g), g.engine.rooms).map(exit => exit.dir), ['n']);
-  await commands(g, ['n', 'd']);
-  assert.equal(stateOf(g).room, 'trellises');
-  assert.equal(stateOf(g).flipped, false);
+  await commands(g,['n','d']);
+  assert.equal(stateOf(g).room,'arboretum');
+  assert.equal(stateOf(g).flipped,false);
+  await commands(g,['n','u','s']);
+  assert.equal(stateOf(g).room,'south_arbor');
+  assert.equal(stateOf(g).flipped,false);
+  await command(g,'d');
+  assert.equal(stateOf(g).flipped,true);
+  await commands(g,['s','u','n','d','e','nw']);
+  assert.equal(stateOf(g).room,'trellises');
+  assert.equal(stateOf(g).flipped,false);
   assert.ok(stateOf(g).has('axe'));
-  assert.equal(stateOf(g).score, 15, '表现接入不为普通拾物或穿行自造得分');
+  assert.equal(stateOf(g).score,15,'表现接入不为普通拾物或穿行自造得分');
 });
 
 test('植物园翻转前后东西目标、M地图和两侧返程入口同步，查询始终只读', async () => {
@@ -171,9 +166,9 @@ test('植物园翻转前后东西目标、M地图和两侧返程入口同步，�
   checkArboretum(g, false);
   await commands(g, ['e', 'nw']);
   await takeAxe(g);
-  await commands(g, ['n', 's', 'd', 'se', 'w']);
+  await commands(g, ['s', 'd']);
   checkArboretum(g, true);
-  await commands(g, ['e', 'ne']);
+  await commands(g, ['e', 'nw']);
   assert.equal(stateOf(g).room, 'trellises');
   assert.equal(stateOf(g).flipped, true);
 });

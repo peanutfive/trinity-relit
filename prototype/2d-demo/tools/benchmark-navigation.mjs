@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {SCENES} from '../scene-manifest.js';
 import {nearestWalkable,findPath,isSegmentWalkable} from '../world.js';
-const cases=[['round_pond',[425,22]],['south_arbor',[262,142]],['trellises',[340,33]]];
+const cases=[['round_pond',[425,22]],['south_arbor',[262,142]],['trellises',SCENES.trellises.exitAnchors.ne]];
 const receipts=[];
 for(const [room,target]of cases){
  const base=SCENES[room],runs=[];

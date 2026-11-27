@@ -139,7 +139,7 @@ test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放�
   for(const c of ['nw','in','out','e','d','u','nw','e','s','n','in','out','s','s','w','se','s'])await command(g,c);
   assert.equal(state.room,'moor');
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
-  for(const c of ['u','take axe','n','s','s','n','d','se','w','w','ne','nw','w','ne','sw','e','se'])await command(g,c);
+  for(const c of ['se','w','n','u','take axe','s','d','s','u','n','d','w','ne','nw','w','ne','sw','e','se'])await command(g,c);
   await command(g, 'w'); assert.equal(state.room, 'forest_clearing');
   for(const c of ['n','n','n','se','ne','e','e','w','w','sw','se','s','w','w'])await command(g,c);
   assert.equal(state.room,'forest_clearing');

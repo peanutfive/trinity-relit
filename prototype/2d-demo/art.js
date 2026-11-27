@@ -65,7 +65,7 @@ export function drawScene(c,room,time,effects=true,state={}){
   c.imageSmoothingEnabled=true;
   const background=SCENES[room]?.background;const atlas=backgrounds.get(backgroundSource(background,state));
   if(!atlas)ensureSceneArt(room,state).catch(()=>{});
-  if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();if(room==='arboretum'&&state.flipped){c.translate(480,0);c.scale(-1,1);}c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
+  if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   drawDoorwayLayer(c,room,state);
   for(const door of ranchDoors(SCENES[room])){
