@@ -2,6 +2,7 @@ import {resolveInteraction} from './interaction-intent.js';
 const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
 const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water|enter dory|exit dory)$/;
 function physicalHint(command,target){
+  if(command==='move log')return '试着搬动';
   if(command==='put ruby on box')return '放在箱盖上';
   if(command==='look at roadrunner through binoculars')return '举起望远镜';
   if(command==='put slip in book')return '夹入书中';

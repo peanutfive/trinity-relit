@@ -81,7 +81,9 @@ async function touch(object, input) {
   if (input === 'F') assert.ok(keyboard, `${object.id}: F must address the nearby object`);
   if(keyboard)await page.keyboard.press('f');
   else if(object.id==='vertex:ring')await clickLogical(286,132);
-  else if(object.pointerShape && object.id.startsWith('vertex:'))await clickLogical(...pointerCenter(object));
+  else if(object.pointerShape && (object.id.startsWith('vertex:')
+      || before.room==='south_bog' && (object.id==='south_bog:log' || object.itemId==='splinter')))
+    await clickLogical(...pointerCenter(object));
   else {
     // Click the painted prop, not the old universal ten-pixels-above-foot
     // point (which is above a seven-pixel-high paper boat, for example).
@@ -240,7 +242,9 @@ async function run() {
   for (let index = 0; index < 6; index++) { await perform('turn ring'); await drain(); }
   assert.equal((await state()).sundialSymbol, originalSymbol);
   await walk('d', 'bottom_of_stairs'); await walk('w', 'south_bog'); await perform('examine log'); await drain();
-  await screenshot('wabe-bog'); await perform('take splinter'); await drain();
+  await screenshot('wabe-bog');
+  await perform('move log'); await drain();
+  await perform('take splinter'); await drain();
   assert.ok((await state()).inventory.includes('splinter'));
   await walk('n', 'north_bog'); await screenshot('wabe-north-bog'); await walk('s', 'south_bog');
   await walk('s', 'forest_clearing'); await walk('e', 'trellises'); await screenshot('wabe-trellises');

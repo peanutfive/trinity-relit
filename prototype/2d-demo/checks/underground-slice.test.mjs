@@ -10,14 +10,14 @@ import {createNarrativeDirector} from '../narrative.js';
 import {buildChapterMap} from '../chapter-map.js';
 import {illustratedMapNodes} from '../map-geography.js';
 import {terrainMarkup} from '../chapter-map-art.js';
-const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','take splinter','e','u'];
+const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','move log','take splinter','e','u'];
 async function ready(){const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);assert.equal(e.state.room,'vertex');for(let i=0;e.state.sundialSymbol!==2&&i<7;i++)await e.processInput('turn ring');for(const c of ['d','ne','e','nw','e','s','n','in'])await e.processInput(c);assert.equal(e.state.room,'ossuary');return e;}
 const snap=e=>({...e.state.serialize(),visual:{room:e.state.room,player:{x:SCENES[e.state.room].spawn[0],y:SCENES[e.state.room].spawn[1]}}});
 test('合法序章与光源进入地下，拿取/点亮/留下灯笼后返回，不增加得分或物品',async()=>{
  const e=await ready();for(const c of ['in','e','take walkie-talkie','e','take lantern','turn lantern','w','drop lantern','drop splinter','w','e']){await e.processInput(c);assert.equal(e.state.dead,false,c);}
  assert.ok(e.state.hasFlag('lantern_dropped_middle'));assert.equal(e.state.itemAt('lantern'),'underground_2');
  assert.ok(getHotspots(e.state).some(o=>o.itemId==='lantern'));await e.processInput('take lantern');for(const c of ['w','w'])await e.processInput(c);
- assert.equal(e.state.room,'ossuary');assert.equal(e.state.chapter,'wabe');assert.equal(e.state.score,17);assert.ok(e.state.has('walkie_talkie'));assert.ok(e.state.has('lantern'));
+ assert.equal(e.state.room,'ossuary');assert.equal(e.state.chapter,'wabe');assert.equal(e.state.score,18);assert.ok(e.state.has('walkie_talkie'));assert.ok(e.state.has('lantern'));
 });
 test('Pluto门与无光致命条件继续由原章决定，表现层不能跳过',async()=>{
  const e=await ready();await e.processInput('out');await e.processInput('s');await e.processInput('s');await e.processInput('w');await e.processInput('se');await e.processInput('w');await e.processInput('sw');await e.processInput('u');

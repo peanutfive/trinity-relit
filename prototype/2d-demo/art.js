@@ -14,6 +14,8 @@ function flagActive(state,flag){
 export function currentPlate(background, state) {
   const variant = background?.variant;
   if (!variant || (variant.unlessFlag && flagActive(state,variant.unlessFlag))) return background;
+  const outside=variant.itemOutside;
+  if (state?.itemLoc && outside && state.itemLoc[outside.id]!==outside.location) return variant;
   if (variant.anyFlags?.some(flag=>flagActive(state,flag)) || flagActive(state,variant.flag)) return variant;
   return background;
 }

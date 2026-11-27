@@ -1,3 +1,4 @@
+import {bogLogView} from './bog-log-story.js';
 import { vertexShadowView, vertexGnomonView, moorDoorHidden } from './islet-shadow.js';
 import {ARBOR_WABE_ROOMS,getArborHotspots,getArborInventoryActions} from './arbor-actions.js';
 import {COMPLETION_WABE_ROOMS,getCompletionHotspots,getCompletionInventoryActions} from './wabe-completion-actions.js';
@@ -39,10 +40,15 @@ export function getWabeHotspots(state) {
     'meadow:sundial', 245, 148, '日晷', 'sundial', 'examine_sundial_meadow',
     [action('查看日晷', 'examine sundial')],
   ));
-  if (room === 'south_bog') objects.push(object(
-    'south_bog:log', 315, 151, '腐烂的圆木', 'log', 'examine_log',
-    [action('查看圆木', 'examine log')],
-  ));
+  if (room === 'south_bog') {
+    const intact=bogLogView(state).intact;
+    const prop=intact
+      ? object('south_bog:log',315,151,'朽木','log','examine_log',
+        [action('观察朽木','examine log'),action('试着搬动','move log')])
+      : object('south_bog:heap',322,151,'腐木堆','bog_heap','examine_bog_heap',
+        [action('观察腐木堆','examine heap')]);
+    objects.push({...prop,radius:intact?37:15,baked:true,pointerShape:{kind:'ellipse',x:313,y:134,rx:29,ry:11,priority:1}});
+  }
   if (room === 'bottom_of_stairs') objects.push(object(
     'bottom_of_stairs:stairs', 245, 112, '崖壁石阶', 'stairs', undefined,
     [action('查看此处', 'look'), action('登上石阶', 'u')],
@@ -99,8 +105,10 @@ export function getWabeHotspots(state) {
     const actions = [action('查看', `examine ${noun}`)];
     if (!item.fixed) actions.push(action(id === 'splinter' ? '拾起木片' : '拿取', `take ${noun}`));
     const [x, y] = looseItemPosition(id, room, index);
-    objects.push(object(`wabe:item:${id}`, x, y, item.cn, id,
-      id === 'splinter' && room === 'south_bog' ? 'examine_splinter' : undefined, actions, id));
+    const loose=object(`wabe:item:${id}`, x, y, item.cn, id,
+      id === 'splinter' && room === 'south_bog' ? 'examine_splinter' : undefined, actions, id);
+    if (room==='south_bog' && id==='splinter') loose.radius=17;
+    objects.push(loose);
   });
   return objects;
 }

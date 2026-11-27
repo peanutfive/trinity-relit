@@ -7,6 +7,7 @@ import { SCENES, SCENE_SCHEMA_VERSION, LOGICAL_SIZE } from '../scene-manifest.js
 import { GameState } from '../../js/engine.js';
 import { ITEMS } from '../exploration-items.js';
 import { getHotspots } from '../interaction-catalog.js';
+import {initializeBogLog} from '../bog-log-story.js';
 import { ranchDoors } from '../ranch-actions.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
 const modules = await Promise.all(chapters.map(id => {
@@ -44,6 +45,7 @@ for (const [id,scene] of Object.entries(SCENES)) {
   assert.ok(!blocked(scene,...scene.spawn),`${id} 出生点不可达`);
   const state=new GameState();state.room=id;state.chapter=scene.chapter;
   state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));
+  initializeBogLog(state);
   assert.deepEqual(scene.objects,getHotspots(state),`${id} 场景热点与章节目录不同步`);
   const exits=rooms[id].exits(state), points=reachable(scene);
   for(const exit of scene.exits) {

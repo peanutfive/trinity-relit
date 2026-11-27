@@ -69,7 +69,7 @@ async function meadow() {
 
 async function brink() {
   const game = await meadow();
-  await run(game, ['n', 'ne', 'take splinter', 'ne']);
+  await run(game, ['n', 'ne', 'move log', 'take splinter', 'ne']);
   assert.equal(game.engine.state.room, 'chasms_brink');
   return game;
 }
@@ -260,7 +260,7 @@ test('M地图只揭示已走四房和真实道路，不泄露未制作章节或�
   const game = await meadow(), {engine} = game;
   const first = buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});
   assert.ok(ROOMS_ADDED.every(id => !first.nodes.some(node => node.id === id)));
-  await run(game, ['n', 'ne', 'take splinter', 'n', 'n', 'se', 'ne', 'e', 'e', 'w', 'w', 'sw', 'se', 's']);
+  await run(game, ['n', 'ne', 'move log', 'take splinter', 'n', 'n', 'se', 'ne', 'e', 'e', 'w', 'w', 'sw', 'se', 's']);
   const before = snapshot(engine);
   for (let count = 0; count < 3; count++) {
     const map = buildChapterMap({state: engine.state, rooms: engine.rooms, scenes: SCENES});

@@ -7,7 +7,6 @@ import { getHotspots as getPrologueHotspots } from '../prologue-actions.js';
 import { WABE_SLICE_ROOMS } from '../wabe-actions.js';
 import { ROOMS } from '../../js/data/wabe.js';
 import { ROOMS as VISUAL_ROOMS } from '../cemetery-story.js';
-import { Parser } from '../../js/parser.js';
 
 function createGame() {
   const output = [];
@@ -63,11 +62,12 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
   const { engine } = createGame();
   await engine.activateChapter('wabe');
   engine.state.chapter = 'wabe';
-  const parser = new Parser();
+  const parser = engine.parser;
   const covered = new Set();
-  const scenarios = [...WABE_SLICE_ROOMS.map(room=>({room})),{room:'vertex',mount:true}];
-  for (const {room,mount} of scenarios) {
+  const scenarios = [...WABE_SLICE_ROOMS.map(room=>({room})),{room:'south_bog',movedLog:true},{room:'vertex',mount:true}];
+  for (const {room,mount,movedLog} of scenarios) {
     engine.state.room = room;
+    if(movedLog)await engine.processInput('move log');
     if(mount) {
       engine.state.take('gnomon');
       await installCarriedGnomon(engine);
@@ -113,6 +113,7 @@ test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放�
   await command(g, 'e'); assert.equal(state.room, 'forest_clearing');
   await command(g, 'n'); assert.equal(state.room, 'south_bog');
   await choose(g, 'examine log');
+  await choose(g, 'move log');
   await choose(g, 'examine splinter');
   await choose(g, 'take splinter');
   assert.ok(state.has('splinter'));
@@ -144,7 +145,7 @@ test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放�
   for(const c of ['n','n','n','se','ne','e','e','w','w','sw','se','s','w','w'])await command(g,c);
   assert.equal(state.room,'forest_clearing');
   assert.ok(WABE_SLICE_ROOMS.every(room => state.visited.has(room)));
-  assert.equal(state.score, 15);
+  assert.equal(state.score, 16);
   await choose(g, 'drop splinter');
   const save = JSON.parse(JSON.stringify(g.engine.serialize()));
   const resumed = createGame();

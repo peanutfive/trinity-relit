@@ -70,7 +70,7 @@ test('首次观察晶瓶免费并保存，重复可读铭文；真实越顶后�
 
 test('木片只在随身或留在顶层时照亮，顶层没有水晶；旧道具的物位与落地反馈一致',async()=>{
   const g=await inMeadow(),s=g.engine.state;
-  await g.play('n','ne','take splinter','se','se','w','s','u');
+  await g.play('n','ne','move log','take splinter','se','se','w','s','u');
   assert.equal(s.room,'top_of_arbor');assert.deepEqual(g.names.at(-1),['Top of Arbor','藤架顶部']);
   const lit=await g.play('look');assert.match(lit,/flickering light of the splinter/);
   assert.match(lit,/tunnels curve down to the north and south/);

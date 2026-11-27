@@ -1,3 +1,4 @@
+import {BOG_LOG_INTERIOR,initializeBogLog} from './bog-log-story.js';
 import { RANCH_KITCHEN_LAYOUT } from './ranch-kitchen-layout.js';
 import { RANCH_CLOSET_LAYOUT } from './ranch-closet-layout.js';
 import { RANCH_HOUSE_ACCESS_LAYOUT } from './ranch-house-access-layout.js';
@@ -221,6 +222,10 @@ for(const [id,layout] of Object.entries({...CLIFF_ROUTE_LAYOUT,...UG_ROUTE_LAYOU
   terrain:{status:'art-ground-trace-v2',sourceImage:layout.image},
   footprint:{rx:6,ry:3},objects:[],exits:[],
 };
+SCENES.south_bog.background.variant = {
+  itemOutside: {id:'splinter',location:BOG_LOG_INTERIOR}, image:'./assets/south-bog-decayed-v1.webp',
+};
+SCENES.south_bog.preloadArt=[SCENES.south_bog.background.variant.image];
 SCENES.under_windmill.background.variant = {
   flag: 'binoculars_broken', image: './assets/ranch-reservoir-under_windmill-damaged-v1.png',
 };
@@ -248,6 +253,7 @@ for(const [id,scene] of Object.entries(SCENES)){
   if(scene.chapter==='tundra')scene.mapLabel=({tundra_1:'冻原 · 西南',tundra_2:'冻原 · 东',tundra_3:'冻原 · 西',tundra_4:'冻原 · 东北',tundra_5:'冻原 · 北',tundra_6:'冻原 · 西北',tundra_7:'冻原 · 东南',tundra_8:'冻原 · 南'})[id]||scene.label;
   const state=new GameState();state.room=id;state.chapter=scene.chapter;
   state.itemLoc=Object.fromEntries(Object.entries(ITEMS).filter(([,item])=>item.start).map(([key,item])=>[key,item.start]));
+  initializeBogLog(state);
   scene.objects=getHotspots(state);
   scene.exits=sceneExits(id,state);
 }

@@ -14,7 +14,6 @@ export function drawArborCrystal(ctx, x, y, resolve, flipped = false) {
   const width = height * image.naturalWidth / image.naturalHeight;
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(flipped ? -1 : 1, 1);
   const shadow = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
   shadow.addColorStop(0, 'rgba(39,34,19,.52)');
   shadow.addColorStop(1, 'rgba(39,34,19,0)');
@@ -24,6 +23,15 @@ export function drawArborCrystal(ctx, x, y, resolve, flipped = false) {
   ctx.fillRect(-12, -12, 24, 24);
   ctx.restore();
   ctx.drawImage(image, -width / 2, -height, width, height);
+  // The inscription changes reading order after crossing. Its engraved face,
+  // crystal highlights and cast shadow all keep their original orientation.
+  ctx.translate(0, -2.4);
+  ctx.scale(.15, .18);
+  ctx.font = '10px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(54,48,36,.78)';
+  ctx.fillText(flipped ? '5291-9481 NIELK XILEF' : 'FELIX KLEIN 1849-1925', 0, 0);
   ctx.restore();
   return true;
 }

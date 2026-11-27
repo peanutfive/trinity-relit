@@ -81,7 +81,7 @@ const PROLOGUE = [
   'e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird',
   'w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree',
   'take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon',
-  'enter water','enter door','n','ne','take splinter','e','s',
+  'enter water','enter door','n','ne','move log','take splinter','e','s',
 ];
 
 async function ready() {

@@ -35,6 +35,7 @@ export const VISUAL_PRESENCE_RULES=Object.freeze([
   rule('loose-gnomon','the_wabe','gnomon','The sundial stands at the center of the clearing. The gnomon lies on its face.','日晷矗立在空地中央。指针躺在表盘上。'),
   rule('meadow-sundial','meadow','sundial','A shaft of golden sunlight falls across a handsome antique sundial, erected at the exact center of the clearing.','一束金色阳光落在一座精美的古董日晷上，它矗立在空地的正中央。'),
   {...rule('boy-dish-presence','inverness_terrace','dish',"There's a dish full of soapy water by his side.",'他身旁放着一碟肥皂水。'),sentence:true},
+  rule('bog-exposed-splinter','south_bog','splinter',"There's a splinter (providing light) here.",'这里有一块木片，正发着光。'),
   rule('bog-log','south_bog','log','A splintered log lies rotting in the mist at your feet.','一根裂开的圆木在你脚下的雾气中腐烂着。'),
   {...rule('shelter-spade','shelter','spade','A spade is here.','这里有一把铲子。'),sentence:true},
   rule('shelter-girl','shelter','japan_girl','The girl is here with the umbrella.','女孩在这里，拿着那把雨伞。'),

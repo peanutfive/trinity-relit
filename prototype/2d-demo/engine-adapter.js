@@ -1,3 +1,4 @@
+import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
 import { advanceShadow, initializeShadow, restoreShadow, initializeVertexInstallation,
   restoreVertexInstallation, recordVertexMirrorCrossing } from './islet-shadow.js';
 import { GameEngine } from '../js/engine.js';
@@ -56,6 +57,8 @@ class ExplorationParser extends Parser {
     if (/^(?:拧下|旋下)(?:日晷)?指针$/.test(text)) return super.parse('unscrew gnomon');
     const command=super.parse(input);
     if(command)return command;
+    const bog=parseBogAction(text);
+    if(bog)return bog;
     if(/^(?:(?:touch|feel) (?:the )?walls?|(?:摸|触摸)(?:墙|墙壁|墙面))$/i.test(input.trim()))
       return {type:'simple',verb:'touch',noun:'wall'};
     return null;
@@ -74,6 +77,7 @@ class ExplorationEngine extends GameEngine {
 
   async deserialize(save) {
     await super.deserialize(save);
+    restoreBogLog(this.state,save.state);
     restoreGardenMoves(this.state);
     restorePaperback(this.state,save.state);
     restoreVertexInstallation(this.state,save.state);
@@ -87,6 +91,8 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
+    const bog=freeBogAction(state,command);
+    if(bog){this.print(bog);return true;}
     const arbor=freeArborAction(state,command,this.items);
     if (arbor) {
       this.print(arbor.text);
@@ -249,6 +255,7 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
     },
   });
   engine.registerTimerHandlers(TIMERS);
+  initializeBogLog(engine.state);
   initializeVertexInstallation(engine.state);
   initializeRoadrunner(engine.state);
   return engine;

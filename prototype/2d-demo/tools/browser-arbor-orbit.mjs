@@ -39,7 +39,7 @@ async function travelExit(dir,target){
 }
 async function importSave(save){await drain();await page.keyboard.press('Escape');await page.getByRole('tab',{name:'探索进度'}).click();await page.locator('#save-file').setInputFiles({name:'arbor-orbit.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(save))});await page.waitForFunction(room=>{const s=JSON.parse(window.render_game_to_text());return s.room===room&&s.mode!=='paused'&&!s.processing;},save.engine.state.room);await drain();}
 async function hold(name){await page.keyboard.press('i');await page.getByRole('button',{name,exact:true}).click();}
-const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','take splinter','e','s'];
+const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','move log','take splinter','e','s'];
 const e=createPrologueSession(),fixtures={};e.moveTo(e.state.room);
 const capture=name=>{const room=e.state.room,[x,y]=SCENES[room].spawn;fixtures[name||room]=makeVisualSave(e,{room,x,y,face:'up'});};
 async function cmds(commands){for(const c of commands){await e.processInput(c);assert.equal(e.state.dead,false,c);if(SCENES[e.state.room])capture();}}
@@ -60,7 +60,9 @@ try{
  });
  await closeText();assert.equal((await state()).narrative.currentEvent,'cliff_passage');await page.waitForTimeout(300);await shot('climb-normal-raf');await page.keyboard.press('Escape');const paused=(await state()).narrative.elapsed;await tick(1000);assert.equal((await state()).narrative.elapsed,paused);await page.keyboard.press('Escape');await drain();await shot('top-with-axe');
  await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});await page.waitForTimeout(30);
- await move(303,136);await face('d');await F('examine axe');await drain();await F('take axe');await drain();assert.ok((await state()).inventory.includes('axe'));assert.ok(!(await state()).objects.some(o=>o.itemId==='axe'));await shot('axe-removed');
+ const axe=(await state()).objects.find(object=>object.itemId==='axe');
+ assert.ok(axe);
+ await move(axe.x,axe.y);await face('d');await F('examine axe');await drain();await F('take axe');await drain();assert.ok((await state()).inventory.includes('axe'));assert.ok(!(await state()).objects.some(o=>o.itemId==='axe'));await shot('axe-removed');
  await travelExit('s','south_arbor');assert.equal((await state()).flipped,false);await shot('south-arbor-slope');
  await travelExit('d','arboretum');assert.equal((await state()).flipped,true);
  await travelExit('s','south_arbor');await travelExit('u','top_of_arbor');

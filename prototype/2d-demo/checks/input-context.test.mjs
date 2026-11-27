@@ -30,7 +30,7 @@ async function wading() {
 }
 async function stairs() {
   const engine = await wading();
-  await run(engine, ['enter door', 'n', 'ne', 'take splinter', 'e']);
+  await run(engine, ['enter door', 'n', 'ne', 'move log', 'take splinter', 'e']);
   assert.equal(engine.state.room, 'bottom_of_stairs');
   return engine;
 }

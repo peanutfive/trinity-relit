@@ -31,7 +31,7 @@ export const ARBOR_ROUTE_LAYOUT={
   waterfall:{chapter:'wabe',objectId:472,image:'./assets/waterfall-v1.png',spawn:[330,185],
     walkablePolygons:[strip([[350,0],[360,90],[345,150],[330,185],[350,220],[400,288]],35),strip([[300,170],[345,160],[405,151],[480,145]],38),[[285,158],[315,139],[353,138],[388,157],[376,190],[337,205],[303,195]]],
     exitAnchors:{ne:[352,16],e:[464,146],se:[391,275],in:[350,170]},exitApproaches:{ne:[0,-1],e:[1,0],se:[.6,1],in:[0,-1]},interactionExitDirs:['in']},
-  south_bog:{chapter:'wabe',objectId:319,showUnmadeExits:true,image:'./assets/south-bog-v2.png',spawn:[240,184],
+  south_bog:{chapter:'wabe',objectId:319,exitLabelAnchors:{e:[434,187]},showUnmadeExits:true,image:'./assets/south-bog-v2.png',spawn:[240,184],
     walkablePolygons:[strip([[240,0],[242,80],[240,150],[237,221],[237,288]],32),strip([[0,135],[120,142],[240,150],[350,164],[420,153],[480,146]],32),strip([[425,0],[363,70],[302,116],[240,150],[307,201],[360,241],[430,288]],32)],
     exitAnchors:{n:[240,16],ne:[413,16],e:[464,148],se:[418,275],s:[237,275],w:[16,135]},exitApproaches:{n:[0,-1],ne:[.7,-1],e:[1,-.1],se:[1,.7],s:[0,1],w:[-1,0]}},
   north_bog:{chapter:'wabe',objectId:42,image:'./assets/north-bog-v2.png',spawn:[240,165],

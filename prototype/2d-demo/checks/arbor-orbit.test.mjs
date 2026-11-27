@@ -48,7 +48,7 @@ async function commands(g, inputs) {
 async function trellises() {
   const g = game();
   g.engine.moveTo(stateOf(g).room);
-  await commands(g, [...PROLOGUE, 'n', 'ne', 'take splinter', 'e', 's']);
+  await commands(g, [...PROLOGUE, 'n', 'ne', 'move log', 'take splinter', 'e', 's']);
   assert.equal(stateOf(g).room, 'trellises');
   assert.equal(stateOf(g).chapter, 'wabe');
   assert.equal(stateOf(g).flipped, false);
@@ -156,7 +156,7 @@ test('真实序章接入藤架，取得原位物品；折返不翻转，完整�
   assert.equal(stateOf(g).room,'trellises');
   assert.equal(stateOf(g).flipped,false);
   assert.ok(stateOf(g).has('axe'));
-  assert.equal(stateOf(g).score,15,'表现接入不为普通拾物或穿行自造得分');
+  assert.equal(stateOf(g).score,16,'沼泽木片首次给一分；穿越藤架不额外计分');
 });
 
 test('植物园翻转前后东西目标、M地图和两侧返程入口同步，查询始终只读', async () => {
