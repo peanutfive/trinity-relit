@@ -5,6 +5,10 @@
 
 ## 当前入口（2026-11-27）
 
+### T62 地下灯笼的发现与带出 — Codex 接续
+- 范围为 `prototype/2d-demo/**`、TASKS、SHIP_PLAN。核对地下取得灯笼的实际站位、点亮后的反馈与离开地下后的照明。
+- 🔨 已核对 Release 12 的初始物位和原作场景描述。灯笼在现有第三个地下场景的泥地上，现有画面将它画在圆筒上。正常进出与点亮时机待实走。[地下核对](prototype/2d-demo/UNDERGROUND_PRODUCTION.md)
+
 ### T61 南沼泽发光朽木 — Codex 接续
 - 范围为 `prototype/2d-demo/**`、TASKS、SHIP_PLAN。核对如何发现并带走藤架的光源，以及旧存档里已经拿到的木片。
 - 👀 原版双存档核对完毕。二维中观察后再搬动，朽木会碎开；拾取木片首次得一分，重取保留分数。中英文、手机旧档及从沼泽带木片沿新路登顶均已在浏览器实走。[南沼泽到藤架](prototype/2d-demo/tools/browser-bog-log.mjs)
