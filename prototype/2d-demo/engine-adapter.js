@@ -1,4 +1,6 @@
 import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
+import {burnLantern, freeLanternAction, handleLantern, lanternAction, lanternWaitMoves, parseLanternCommand,
+  restoreLantern} from './lantern-story.js';
 import { advanceShadow, initializeShadow, restoreShadow, initializeVertexInstallation,
   restoreVertexInstallation, recordVertexMirrorCrossing } from './islet-shadow.js';
 import { GameEngine } from '../js/engine.js';
@@ -19,7 +21,7 @@ import { ROOMS, TIMERS } from '../js/data/prologue.js';
 const VISUAL_CHAPTER_LOADERS = Object.freeze({
   wabe: () => import('./cemetery-story.js'),
   japan: () => import('../js/data/japan.js'),
-  underground: () => import('../js/data/underground.js'),
+  underground: () => import('./underground-story.js'),
   orbit: () => import('../js/data/orbit.js'),
   pacific: () => import('../js/data/pacific.js'),
   tundra: () => import('../js/data/tundra.js'),
@@ -34,6 +36,8 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
 class ExplorationParser extends Parser {
   parse(input){
     const text=input.trim().toLowerCase();
+    const lamp=parseLanternCommand(text);
+    if(lamp)return lamp;
     const birdOptics=text.match(/^observe (?:the )?(roadrunner|bird) (with|through) (?:the )?(?:pair of )?binoculars$/);
     if(birdOptics)return super.parse('look at '+birdOptics[1]+' '+birdOptics[2]+' binoculars');
     if(/^用(?:双筒)?望远镜(?:看|观察)(?:那只)?(?:走鹃|鸟)$/.test(text))
@@ -77,6 +81,7 @@ class ExplorationEngine extends GameEngine {
 
   async deserialize(save) {
     await super.deserialize(save);
+    restoreLantern(this.state);
     restoreBogLog(this.state,save.state);
     restoreGardenMoves(this.state);
     restorePaperback(this.state,save.state);
@@ -99,6 +104,8 @@ class ExplorationEngine extends GameEngine {
       if (arbor.save) this._autosave();
       return true;
     }
+    const lampRefusal=freeLanternAction(state,lanternAction(state,command));
+    if(lampRefusal){this.print(lampRefusal);return true;}
     if (state.room==='assembly_room' || state.room==='closet') {
       const {closetFreeResponse}=await import('./ranch-closet-story.js');
       const notice=closetFreeResponse(state,command);
@@ -162,6 +169,8 @@ class ExplorationEngine extends GameEngine {
   }
 
   async _handleAction(command) {
+    const lamp=lanternAction(this.state,command);
+    if(lamp)return handleLantern(this.state,this,lamp);
     const birdAction=roadrunnerAction(this.state,command);
     if(birdAction) {
       performRoadrunnerAction(this.state,this,birdAction,command);
@@ -181,6 +190,7 @@ class ExplorationEngine extends GameEngine {
   }
 
   _handleMetaCmd(command) {
+    if(command==='wait') this.state.turns += lanternWaitMoves(this.state)-1;
     if(command==='wait' && !this.currentRoom().onWait && roadrunnerWait(this.state)) this.state.turns++;
     return super._handleMetaCmd(command);
   }
@@ -191,7 +201,8 @@ class ExplorationEngine extends GameEngine {
     const birdRoute=this.state.hasFlag('river_ferry_crossed') && ['islet','desert','ranch'].includes(this.state.chapter);
     const awaitingRanchEnding=this.state.chapter==='ranch' && this.state.hasFlag('ranch_snake_bitten');
     const inArbor=this.state.chapter==='wabe' && ['arboretum','north_arbor','south_arbor','top_of_arbor','trellises'].includes(this.state.room);
-    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor)
+    const lampRoute=this.state.itemAt('lantern') && this.state.itemAt('lantern')!=='destroyed';
+    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor || lampRoute)
       && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase()))) this.state.turns--;
     return super._handleMeta(input);
   }
@@ -226,6 +237,7 @@ class ExplorationEngine extends GameEngine {
     advanceShadow(this.state,Math.max(1,this.state.turns-this._shadowTurnStart));
     advanceFerry(this.state,this);
     advanceRoadrunner(this.state,this,islandWasOpen);
+    burnLantern(this.state,this,Math.max(0,this.state.turns-this._shadowTurnStart));
     // The original ends inside this room's turn handler, before posting the
     // pending move. Keep normal living turns and unrelated endings intact.
     const pendingRanchEnding=ranchCollapseDue(this.state);
@@ -255,6 +267,7 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
     },
   });
   engine.registerTimerHandlers(TIMERS);
+  restoreLantern(engine.state);
   initializeBogLog(engine.state);
   initializeVertexInstallation(engine.state);
   initializeRoadrunner(engine.state);

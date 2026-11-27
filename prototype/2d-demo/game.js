@@ -1,3 +1,4 @@
+import {lanternSwitchCommand} from './lantern-story.js';
 import {arborLight} from './arbor-light-state.js';
 import {drawArborCrystal,drawArborTopLight} from './arbor-light-art.js';
 import {ARBOR_POINTS} from './arbor-points.js';
@@ -613,6 +614,9 @@ function interactWith(object) {
   portrait=object.kind==='woman'?(engine.state.room==='broad_walk'?'bird_woman':'umbrella_woman'):null;
   animateAction(/^(take|get|pick)/.test(input)?'pickup':'inspect');
   const actions=[];
+  if(object.itemId==='lantern' && input==='examine lantern'){
+    actions.push({label:'拨动开关',run:()=>command(lanternSwitchCommand(engine.state))});
+  }
   if(object.kind==='paperback' && input==='examine book' && !object.visualOptions?.onShelf){
     const open=engine.state.hasFlag('paperback_open');
     actions.push({label:open?'合上书':'翻开书',run:()=>command(open?'close book':'open book')});

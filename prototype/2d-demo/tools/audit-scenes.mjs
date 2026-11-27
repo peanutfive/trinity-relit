@@ -12,6 +12,7 @@ import { ranchDoors } from '../ranch-actions.js';
 const chapters = ['prologue', 'wabe', 'japan', 'underground', 'orbit', 'pacific', 'tundra', 'islet', 'desert', 'ranch', 'finale'];
 const modules = await Promise.all(chapters.map(id => {
   if (id === 'wabe') return import('../cemetery-story.js');
+  if (id === 'underground') return import('../underground-story.js');
   if (id === 'islet') return import('../ferry-islet.js').then(module=>({ROOMS:module.ISLET_ROOMS}));
   if (id === 'ranch') return import('../ranch-story.js');
   if (id === 'desert') return import('../shack-story.js').then(module=>({ROOMS:module.DESERT_ROOMS}));

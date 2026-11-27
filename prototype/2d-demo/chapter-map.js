@@ -10,7 +10,7 @@ import { ISLET_ROOMS } from './ferry-islet.js';
 import { ROOMS as RANCH_ROOMS } from './ranch-story.js';
 import { DESERT_ROOMS } from './shack-story.js';
 
-import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
+import {ROOMS as UNDERGROUND_ROOMS} from './underground-story.js';
 const DEFAULT_CHAPTER_ROOMS={prologue:PROLOGUE_ROOMS,wabe:WABE_ROOMS,japan:JAPAN_ROOMS,underground:UNDERGROUND_ROOMS,orbit:ORBIT_ROOMS,pacific:PACIFIC_ROOMS,tundra:TUNDRA_ROOMS,islet:ISLET_ROOMS,desert:DESERT_ROOMS,ranch:RANCH_ROOMS};
 const CHAPTER_LABELS={prologue:'序章',wabe:'异境',japan:'日本游乐场',underground:'地下洞室',orbit:'地球轨道',pacific:'太平洋小岛',tundra:'北极冻原',islet:'雾中小岛',desert:'新墨西哥沙漠',ranch:'牧场'};
 const DIRECTIONS={n:'北',ne:'东北',e:'东',se:'东南',s:'南',sw:'西南',w:'西',nw:'西北',u:'上',d:'下',in:'进入',out:'出去'};

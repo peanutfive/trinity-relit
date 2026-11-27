@@ -27,7 +27,7 @@ import { ROOMS as PROLOGUE_ROOMS } from '../js/data/prologue.js';
 import { ROOMS as WABE_ROOMS } from './cemetery-story.js';
 import { ROOMS as JAPAN_ROOMS } from '../js/data/japan.js';
 import { JAPAN_ROUTE_LAYOUT } from './japan-route-layout.js';
-import {ROOMS as UNDERGROUND_ROOMS} from '../js/data/underground.js';
+import {ROOMS as UNDERGROUND_ROOMS} from './underground-story.js';
 import {UG_ROUTE_LAYOUT} from './underground-route-layout.js';
 import { CLIFF_ROUTE_LAYOUT } from './cliff-route-layout.js';
 import { GameState } from '../js/engine.js';

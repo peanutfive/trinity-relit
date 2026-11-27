@@ -1,5 +1,4 @@
 import {resolveInteraction} from './interaction-intent.js';
-const flag=(s,key)=>s.hasFlag?.(key)??(s.flags instanceof Set?s.flags.has(key):(s.flags||[]).includes(key));
 const navigation=/^(?:n|ne|e|se|s|sw|w|nw|u|d|in|out|enter door|enter water|enter dory|exit dory)$/;
 function physicalHint(command,target){
   if(command==='move log')return '试着搬动';
@@ -24,11 +23,11 @@ function physicalHint(command,target){
 // A selected prop must never relabel a passage as a puzzle-item combination.
 export function keyboardInteraction(state,target,{heldItem=null,observed=new Set()}={}){
   const passage=['passage','mushroom_gate','pacific_gate','tundra_gate','islet_gate','islet_ferry','japan_door','stairs','door','water_edge'].includes(target?.kind);
-  const self=state.room==='orbit_satellite'&&heldItem==='axe'&&!passage
-    ||['underground_2','underground_3'].includes(state.room)&&heldItem==='lantern'&&!flag(state,'lantern_on')&&!passage;
+  const self=state.room==='orbit_satellite'&&heldItem==='axe'&&!passage;
+  const command=target && resolveInteraction(state,target,{heldItem,observed});
+  if(heldItem==='lantern' && state.has('lantern') && !passage && !command)return {type:'self',hint:'拨动灯的开关'};
   if(self)return {type:'self',hint:'使用手中物品'};
   if(!target)return heldItem==='paperback'?{type:'self',hint:'翻阅'}:null;
-  const command=resolveInteraction(state,target,{heldItem,observed});
   const inspecting=/^(examine |read |look$)/.test(command||'');
   const physical=physicalHint(command,target);
   const hint=target.physicalHint|| (navigation.test(command||'')?target.navigationHint||'通行':command==='wait'?'等候':inspecting?target.inspectionHint||'观察':physical|| (heldItem?'使用手中物品':observed.has(target.id)?target.label:'观察'));

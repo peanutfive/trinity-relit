@@ -1,3 +1,4 @@
+import {lanternSwitchCommand} from './lantern-story.js';
 import { ITEMS } from './exploration-items.js';
 
 // One physical intention at a time. Menus never reveal the puzzle's verb list.
@@ -95,7 +96,7 @@ export function resolveHeldSelf(id,state) {
   if(id==='paperback')return 'read book';
   if(id==='gnomon'&&state.room==='vertex')return 'examine bolt';
   if(id==='axe'&&state.room==='orbit_satellite')return 'break bubble with axe';
-  if(id==='lantern'&&['underground_2','underground_3'].includes(state.room)&&!state.hasFlag('lantern_on'))return 'turn lantern';
+  if(id==='lantern' && state.has('lantern'))return lanternSwitchCommand(state);
   if(id==='paper_bird'&&state.room==='round_pond')return state.hasFlag('bird_unfolded')?'read paper bird':'open paper bird';
   if(id==='paper_bird'&&state.room==='playground')return 'ride bird';
   if(id==='umbrella'&&['lancaster_gate','lancaster_walk'].includes(state.room))return 'open umbrella';

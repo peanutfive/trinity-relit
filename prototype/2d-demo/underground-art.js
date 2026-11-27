@@ -10,7 +10,25 @@ export function undergroundLighting(s){return {lantern:flag(s,'lantern_on')&&(he
 export function renderUndergroundSprite(c,o,s,time=0){
   const p=o.visualOptions?.drawAt||o;
   if(o.kind==='passage'&&o.visualOptions?.prop==='japan_door')return renderJapanSprite(c,{...o,kind:'japan_door'},s,time);
-  if(o.kind==='lantern')return stamp(c,flag(s,'lantern_on')?'lit':'lantern',p.x,p.y,19,9);
+  if(o.kind==='lantern'){
+    const frame=flag(s,'lantern_on')?'lit':'lantern';
+    if(o.itemId!=='lantern'||!s.room?.startsWith('underground_'))return stamp(c,frame,p.x,p.y,19,9);
+    if(!sheet.complete||!sheet.naturalWidth)return false;
+    c.save();
+    c.translate(p.x,p.y);
+    c.save();
+    c.scale(1,.27);
+    const contact=c.createRadialGradient(0,0,0,0,0,6);
+    contact.addColorStop(0,'rgba(27,23,15,.58)');
+    contact.addColorStop(1,'rgba(27,23,15,0)');
+    c.fillStyle=contact;
+    c.fillRect(-6,-6,12,12);
+    c.restore();
+    c.rotate(-.09);
+    stamp(c,frame,0,0,19,9);
+    c.restore();
+    return true;
+  }
   if(o.kind==='walkie_talkie')return stamp(c,'walkie_talkie',p.x,p.y,17,8);
   if(o.kind==='soap_bubble')return stamp(c,'soap_bubble',p.x,p.y-3-Math.sin(time*.9)*1.2,19,19);
   return false;

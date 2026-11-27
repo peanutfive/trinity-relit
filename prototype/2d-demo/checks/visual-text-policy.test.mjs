@@ -31,6 +31,10 @@ test('every marked removal still matches actual chapter wording and an actual vi
   if(chapter==='underground')e.rooms.underground_1.onEnter(e.state,e);
   if(r.rooms[0]==='shelter'){await e.activateChapter('japan');e.state.chapter='japan';e.state.setFlag('umbrella_given_to_girl');e.state.placeItem('spade','shelter');}
   e.state.room=r.rooms[0];
+  if(['underground-returned-lantern','underground-glowing-lantern'].includes(r.id)){
+    e.state.setFlag('scored_lantern_underground');
+    if(r.id==='underground-glowing-lantern')e.state.setFlag('lantern_on');
+  }
   if(r.id==='bog-exposed-splinter')await e.processInput('move log');
   if(r.id==='tundra-hidden-mouse-presence')e.state.placeItem('lemming','cliff_edge');
   if(r.id==='ruby-at-feet'){e.state.setFlag('ruby_visible');e.state.placeItem('ruby','broad_walk');}

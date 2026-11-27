@@ -109,13 +109,13 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
   for (const object of [null, cylinder]) {
     const decision = decide(engine, object, {heldItem: 'lantern'});
     assert.equal(decision.type, 'self');
-    assert.equal(decision.hint, '使用手中物品');
-    assert.equal(resolveHeldSelf('lantern', engine.state), 'turn lantern');
+    assert.equal(decision.hint, '拨动灯的开关');
+    assert.equal(resolveHeldSelf('lantern', engine.state), 'turn on lantern');
   }
   await run(engine, [resolveHeldSelf('lantern', engine.state)]);
   assert.ok(engine.state.hasFlag('lantern_on'));
-  assert.equal(decide(engine, null, {heldItem: 'lantern'}), null);
-  assert.equal(decide(engine, cylinder, {heldItem: 'lantern'}).command, null);
+  assert.equal(decide(engine, null, {heldItem: 'lantern'}).type,'self');
+  assert.equal(resolveHeldSelf('lantern',engine.state),'turn off lantern');
   assert.equal(decide(engine, cylinder).hint, '观察');
   await run(engine, ['w', 'w']);
   const door = target(engine, 'passage');

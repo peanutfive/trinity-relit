@@ -1,3 +1,4 @@
+import {lanternSwitchCommand} from './lantern-story.js';
 import {ITEMS} from '../js/data/items.js';
 import {cemeteryView} from './cemetery-state.js';
 import {UG_POINTS as P} from './underground-points.js';
@@ -43,14 +44,21 @@ export function getUndergroundHotspots(s){
     const item=ITEMS[id],noun=item.aliases?.[0]||id;
     const p=s.room==='underground_2'&&id==='lantern'?{x:180,y:189}:s.room==='underground_2'&&id==='splinter'?{x:235,y:189}:id==='soap_bubble'&&s.room==='cottage'?P.bubble:id==='walkie_talkie'&&s.room==='underground_2'?P.walkie:id==='lantern'&&s.room==='underground_3'?P.lantern:{x:dropped[0]+(i%3)*9,y:dropped[1]+Math.floor(i/3)*6};
     const actions=[a('查看',`examine ${noun}`)];if(!item.fixed)actions.push(a('拿取',`take ${noun}`));
-    objects.push(prop(`ug:item:${id}`,p,item.cn,id,actions,{itemId:id,visualOptions:id==='lantern'&&s.room==='underground_3'?{drawAt:{x:350,y:128}}:{},pointerShape:ellipse(p.x,id==='lantern'&&s.room==='underground_3'?120:p.y-6,id==='soap_bubble'?9:7,id==='lantern'?10:7)}));
+    const lamp=id==='lantern';
+    const shape=lamp?ellipse(p.x-1,p.y-9,8,11):ellipse(p.x,p.y-6,id==='soap_bubble'?9:7,7);
+    objects.push(prop(`ug:item:${id}`,p,item.cn,id,actions,{
+      itemId:id, pointerShape:shape, ...(lamp?{radius:27}:{}),
+    }));
   });
   return objects;
 }
 export function getUndergroundInventoryActions(id,s){
   if(!supported.has(s.room)||!s.has(id)||!ITEMS[id])return [];
   const actions=[a('查看',`examine ${ITEMS[id].aliases?.[0]||id}`)];
-  if(id==='lantern'&&['underground_2','underground_3'].includes(s.room)&&!s.hasFlag('lantern_on'))actions.push(a('点亮灯笼','turn lantern'));
+  if(id==='lantern'){
+    const cmd=lanternSwitchCommand(s);
+    actions.push(a(cmd==='turn off lantern'?'关灯':'开灯',cmd));
+  }
   if(!ITEMS[id].fixed)actions.push(a('放下',`drop ${ITEMS[id].aliases?.[0]||id}`));
   return actions;
 }

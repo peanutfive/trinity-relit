@@ -1,20 +1,41 @@
 import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
+import { pointerCenter } from './browser-islet-route.mjs';
 // Legal engine route creates a fixture; imports use the normal save UI. Every
 // subsequent room transition uses visible ground and real keyboard/F input.
 import assert from 'node:assert/strict';
-import {mkdir,writeFile} from 'node:fs/promises';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
 import {createPrologueSession} from '../engine-adapter.js';
 import {makeVisualSave,VISUAL_SAVE_KEY} from '../save.js';
 const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
 const out=process.env.QA_OUTPUT||'/tmp/trinity-underground-browser';await mkdir(out,{recursive:true});
-const browser=await chromium.launch({headless:true}),page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],receipts=[];
+const lanternJourney=process.argv.includes('--lantern-journey');
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:900},hasTouch:lanternJourney,isMobile:lanternJourney});
+const errors=[],receipts=[];
 page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
 const state=()=>page.evaluate(()=>JSON.parse(window.render_game_to_text()));
 const tick=ms=>page.evaluate(ms=>window.advanceTime(ms),ms);
 const shot=name=>page.screenshot({path:`${out}/${name}.png`,fullPage:true});
 async function closeText(){for(let i=0;i<80&&(await state()).dialogue;i++)await page.keyboard.press('f');}
-async function drain(){for(let i=0;i<100;i++){const s=await state();if(s.processing)await page.waitForTimeout(15);else if(s.dialogue)await page.keyboard.press('f');else if(s.narrative.busy)await page.click('#skip-event');else return;}throw Error('drain');}
-async function click(x,y){const b=await page.locator('canvas').boundingBox();await page.mouse.click(b.x+x/480*b.width,b.y+y/288*b.height);}
+async function drain(){
+ const lines=[];
+ for(let i=0;i<100;i++){
+  const s=await state();
+  if(s.processing)await page.waitForTimeout(15);
+  else if(s.dialogue){lines.push(s.dialogue.text);await page.keyboard.press('f');}
+  else if(s.narrative.busy)await tick(100);
+  else return {s,lines};
+ }
+ throw Error('drain');
+}
+async function click(x,y,touch=false){
+ const b=await page.locator('canvas').boundingBox();
+ assert.ok(b);
+ const at=[b.x+x/480*b.width,b.y+y/288*b.height];
+ if(touch)await page.touchscreen.tap(...at);
+ else await page.mouse.click(...at);
+}
 async function move(x,y){await drain();const from=(await state()).room;await click(x,y);for(let i=0;i<150;i++){const s=await state();assert.equal(s.room,from,'中间路点不应触发其他出口');if(!s.navigation.path.length&&!s.processing)return;await tick(100);}throw Error(`walk ${x},${y}`);}
 async function face(key){await page.keyboard.down(key);await tick(12);await page.keyboard.up(key);}
 async function F(command){await page.keyboard.press('f');await page.waitForFunction(c=>{const s=JSON.parse(window.render_game_to_text());return s.lastCommand===c&&!s.processing;},command,{timeout:5000});}
@@ -25,11 +46,232 @@ async function travel(target,points,keys){
  for(const k of keys)await page.keyboard.up(k);
  assert.equal((await state()).room,target,`${from}→${target}`);receipts.push({from,target,keys});await drain();
 }
-async function importSave(save){await page.keyboard.press('Escape');await page.getByRole('tab',{name:'探索进度'}).click();await page.locator('#save-file').setInputFiles({name:'underground.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(save))});await page.waitForFunction(room=>{const s=JSON.parse(window.render_game_to_text());return s.room===room&&s.mode!=='paused'&&!s.processing;},save.engine.state.room);await drain();}
+async function importSave(input){
+ const fromFile=typeof input==='string';
+ const save=fromFile?JSON.parse(await readFile(input,'utf8')):input;
+ const upload=fromFile?input:{name:'underground.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(save))};
+ await page.keyboard.press('Escape');await page.getByRole('tab',{name:'探索进度'}).click();
+ await page.locator('#save-file').setInputFiles(upload);
+ await page.waitForFunction(room=>{const s=JSON.parse(window.render_game_to_text());return s.room===room&&s.mode!=='paused'&&!s.processing;},save.engine.state.room);
+ await drain();
+ return save.engine.state;
+}
 const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','move log','take splinter','e','u'];
 async function hold(name){await page.keyboard.press('i');await page.getByRole('button',{name,exact:true}).click();}
-try{
- await page.goto(process.env.DEMO_URL||'http://127.0.0.1:8080/2d-demo/?reviewRoutes=1');await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).undergroundSprites==='loaded');await page.click('#start');await drain();
+async function until(predicate,reason) {
+ for(let attempt=0;attempt<190;attempt++){
+  const s=await state();
+  if(predicate(s))return s;
+  await tick(80);
+ }
+ const s=await state();
+ throw Error(`${reason}: ${s.room}, ${s.mode}, ${s.player.x},${s.player.y}, ${s.lastCommand}`);
+}
+const getProp=(s,id)=>s.objects.find(o=>o.id===id);
+const lanterns=s=>s.objects.filter(o=>o.itemId==='lantern'&&o.visual!==false);
+const carriesLantern=s=>s.inventory.filter(id=>id==='lantern').length===1;
+const lampIsOn=s=>s.flags.includes('lantern_on');
+
+async function clickProp(object,touch=false){
+ assert.ok(object);
+ const pointer=object.pointerShape?pointerCenter(object):[object.x,object.y-7];
+ await click(...pointer,touch);
+}
+
+async function finishRoute(before,dir,to){
+ await until(s=>s.room===to&&!s.processing,`${before.room} ${dir} → ${to}`);
+ const {s,lines}=await drain();
+ assert.equal(s.lastCommand,dir);
+ assert.equal(s.navigation.arrival?.fromRoom,before.room);
+ assert.equal(s.navigation.arrival?.matched,true);
+ receipts.push({from:before.room,target:to,dir,arrival:s.navigation.arrival,turn:s.turns,lines});
+ return s;
+}
+
+async function go(dir,to){
+ const {s:before}=await drain();
+ const exit=before.exits.find(e=>e.dir===dir&&e.target===to);
+ assert.ok(exit,`${before.room} ${dir} → ${to}`);
+ await tick(550);
+ await click(exit.x,exit.y);
+ return finishRoute(before,dir,to);
+}
+
+async function followPassage(id,dir,to){
+ let before=(await drain()).s;
+ for(let attempt=0;attempt<2;attempt++){
+  await clickProp(getProp(before,id));
+  const resolved=await until(s=>!s.processing&&(s.room===to||s.turns>before.turns||s.mode==='dialogue'),'触碰 '+id);
+  if(resolved.room===to)return finishRoute(before,dir,to);
+  assert.match(resolved.lastCommand,/^(look|examine )/);
+  ({s:before}=await drain());
+ }
+ throw Error('实体通道未能抵达 '+to);
+}
+
+async function playedCommand(command,trigger,{scoreDelta=0,source='pointer'}={}){
+ const before=await state();
+ await trigger();
+ await until(s=>!s.processing&&s.turns>before.turns,'执行 '+command);
+ const {s,lines}=await drain();
+ assert.equal(s.lastCommand,command);
+ assert.equal(s.room,before.room);
+ assert.equal(s.turns,before.turns+1);
+ assert.equal(s.score,before.score+scoreDelta);
+ receipts.push({room:s.room,command,input:source,turn:s.turns,score:s.score,text:lines});
+ return {s,lines};
+}
+
+async function takeGroundLantern({touch=false,scoreDelta=0}={}){
+ const before=await state();
+ const lamp=lanterns(before)[0];
+ assert.ok(lamp,'地面灯笼应有实际轮廓');
+ if(!before.observed.includes(lamp.id)){
+  await playedCommand('examine lantern',()=>clickProp(lamp,touch),{source:touch?'touch':'pointer'});
+ }
+ const near=await state();
+ const useF=near.nearby===lamp.label;
+ if(scoreDelta>0)assert.ok(useF,'点灯笼后的实际站位要能接续按 F 拿取');
+ const take=useF?()=>page.keyboard.press('f'):()=>clickProp(lamp,touch);
+ const {s}=await playedCommand('take lantern',take,{scoreDelta,source:useF?'F':touch?'touch':'pointer'});
+ assert.ok(carriesLantern(s));
+ assert.equal(lanterns(s).length,0);
+ return s;
+}
+
+async function dropItem(name,id){
+ await hold(name);
+ assert.equal((await state()).heldItem,id);
+ await page.keyboard.press('i');
+ return (await playedCommand(`drop ${id}`,()=>page.locator('#inventory-drop').click(),{source:'inventory'})).s;
+}
+
+async function reloadCurrent(name){
+ const before=await state();
+ await page.reload();
+ await page.locator('#continue-save').click();
+ await until(s=>s.room===before.room&&!s.processing&&s.mode!=='title','读取灯笼存档');
+ const {s}=await drain();
+ for(const field of ['room','turns','score','inventory','arborLight'])assert.deepEqual(s[field],before[field],field);
+ assert.equal(lampIsOn(s),lampIsOn(before));
+ assert.deepEqual(lanterns(s).map(({id,x,y})=>({id,x,y})),lanterns(before).map(({id,x,y})=>({id,x,y})));
+ await shot(name);
+ return s;
+}
+
+async function toggleLantern(on,via){
+ const input=via==='F'?()=>page.keyboard.press('f'):()=>page.locator('#held-item').click();
+ const {s}=await playedCommand(on?'turn on lantern':'turn off lantern',input,{source:via});
+ assert.equal(lampIsOn(s),on);
+ assert.ok(carriesLantern(s));
+ return s;
+}
+
+async function canvasBrightness(){
+ return page.evaluate(()=>{
+  const canvas=document.querySelector('canvas');
+  const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  let sum=0,count=0;
+  for(let index=0;index<pixels.length;index+=28){
+   sum+=pixels[index]*.213+pixels[index+1]*.715+pixels[index+2]*.072;
+   count++;
+  }
+  return Math.round(100*sum/count)/100;
+ });
+}
+
+async function lanternPlaythrough(){
+ const source=process.env.PLAYED_UNDERGROUND_APPROACH_SAVE||fileURLToPath(new URL(
+  '../../../artifacts/agent-team/evidence/t60-vertex-regression/hd2d-export.json',import.meta.url,
+ ));
+ const prior=await importSave(source);
+ assert.equal(prior.room,'bottom_of_stairs');
+ assert.equal(prior.itemLoc.splinter,'inventory');
+ assert.equal(prior.sundialSymbol,2);
+ assert.equal(prior.visited.includes('underground_3'),false);
+ assert.equal((await state()).turns,prior.turns);
+ await go('ne','under_cliff');
+ await go('e','craters_edge');
+ await go('nw','bluff');
+ await go('e','cottage');
+ await go('s','cemetery');
+ await shot('cemetery-approach');
+ await followPassage('cemetery:crypt','n','barrow');
+ await followPassage('barrow:door','in','ossuary');
+ await followPassage('ossuary:mushroom','in','underground_1');
+ await go('e','underground_2');
+ const inner=await go('e','underground_3');
+ const floor=lanterns(inner)[0];
+ assert.equal(lanterns(inner).length,1);
+ assert.equal(lampIsOn(inner),false);
+ assert.deepEqual([floor.x,floor.y],[92,176]);
+ assert.deepEqual(pointerCenter(floor),[91,167]);
+ assert.doesNotMatch(receipts.at(-1).lines.join(' '),/灯笼在里面|从圆筒|圆筒中取出/);
+ await shot('lantern-on-mud');
+ const cylinder=getProp(inner,'underground_3:cylinder');
+ const description=await playedCommand('examine cylinder',()=>clickProp(cylinder));
+ assert.doesNotMatch(description.lines.join(' '),/灯笼在里面|从圆筒|圆筒中取出/);
+ assert.equal(lanterns(description.s).length,1);
+
+ await page.setViewportSize({width:390,height:844});
+ const picked=await takeGroundLantern({touch:true,scoreDelta:1});
+ assert.equal(lampIsOn(picked),false);
+ assert.doesNotMatch(receipts.at(-1).text.join(' '),/圆筒/);
+ await shot('lantern-taken-phone');
+ await page.setViewportSize({width:1440,height:900});
+ await hold('灯笼');
+ await toggleLantern(true,'F');
+ await shot('lantern-lit-in-hand');
+ await reloadCurrent('lantern-lit-after-reload');
+ await go('w','underground_2');
+ await go('w','underground_1');
+ await followPassage('underground_1:white-door','w','ossuary');
+ await go('out','barrow');
+ await go('s','cemetery');
+ await go('s','cottage');
+ await go('w','bluff');
+ await go('se','craters_edge');
+ await go('w','under_cliff');
+ await go('sw','bottom_of_stairs');
+ await go('s','trellises');
+ await go('se','arborvitaes_n');
+ await go('w','arboretum');
+ await dropItem('木片','splinter');
+ await go('n','north_arbor');
+ const top=await go('u','top_of_arbor');
+ assert.equal(top.inventory.includes('splinter'),false);
+ assert.equal(top.arborLight,'lantern');
+ assert.equal(top.score,picked.score);
+ const lit=await canvasBrightness();
+ assert.ok(lit>8,'灯笼应实际照亮顶部画布');
+ await shot('lantern-alone-lights-arbor');
+ await hold('灯笼');
+ const dark=await toggleLantern(false,'held-item');
+ assert.equal(dark.arborLight,null);
+ assert.equal(await canvasBrightness(),0);
+ assert.ok(await page.locator('#arbor-dark-routes').isVisible());
+ await shot('arbor-with-lantern-off');
+ assert.equal((await toggleLantern(true,'F')).arborLight,'lantern');
+ const placed=await dropItem('灯笼','lantern');
+ assert.equal(placed.arborLight,'lantern');
+ assert.equal(carriesLantern(placed),false);
+ assert.equal(lanterns(placed).length,1);
+ const [placedLamp]=lanterns(placed);
+ await shot('lantern-lights-floor');
+ await go('n','north_arbor');
+ const returned=await go('u','top_of_arbor');
+ assert.equal(returned.arborLight,'lantern');
+ assert.equal(lanterns(returned).length,1);
+ assert.deepEqual([lanterns(returned)[0].x,lanterns(returned)[0].y],[placedLamp.x,placedLamp.y]);
+ await reloadCurrent('lantern-on-floor-after-reload');
+ const retaken=await takeGroundLantern();
+ assert.equal(retaken.arborLight,'lantern');
+ assert.equal(retaken.score,picked.score);
+ await shot('arbor-lantern-retaken');
+ return {source,route:'existing-2d-entrance',score:retaken.score,turns:retaken.turns,litBrightness:lit};
+}
+
+async function olderRegression(){
  const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);await fitGnomonFixture(e);for(let i=0;e.state.sundialSymbol!==2&&i<7;i++)await e.processInput('turn ring');for(const c of ['d','ne','e','nw'])await e.processInput(c);assert.equal(e.state.room,'bluff');
  await importSave(makeVisualSave(e,{room:e.state.room,x:240,y:180,face:'right'}));await shot('bluff');
  await click(440,136);await page.waitForTimeout(2900);await page.keyboard.down('d');await page.waitForTimeout(800);await page.keyboard.up('d');await drain();assert.equal((await state()).room,'cottage');await shot('cottage');
@@ -41,12 +283,23 @@ try{
  await move(152,157);await face('a');await F('examine bones');await drain();await move(323,135);await face('d');await F('look');await drain();await F('in');await closeText();let s=await state();assert.equal(s.room,'underground_1');assert.equal(s.narrative.currentEvent,'cliff_passage');await tick(220);await shot('mushroom-crossing');await page.keyboard.press('Escape');const elapsed=(await state()).narrative.elapsed;await tick(1000);assert.equal((await state()).narrative.elapsed,elapsed);await page.keyboard.press('Escape');await drain();await shot('underground-entry');
  await move(235,165);await face('s');await F('examine crevice');await drain();await move(326,164);await face('d');await F('examine landslide');await drain();await travel('underground_2',[[416,157],[444,150]],['d']);await shot('underground-middle');
  await move(249,194);await face('d');await F('examine walkie-talkie');await drain();await F('take walkie-talkie');await drain();assert.ok(!(await state()).objects.some(o=>o.itemId==='walkie_talkie'));
- await travel('underground_3',[[390,164],[438,143]],['d','w']);await shot('underground-inner-with-lantern');await move(379,167);await face('a');await F('examine lantern');await drain();await F('take lantern');await drain();assert.ok((await state()).inventory.includes('lantern'));assert.ok(!(await state()).objects.some(o=>o.itemId==='lantern'));await hold('灯笼');await page.keyboard.press('f');await page.waitForFunction(()=>JSON.parse(window.render_game_to_text()).flags.includes('lantern_on'));await drain();await shot('lantern-lit');await page.click('#clear-hand');
+ await travel('underground_3',[[390,164],[438,143]],['d','w']);await shot('underground-inner-with-lantern');await takeGroundLantern({scoreDelta:1});await hold('灯笼');await toggleLantern(true,'F');await shot('lantern-lit');await page.click('#clear-hand');
  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),VISUAL_SAVE_KEY);await page.reload();await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');await page.click('#continue-save');await drain();s=await state();assert.equal(s.room,'underground_3');assert.equal(s.turns,saved.engine.state.turns);assert.ok(s.flags.includes('lantern_on'));assert.ok(s.inventory.includes('walkie_talkie'));assert.equal(s.narrative.currentEvent,null);await shot('underground-restored');
  await page.keyboard.press('m');const mapTurns=(await state()).turns;assert.equal((await state()).map.chapter,'underground');assert.equal(await page.locator('[data-room-id]').count(),3);await shot('underground-map');await tick(1000);assert.equal((await state()).turns,mapTurns);await page.setViewportSize({width:844,height:390});await shot('underground-map-mobile');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.keyboard.press('m');await page.setViewportSize({width:1440,height:900});await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});
  await travel('underground_2',[[200,180],[100,165],[49,146]],['a']);await hold('灯笼');await page.keyboard.press('i');await page.click('#inventory-drop');await drain();assert.ok((await state()).objects.some(o=>o.itemId==='lantern'));await hold('木片');await page.keyboard.press('i');await page.click('#inventory-drop');await drain();await shot('lantern-left-middle');
  await travel('underground_1',[[82,164],[44,145]],['a','w']);await travel('underground_2',[[250,164],[390,165],[444,150]],['d']);assert.equal((await state()).dead,false);const lamp=(await state()).objects.find(o=>o.itemId==='lantern');await move(lamp.x-20,lamp.y);await face('d');await F('take lantern');await drain();
  await travel('underground_1',[[82,164],[44,145]],['a','w']);await hold('灯笼');await move(55,155);await face('a');await F('w');await drain();assert.equal((await state()).room,'ossuary');assert.equal((await state()).heldItem,'lantern');await page.click('#clear-hand');await shot('ossuary-return');await travel('barrow',[[240,195],[238,235],[240,252]],['s']);await travel('cemetery',[[240,245]],['s']);await travel('cottage',[[242,140],[224,161],[260,203],[244,244],[246,255]],['s']);await travel('bluff',[[170,210],[70,154],[42,141]],['a']);assert.equal((await state()).navigation.arrival.entrance,'e');await shot('bluff-return');
  await page.keyboard.press('m');assert.equal((await state()).map.chapter,'wabe');await shot('wabe-grave-map');await page.keyboard.press('m');
- assert.deepEqual(errors,[]);await writeFile(`${out}/result.json`,JSON.stringify({pass:true,receipts,F:true,normalRAF:true,restore:true,light:true,map:true,errors},null,2));console.log('PASS underground chapter: 8 plates, real F/keys, item/light state, source returns, map, restore and mobile; no errors');
+ return {F:true,normalRAF:true,restore:true,light:true,map:true};
+}
+
+try{
+ const defaultUrl='http://127.0.0.1:8080/2d-demo/'+(lanternJourney?'':'?reviewRoutes=1');
+ await page.goto(process.env.DEMO_URL||defaultUrl);
+ await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).undergroundSprites==='loaded');
+ await page.click('#start');await drain();
+ const report=lanternJourney?await lanternPlaythrough():await olderRegression();
+ assert.deepEqual(errors,[]);
+ await writeFile(`${out}/result.json`,JSON.stringify({pass:true,receipts,...report,errors},null,2));
+ console.log(lanternJourney?'真实进度从墓地拿取灯笼、往返洞外及藤架亮灭和续玩通过':'地下八景、F、照明、返程、存档、手机地图通过');
 }catch(error){await shot('failure').catch(()=>{});await writeFile(`${out}/failure.json`,JSON.stringify({message:error.message,state:await state().catch(()=>null),receipts,errors},null,2));throw error;}finally{await browser.close();}
