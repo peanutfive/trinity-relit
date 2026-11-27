@@ -7,10 +7,10 @@ const pairs={
   'arboretum:south_arbor':'s','south_arbor:arboretum':'d',
   'top_of_arbor:north_arbor':'n','north_arbor:top_of_arbor':'u',
   'top_of_arbor:south_arbor':'s','south_arbor:top_of_arbor':'u',
-  'waterfall:orbit_satellite':'in',
+  'waterfall:orbit_satellite':'in','waterfall:ice_cavern':'w','ice_cavern:waterfall':'out',
   'cemetery:barrow':'n','barrow:cemetery':'s','barrow:ossuary':'in','ossuary:barrow':'out',
   'ossuary:underground_3':'in','underground_3:ossuary':'e',
-  'under_cliff:ice_cavern':'in','ice_cavern:under_cliff':'out',
+  'ice_cavern:under_cliff':'out',
   'craters_edge:crater':'d','crater:craters_edge':'u',
 };
 export function createCliffPassage(before,after){

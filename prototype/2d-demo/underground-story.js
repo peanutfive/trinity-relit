@@ -1,5 +1,7 @@
 import {ROOMS as underground} from '../js/data/underground.js';
 import {initializeUndergroundItems, withUndergroundLantern} from './lantern-story.js';
+import {completeProjectedReturn,projectedDoorView} from './islet-shadow.js';
+import {projectedShadowText} from './projected-doors.js';
 
 const east = 'underground_3';
 const west = 'underground_1';
@@ -13,10 +15,13 @@ const landslide = 'The landslide blocks your path.\n\n塌方的碎石挡住了�
 const flag = (s,id) => s.hasFlag?.(id) ?? s.flags?.has?.(id) ?? s.flags?.includes?.(id) ?? false;
 
 export function undergroundDoorView(s) {
-  const gone = flag(s,spent);
-  // Keep the 2D chapter's published symbol mapping. Once used, rotating the
-  // ring again cannot bring this particular door back.
-  return {gone, open:!gone && s.sundialSymbol===2};
+  const view=projectedDoorView(s,'ossuary');
+  // Older chapters did not model an interior clock. They keep their original
+  // exit until the player uses it. New entries share the sundial outside.
+  const insideGone=view.gone;
+  const insideClosed=!insideGone && flag(s,'underground_projected_entry')
+    && (flag(s,'ossuary_door_closed_away') || !view.aligned);
+  return {...view,insideGone,insideClosed,insideOpen:!insideGone && !insideClosed};
 }
 
 function enterEvent(dir) {
@@ -51,7 +56,7 @@ export function withOssuaryDoor(room) {
       const cnMushroom='一株巨大的毒菌在肥沃的土壤中长得十分茂盛。';
       const stem=view.gone?'':view.open?' The white door in its stem is wide open.':' The white door in its stem is closed.';
       const cnStem=view.gone?'':view.open?'菌柄上的白门敞开着。':'菌柄上的白门关着。';
-      return en+'\n\n'+cn+'\n\n'+mushroom+stem+'\n\n'+cnMushroom+cnStem;
+      return [en+'\n\n'+cn,mushroom+stem+'\n\n'+cnMushroom+cnStem,projectedShadowText(s,'ossuary',true)].filter(Boolean).join('\n\n');
     },
     exits(s) {
       const view=undergroundDoorView(s);
@@ -62,6 +67,7 @@ export function withOssuaryDoor(room) {
           state.chapter='underground';
           state.setFlag('chapter_underground_entered');
           state.setFlag('wabe_to_underground_used');
+          state.setFlag('underground_projected_entry');
           initializeUndergroundItems(state);
         },
       }:blocked('ossuary',view.gone?gone:closed)};
@@ -74,6 +80,8 @@ export function withOssuaryDoor(room) {
       }
     },
     events:[...room.events, ...doorEvents('ossuary','in',s=>undergroundDoorView(s).open),{
+      id:'ossuary_examine_shadow',match:{verb:['examine'],noun:['shadow','shadow tip','影子','影尖']},text:s=>projectedShadowText(s,'ossuary'),
+    },{
       id:'ossuary_examine_toadstool',match:{verb:['examine'],noun:['toadstool','mushroom','stem','毒菌','蘑菇','菌柄']},
       text:'The toadstool must be at least twelve feet from base to crown.\n\n这株毒菌从根部到菌盖，少说也有十二英尺高。',
     }],
@@ -86,6 +94,7 @@ const exitToOssuary={
   act(s) {
     s.chapter='wabe';
     s.setFlag('chapter_wabe_entered');
+    completeProjectedReturn(s);
     if (!s.hasFlag(spent)) {
       s.setFlag(spent);
       s.setFlag('ossuary_door_fading');
@@ -99,10 +108,20 @@ export const ROOMS={...litRooms,
   }},
   [east]:{...litRooms[east],
     desc(s) {
-      return "You're in a narrow underground chamber, illuminated by an open door in the east wall.\n\n你站在狭窄的地下洞室里，东墙上一扇敞开的门透进了光。\n\n"+litRooms[east].desc(s);
+      const {insideOpen,insideClosed}=undergroundDoorView(s);
+      const light=insideOpen?"You're in a narrow underground chamber, illuminated by an open door in the east wall.\n\n你站在狭窄的地下洞室里，东墙上一扇敞开的门透进了光。\n\n"
+        :insideClosed?'The white door in the east wall is closed.\n\n东墙上的白门关着。\n\n':'';
+      return light+litRooms[east].desc(s);
     },
     onEnter(s){initializeUndergroundItems(s);},
-    exits(){return {w:'underground_2',e:exitToOssuary,in:exitToOssuary,out:exitToOssuary};},
+    exits(s){
+      const {insideOpen,insideGone}=undergroundDoorView(s);
+      if(!insideOpen){
+        const barrier=blocked(east,insideGone?gone:closed);
+        return {w:'underground_2',in:'underground_2',e:barrier,out:barrier};
+      }
+      return {w:'underground_2',e:exitToOssuary,in:exitToOssuary,out:exitToOssuary};
+    },
     events:[...litRooms[east].events,...doorEvents('east_chamber','e',()=>true),{
       id:'east_chamber_exit_door',match:{verb:['exit'],noun:door},text:"You're not in the white door.\n\n你并不在白门里。",
     }],
@@ -111,13 +130,20 @@ export const ROOMS={...litRooms,
 
 export function undergroundCrossingChapter(s,dir) {
   if (s.room==='ossuary' && dir==='in' && undergroundDoorView(s).open) return 'underground';
-  if (s.room===east && returnDirs.includes(dir)) return 'wabe';
+  if (s.room===east && returnDirs.includes(dir) && undergroundDoorView(s).insideOpen) return 'wabe';
   return null;
 }
 
 export function freeUndergroundAction(s,cmd) {
   const dir=cmd?.dir;
-  if (s.room===east && returnDirs.includes(dir)) return {dir};
+  if (s.room===east) {
+    const {insideOpen,insideGone}=undergroundDoorView(s);
+    if (insideOpen && returnDirs.includes(dir)) return {dir};
+    if (!insideOpen) {
+      if(dir==='e'||dir==='out')return {text:insideGone?gone:closed};
+      if(door.includes(cmd?.noun)&&['enter','examine','open','close','exit'].includes(cmd.verb))return {text:gone};
+    }
+  }
   if (s.room===west && (dir==='w' || dir==='in')) return {text:landslide};
   if (s.room!=='ossuary') return null;
   const view=undergroundDoorView(s);
@@ -125,4 +151,17 @@ export function freeUndergroundAction(s,cmd) {
     && ['examine','open','enter','close'].includes(cmd.verb)))) return {text:gone};
   if (dir==='in' && !view.open) return {text:closed};
   return null;
+}
+
+export function fadeUndergroundDoor(s,eng,before,moves) {
+  if(s.chapter!=='underground' || !s.hasFlag('underground_projected_entry') || s.hasFlag(spent)
+    || s.hasFlag('ossuary_door_closed_away') || !before.leverUp) return;
+  const distance=(4*13+7-(before.sector*13+before.phase)+169)%169;
+  if(distance<1 || distance>moves) return;
+  if(s.room!==east){
+    s.setFlag('ossuary_door_closed_away');
+    return;
+  }
+  s.setFlag(spent);
+  eng.print('The door swings shut with a faint creak. You stare in wonder as the door shimmers and fades from view.\n\n门在轻微的吱呀声中合拢。你惊讶地看着它闪烁了几下，消失在眼前。');
 }

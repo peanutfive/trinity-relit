@@ -45,6 +45,12 @@ export async function fitGnomonFixture(engine) {
   assert.equal(s.has('gnomon'),false);
 }
 
+export async function lockProjectionFixture(engine,ordinal) {
+  if(engine.state.hasFlag('vertex_lever_up')) await engine.processInput('push lever');
+  await engine.processInput(`turn ring to ${ordinal} symbol`);
+  assert.equal(engine.state.hasFlag('vertex_lever_up'),false);
+}
+
 export async function checkInstalledPointer({state,drain,hold,clearHand,perform,walk,saveAndResume,screenshot},extended) {
   const get=async id=>(await state()).objects.find(o=>o.id===id);
   const hole='vertex:hole', fixed='vertex:fixed-gnomon', loose='vertex:dial-gnomon';

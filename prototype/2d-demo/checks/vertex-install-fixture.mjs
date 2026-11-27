@@ -15,3 +15,12 @@ export async function installCarriedGnomon(engine) {
   await engine.processInput('put gnomon in hole');
   assert.equal(vertexGnomonView(state).installed,true);
 }
+
+export async function lockPortalShadow(engine, symbol) {
+  await installCarriedGnomon(engine);
+  // Approach the mark from another stop, so the arrow and shadow coincide.
+  await engine.processInput('turn ring to first symbol');
+  await engine.processInput('turn ring to '+symbol+' symbol');
+  await engine.processInput('push lever');
+  assert.equal(engine.state.hasFlag('vertex_lever_up'), false);
+}

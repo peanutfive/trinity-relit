@@ -1,4 +1,4 @@
-import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
+import { fitGnomonFixture, lockProjectionFixture } from './browser-vertex-gnomon.mjs';
 // UI-imported legal play fixtures; all rendered travel uses F, actual ground,
 // keyboard edges and hidden labels rather than executing game commands in-page.
 import assert from 'node:assert/strict';
@@ -46,7 +46,7 @@ async function cmds(commands){for(const c of commands){await e.processInput(c);a
 await cmds(road);capture('trellises-start');
 await cmds(['se','w','n','u','take axe','s','d']);capture('arboretum-flipped');
 await cmds(['s','u','n','d']);capture('arboretum-normal');
-await cmds(['w','ne','nw','w']);capture('waterfall-closed');await cmds(['e','e','u']);await fitGnomonFixture(e);for(let i=0;e.state.sundialSymbol!==3&&i<7;i++)await cmds(['turn ring']);await cmds(['d','ne','e','nw','e','take soap bubble','w','se','sw','w','w','w']);capture('waterfall-ready');await cmds(['in']);capture('satellite-ready');await cmds(['u']);capture('space-ready');await cmds(['d','out','se','n','n']);
+await cmds(['w','ne','nw','w']);capture('waterfall-closed');await cmds(['e','e','u']);await fitGnomonFixture(e);await lockProjectionFixture(e,'second');await cmds(['d','ne','e','nw','e','take soap bubble','w','se','sw','w','w','w']);capture('waterfall-ready');await cmds(['in']);capture('satellite-ready');await cmds(['u']);capture('space-ready');await cmds(['d','out','se','n','n']);
 try{
  await page.goto(process.env.DEMO_URL||'http://127.0.0.1:8080/2d-demo/?reviewRoutes=1');await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded'&&JSON.parse(window.render_game_to_text()).arborOrbitSprites==='loaded');
  assert.deepEqual((await state()).backgrounds,['./assets/gardens-hd2d.png'],'开局不请求所有章节背景');await page.click('#start');await drain();

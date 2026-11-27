@@ -1,3 +1,4 @@
+import {lockPortalShadow} from './vertex-install-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPrologueSession} from '../engine-adapter.js';
@@ -72,14 +73,7 @@ async function takeAxe(g) {
   return axe;
 }
 
-async function chooseSymbol(g, symbol) {
-  assert.equal(stateOf(g).room, 'vertex');
-  for (let count = 0; stateOf(g).sundialSymbol !== symbol && count < 7; count++)
-    await command(g, 'turn ring');
-  assert.equal(stateOf(g).sundialSymbol, symbol);
-}
-
-async function waterfall({axe = true, bubble = true, symbol = 3} = {}) {
+async function waterfall({axe = true, bubble = true, symbol = 'second'} = {}) {
   const g = await trellises();
   if (axe) {
     await takeAxe(g);
@@ -87,7 +81,7 @@ async function waterfall({axe = true, bubble = true, symbol = 3} = {}) {
     assert.equal(stateOf(g).flipped, true);
   }
   await commands(g, ['n', 'u']);
-  await chooseSymbol(g, symbol);
+  await lockPortalShadow(g.engine, symbol);
   await command(g, 'd');
   if (bubble) {
     await commands(g, ['ne', 'e', 'nw', 'e', 'take soap bubble', 'w', 'se', 'sw', 'w']);
@@ -174,12 +168,12 @@ test('植物园翻转前后东西目标、M地图和两侧返程入口同步，�
 });
 
 test('瀑布门分别执行错误符号、缺泡膜与具备条件三种裁决，F不能越过前置', async () => {
-  for (const options of [{symbol: 2, bubble: true}, {symbol: 3, bubble: false}]) {
+  for (const options of [{symbol: 'third', bubble: true}, {symbol: 'second', bubble: false}]) {
     const g = await waterfall(options), before = snapshot(g);
     const exit = sceneExits('waterfall', stateOf(g), g.engine.rooms).find(exit => exit.dir === 'in');
-    assert.equal(exit.locked, true);
+    assert.ok(!exit || exit.locked);
     const text = await command(g, 'in');
-    assert.match(text, options.bubble ? /蘑菇门紧闭/ : /需要肥皂泡/);
+    assert.match(text, options.bubble ? /白门关着/ : /需要肥皂泡/);
     assert.equal(stateOf(g).room, 'waterfall');
     assert.equal(stateOf(g).chapter, 'wabe');
     assert.equal(stateOf(g).hasFlag('wabe_to_orbit_used'), false);

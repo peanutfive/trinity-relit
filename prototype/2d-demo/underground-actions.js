@@ -39,11 +39,12 @@ export function getUndergroundHotspots(s){
         {visualOptions:{open,gone},pointerShape:ellipse(350,101,28,32)}),
     );
   }
-  if(s.room==='underground_3')objects.push(
-    prop('underground_3:white-door',P.whiteDoor,'白门','passage',[a('返回纳骨堂','e')],{
-      baked:true,radius:20,pointerShape:ellipse(407,98,12,23),
-    }),
-  );
+  if(s.room==='underground_3'){
+    const {insideOpen,insideClosed}=undergroundDoorView(s);
+    const doorShape={baked:true,radius:20,pointerShape:ellipse(407,98,12,23)};
+    if(insideOpen)objects.push(prop('underground_3:white-door',P.whiteDoor,'白门','passage',[a('返回纳骨堂','e')],doorShape));
+    if(insideClosed)objects.push(prop('underground_3:closed-white-door',P.whiteDoor,'白门','door',[a('观察白门','look')],doorShape));
+  }
   if(s.room==='underground_1')objects.push(
     prop('underground_1:crevice',P.crevice,'裂缝','ug_crevice',[a('观察裂缝','examine crevice')],{baked:true,eventId:'examine_crevice',pointerShape:ellipse(240,231,48,20)}),
     prop('underground_1:landslide',P.landslide,'塌方','ug_landslide',[a('观察塌方','examine landslide')],{baked:true,eventId:'examine_landslide',radius:33,pointerShape:ellipse(31,110,29,25)})

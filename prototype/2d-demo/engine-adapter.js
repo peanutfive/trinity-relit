@@ -1,8 +1,11 @@
+import {parseWaterfallObservation,freeWaterfallObservation} from './waterfall-discovery.js';
 import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
 import {burnLantern, freeLanternAction, handleLantern, lanternAction, lanternWaitMoves, parseLanternCommand,
   initializeUndergroundItems, restoreLantern} from './lantern-story.js';
-import { advanceShadow, initializeShadow, restoreShadow, initializeVertexInstallation,
+import { advanceShadow, completeProjectedReturn, initializeShadow, restoreShadow, initializeVertexInstallation, vertexShadowView, waterfallDoorView,
   restoreVertexInstallation, recordVertexMirrorCrossing } from './islet-shadow.js';
+import {freeProjectedAction, projectedWaitMoves, reportProjectedMotion} from './projected-doors.js';
+import {fadeUndergroundDoor} from './underground-story.js';
 import { GameEngine } from '../js/engine.js';
 import { ferryView, startFerry } from './ferry-state.js';
 import { advanceFerry, leaveFerry } from './ferry-voyage.js';
@@ -36,6 +39,8 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
 class ExplorationParser extends Parser {
   parse(input){
     const text=input.trim().toLowerCase();
+    const waterfall = parseWaterfallObservation(text);
+    if (waterfall) return waterfall;
     const lamp=parseLanternCommand(text);
     if(lamp)return lamp;
     const birdOptics=text.match(/^observe (?:the )?(roadrunner|bird) (with|through) (?:the )?(?:pair of )?binoculars$/);
@@ -70,6 +75,16 @@ class ExplorationParser extends Parser {
 }
 
 class ExplorationEngine extends GameEngine {
+  moveTo(roomId,silent) {
+    const backFromOrbit=this._inputBusy && this.state.room==='orbit_satellite' && roomId==='waterfall' && this.rooms[roomId];
+    if(backFromOrbit){
+      this.state.setFlag('waterfall_door_spent');
+      completeProjectedReturn(this.state);
+    }
+    super.moveTo(roomId,silent);
+    if(backFromOrbit && !silent)this.print('The white door fades away into the texture of the toadstool.\n\n白门渐渐隐入毒菌的纹理，消失了。');
+  }
+
   describeRoom() {
     if (this.state.room==='top_of_arbor' && !arborLight(this.state)) {
       this.ui.location('Darkness','黑暗');
@@ -82,6 +97,10 @@ class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
     restoreLantern(this.state);
+    // Before this flag existed, escaping orbit was the only action that
+    // destroyed the bubble. A player still in orbit keeps their return route.
+    if(this.state.chapter!=='orbit' && this.state.hasFlag('wabe_to_orbit_used') && this.state.itemAt('soap_bubble')==='destroyed')
+      this.state.setFlag('waterfall_door_spent');
     if(this.state.chapter==='underground')initializeUndergroundItems(this.state);
     restoreBogLog(this.state,save.state);
     restoreGardenMoves(this.state);
@@ -97,6 +116,10 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
+    const water = freeWaterfallObservation(state,command);
+    if (water) { this.print(water); return true; }
+    const invisible=freeProjectedAction(state,command);
+    if(invisible){this.print(invisible);return true;}
     if(['ossuary','underground_3','underground_1'].includes(state.room)) {
       const {freeUndergroundAction}=await import('./underground-story.js');
       const free=freeUndergroundAction(state,command);
@@ -197,7 +220,13 @@ class ExplorationEngine extends GameEngine {
   }
 
   _handleMetaCmd(command) {
-    if(command==='wait') this.state.turns += lanternWaitMoves(this.state)-1;
+    if(command==='wait'){
+      const projected=projectedWaitMoves(this.state);
+      const lamp=lanternWaitMoves(this.state);
+      let moves=projected ?? lamp;
+      if(projected!==null && this.state.hasFlag('lantern_on') && this.state.room!=='waterfall')moves=Math.min(moves,lamp);
+      this.state.turns+=moves-1;
+    }
     if(command==='wait' && !this.currentRoom().onWait && roadrunnerWait(this.state)) this.state.turns++;
     return super._handleMetaCmd(command);
   }
@@ -209,12 +238,17 @@ class ExplorationEngine extends GameEngine {
     const awaitingRanchEnding=this.state.chapter==='ranch' && this.state.hasFlag('ranch_snake_bitten');
     const inArbor=this.state.chapter==='wabe' && ['arboretum','north_arbor','south_arbor','top_of_arbor','trellises'].includes(this.state.room);
     const lampRoute=this.state.itemAt('lantern') && this.state.itemAt('lantern')!=='destroyed';
-    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor || lampRoute)
+    const atProjectedDoor=['ossuary','waterfall','underground_3'].includes(this.state.room);
+    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor || lampRoute || atProjectedDoor)
       && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase()))) this.state.turns--;
     return super._handleMeta(input);
   }
 
   async _handleDirection(dir) {
+    if(this.state.room==='orbit_satellite' && dir==='out' && this.state.has('axe') && !(await this.activateChapter('wabe')))return false;
+    if(this.state.room==='waterfall' && dir==='in' && waterfallDoorView(this.state).open && this.state.has('soap_bubble')){
+      if(!(await this.activateChapter('orbit')))return false;
+    }
     if(this.state.room==='ossuary' || this.state.room==='underground_3') {
       const {undergroundCrossingChapter}=await import('./underground-story.js');
       const to=undergroundCrossingChapter(this.state,dir);
@@ -246,7 +280,10 @@ class ExplorationEngine extends GameEngine {
   _postTurn() {
     if (this.state.chapter==='wabe') initializeShadow(this.state);
     const islandWasOpen=this._birdDoorOpenAtStart || birdAtOpenDoor(this.state);
-    advanceShadow(this.state,Math.max(1,this.state.turns-this._shadowTurnStart));
+    const before=vertexShadowView(this.state), moves=Math.max(1,this.state.turns-this._shadowTurnStart);
+    advanceShadow(this.state,moves);
+    fadeUndergroundDoor(this.state,this,before,moves);
+    reportProjectedMotion(this.state,this,before,moves);
     advanceFerry(this.state,this);
     advanceRoadrunner(this.state,this,islandWasOpen);
     burnLantern(this.state,this,Math.max(0,this.state.turns-this._shadowTurnStart));

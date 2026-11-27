@@ -6,7 +6,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(!object)return null;
   const actions=object.actions||[],find=prefix=>actions.find(a=>a.command.startsWith(prefix))?.command;
   const seen=observed.has(object.id);
-  if(object.id==='ossuary:mushroom' && object.visualOptions?.gone)return find('examine ');
+  if(object.kind==='mushroom_gate' && object.visualOptions?.gone)return find('examine ');
   if(object.id==='south_bog:log')return seen?find('move log'):find('examine log');
   if(object.kind==='companion_bird')return heldItem==='binoculars'?'look at roadrunner through binoculars':'examine roadrunner';
   if(object.kind==='ruby_box_lid')return heldItem==='ruby'?'put ruby on box':null;
@@ -37,6 +37,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='ranch_tableware')return find('take ');
   if(object.kind==='ranch_sink'||object.kind==='ranch_pipes')return seen?find('take ')||find('examine '):find('examine ');
   if(object.kind==='ranch_view')return find('look at ');
+  if(object.kind==='waterfall_spray')return actions[0].command;
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');
@@ -67,7 +68,10 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   // At the lake's last instant the open doorway is still a usable exit.
   // A first F at its threshold must not spend that instant inspecting it.
   if(object.id==='wading:door' && state.counters?.long_water_phase===6)return find('enter door');
-  if(object.kind==='door')return seen?find('enter door')||find('s')||find('examine '):find('examine ')||find('look');
+  if(object.kind==='door'){
+    const traverse = seen && (find('enter door') || find('s'));
+    return traverse || find('examine ') || find('look');
+  }
   if(object.kind==='ug_barrow_door'){
     if(heldItem==='key_barrow')return find('put key');
     return seen?find('in'):find('examine ');

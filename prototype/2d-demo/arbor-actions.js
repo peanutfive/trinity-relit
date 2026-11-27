@@ -1,4 +1,5 @@
 import {arborLight} from './arbor-light-state.js';
+import {waterfallDoorView} from './islet-shadow.js';
 import {ITEMS} from '../js/data/items.js';
 import {ARBOR_POINTS as P, ARBOR_LOOSE_ANCHORS} from './arbor-points.js';
 
@@ -24,16 +25,22 @@ export function getArborHotspots(state) {
     [action('观察雕塑', 'examine sculpture')],
     {baked: true, pointerShape: ellipse(P.crystal.x, P.crystal.y - 24, 15, 25)},
   ));
-  if (state.room === 'waterfall') objects.push(
+  if (state.room === 'waterfall') {
+    const gate=waterfallDoorView(state);
+    objects.push(
     prop('waterfall:water', P.waterfall, '瀑布', 'arbor_waterfall',
       [action('观察瀑布', 'examine waterfall')],
       {baked: true, eventId: 'examine_waterfall', radius: 48,
-        pointerShape: ellipse(139, 63, 57, 55)}),
-    prop('waterfall:mushroom', P.mushroom, '蘑菇门', 'mushroom_gate',
-      [action('观察此处', 'look'), action('穿过蘑菇门', 'in')],
-      {visualOptions: {open: state.sundialSymbol === 3},
+        pointerShape:{kind:'polygon',points:[[90,3],[123,3],[128,32],[127,63],[134,81],[124,95],[89,97],[77,85],[86,59],[90,31]]}}),
+    prop('waterfall:spray', {x:124,y:80}, state.hasFlag('waterfall_opening_found')?'岩壁开口':'水幕边缘', 'waterfall_spray',
+      state.hasFlag('waterfall_opening_found')?[action('绕过水帘','w')]:[action('细看水幕后方','search waterfall')],
+      {baked:true,radius:23,pointerShape:ellipse(126,80,10,10,3)}),
+    prop('waterfall:mushroom', P.mushroom, gate.gone?'巨菌':'蘑菇门', 'mushroom_gate',
+      gate.gone?[action('观察巨菌','examine toadstool')]:[action('观察此处', 'look'), action('穿过蘑菇门', 'in')],
+      {visualOptions: gate,
         pointerShape: ellipse(P.mushroom.x, P.mushroom.y - 29, 28, 32)}),
   );
+  }
 
   const [baseX, baseY] = ARBOR_LOOSE_ANCHORS[state.room];
   state.roomItems().filter(id => ITEMS[id]).forEach((id, index) => {

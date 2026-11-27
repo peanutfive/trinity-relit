@@ -34,12 +34,17 @@ try{
  await click(448,38);await page.waitForTimeout(600);await page.keyboard.down('w');await page.waitForTimeout(550);await page.keyboard.up('w');await drain();assert.equal((await state()).room,'under_cliff');receipts.push({from:'bottom_of_stairs',target:'under_cliff',normalRAF:true});await shot('under-cliff-entry');
  await page.evaluate(()=>{const raf=requestAnimationFrame.bind(window);let next;window.requestAnimationFrame=f=>{next=f;return 0;};window.__resumeRAF=()=>{window.requestAnimationFrame=raf;if(next)raf(next);};});await page.waitForTimeout(40);
  await move(322,183);await face('w');await F('examine hive');await shot('hive-observation');await drain();await move(364,179);await face('w');await F('examine bees');await drain();
- await move(240,140);await face('w');await F('in');await closeText();let s=await state();assert.equal(s.room,'ice_cavern');assert.equal(s.narrative.currentEvent,'cliff_passage');const turns=s.turns;await tick(180);await shot('cave-entry-motion');
- await page.keyboard.press('Escape');const elapsed=(await state()).narrative.elapsed;await tick(1200);assert.equal((await state()).narrative.elapsed,elapsed);await page.keyboard.press('Escape');await tick(2500);await drain();assert.equal((await state()).turns,turns);await shot('ice-cavern');
- await move(246,179);await face('w');await F('examine icicles');await drain();assert.ok(!(await state()).inventory.includes('icicle'));
- await move(68,154);await face('a');await F('out');await drain();assert.equal((await state()).room,'under_cliff');
+ await move(240,140);let s=await state();assert.ok(!s.objects.some(o=>o.id==='under_cliff:ice-entry'));
  await travel('craters_edge',[[241,186],[365,170],[437,157]],['d']);await shot('crater-edge');await move(270,216);await face('w');await F('examine crater');await drain();
- await move(315,176);await face('w');await F('d');await closeText();s=await state();assert.equal(s.narrative.currentEvent,'cliff_passage');assert.equal(s.narrative.sceneRoom,'craters_edge');await tick(200);await shot('descent-motion');await tick(2500);await drain();assert.equal((await state()).room,'crater');
+ await move(315,176);await face('w');await F('d');await closeText();s=await state();assert.equal(s.narrative.currentEvent,'cliff_passage');assert.equal(s.narrative.sceneRoom,'craters_edge');await tick(200);await shot('descent-motion');
+ const committed=s.turns;
+ await page.keyboard.press('Escape');
+ const elapsed=(await state()).narrative.elapsed;
+ await tick(1200);
+ assert.equal((await state()).narrative.elapsed,elapsed);
+ await page.keyboard.press('Escape');
+ assert.equal((await state()).turns,committed);
+ await tick(2500);await drain();assert.equal((await state()).room,'crater');
  await move(260,222);await face('d');await F('examine lump');await shot('hot-metal');await drain();s=await state();assert.ok(!s.inventory.includes('lump'));assert.equal(s.objects.filter(o=>o.itemId==='lump').length,1);
  const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),VISUAL_SAVE_KEY);await page.reload();await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');await page.click('#continue-save');await drain();s=await state();assert.equal(s.turns,saved.engine.state.turns);assert.equal(s.room,'crater');assert.equal(s.narrative.currentEvent,null);assert.equal(s.objects.filter(o=>o.itemId==='lump').length,1);await shot('crater-restored');
  await page.keyboard.press('m');s=await state();const mapTurns=s.turns;assert.equal(s.map.chapter,'wabe');assert.ok(await page.locator('[data-room-id="crater"]').count());assert.equal(await page.locator('[data-room-id="bluff"]').count(),0);await shot('cliff-map');await tick(1000);assert.equal((await state()).turns,mapTurns);await page.keyboard.press('m');
@@ -50,5 +55,5 @@ try{
  await travel('craters_edge',[[238,130],[248,48]],['w']);await travel('the_bend',[[125,168],[46,214]],['a','s']);
  await travel('under_cliff',[[233,139],[238,47]],['w']);await travel('the_bend',[[241,186],[234,243]],['s']);await travel('under_cliff',[[233,139],[238,47]],['w']);await travel('bottom_of_stairs',[[241,186],[101,228],[49,258]],['a','s']);assert.equal((await state()).navigation.arrival.entrance,'ne');await shot('stairs-return-ne');
  await page.setViewportSize({width:844,height:390});await page.keyboard.press('m');await shot('cliff-map-mobile');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.keyboard.press('m');
- assert.deepEqual(errors,[]);await writeFile(`${out}/result.json`,JSON.stringify({pass:true,receipts,F:true,restore:true,pause:true,map:true,arrowsHidden:true,errors},null,2));console.log('PASS cliff region: painted keyboard routes, F cave/ramp/objects, grounded transitions, pause, M, live restore and mobile map; no errors');
+ assert.deepEqual(errors,[]);await writeFile(`${out}/result.json`,JSON.stringify({pass:true,receipts,F:true,restore:true,pause:true,map:true,arrowsHidden:true,errors},null,2));console.log('PASS cliff region: painted keyboard routes, F ramp/objects, grounded transitions, pause, M, live restore and mobile map; no errors');
 }catch(error){await shot('failure').catch(()=>{});await writeFile(`${out}/failure.json`,JSON.stringify({message:error.message,state:await state().catch(()=>null),receipts,errors},null,2));throw error;}finally{await browser.close();}

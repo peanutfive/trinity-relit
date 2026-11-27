@@ -38,6 +38,6 @@ export const UG_ROUTE_LAYOUT={
     walkablePolygons:[[[12,122],[51,142],[96,137],[124,119],[215,112],[276,117],[331,126],[377,137],[405,177],[378,213],[301,248],[217,263],[147,248],[105,216],[59,197],[12,159]],strip([[370,187],[392,174],[402,156],[411,140],[407,119],[406,111]],28)],
     blockedPolygons:[],obstacles:[{x:328,y:159,w:42,h:12}],occluders:[],exitAnchors:{w:[24,141],e:[407,119]},exitLabelAnchors:{e:[408,59]},exitApproaches:{w:[-1,-.2],e:[-.2,-1]},
     exitPointerPolygons:{e:[[394,91],[397,80],[405,74],[414,79],[418,89],[418,119],[394,119]]},
-    hiddenExitDirs:['out','in'],sourceArrivals:{ossuary:{x:403,y:148,face:'left',entrance:'e'}}},
+    hiddenExitDirs:['out','in'],omitSelfExitDirs:['e'],sourceArrivals:{ossuary:{x:403,y:148,face:'left',entrance:'e'}}},
 };
 for(const scene of Object.values(UG_ROUTE_LAYOUT))scene.pathResolution=.5;

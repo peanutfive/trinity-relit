@@ -9,8 +9,6 @@ export function getCliffHotspots(state){
         radius:48,visualOptions:{drawAt:P.hiveArt},pointerShape:{kind:'ellipse',x:340,y:69,rx:19,ry:25,priority:1}}),
       prop('under_cliff:bees',P.bees,'蜂群','cliff_bees','examine_bees',[action('留意蜂群','examine bees')],{
         radius:42,pointerShape:{kind:'ellipse',x:368,y:96,rx:19,ry:14,priority:2}}),
-      prop('under_cliff:ice-entry',P.cave,'岩洞','passage',undefined,[action('进入岩洞','in')],{
-        radius:30,baked:true,pointerShape:{kind:'ellipse',x:237,y:86,rx:19,ry:22,priority:1}}),
     ];
     case 'ice_cavern':return [
       prop('ice_cavern:icicles',P.icicles,'冰锥','cliff_icicles','examine_icicles',[action('观察冰锥','examine icicles')],{

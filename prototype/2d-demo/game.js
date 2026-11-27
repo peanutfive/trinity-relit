@@ -62,7 +62,7 @@ const ctx = canvas.getContext('2d');
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
 setStorySpriteRenderer((ctx,object,state,time)=>{
-  if(object.id==='ossuary:mushroom' && object.visualOptions?.gone){
+  if(object.kind==='mushroom_gate' && object.visualOptions?.gone){
     return drawOssuaryToadstool(ctx,object.x,object.y,propImage);
   }
   if(object.kind==='companion_bird'){

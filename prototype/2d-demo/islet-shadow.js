@@ -65,6 +65,26 @@ export function vertexShadowView(state) {
   return {sector,phase,symbol,dialIndex,leverUp:!known(state)||flag(state,'vertex_lever_up'),centered};
 }
 
+const projectedSites = {
+  waterfall:{sector:2,spent:'waterfall_door_spent'},
+  ossuary:{sector:4,spent:'ossuary_door_spent'},
+};
+
+export function projectedDoorView(state,room) {
+  const site=projectedSites[room];
+  const {sector,centered}=vertexShadowView(state);
+  const here=sector===site.sector, aligned=here && centered;
+  const gone=flag(state,site.spent);
+  return {open:aligned && !gone,aligned,near:here && !centered,gone};
+}
+
+export const waterfallDoorView = state => projectedDoorView(state,'waterfall');
+
+// EXIT-HOLE leaves the tip on the second central beat of its current sector.
+export function completeProjectedReturn(state) {
+  if(known(state))state.setCnt(COUNT,Math.floor(tick(state)/13)*13+6);
+}
+
 export function isletDoorView(state) {
   const {sector,centered} = vertexShadowView(state);
   const aligned = sector===12 && centered;

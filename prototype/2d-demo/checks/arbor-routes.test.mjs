@@ -165,6 +165,11 @@ test('两种翻转状态下每条画面道路均有出口或制作边界，内�
     const before = e.state.serialize();
     for (const room of VIEW_ROOMS) {
       const s = view(e.state, room), scene = SCENES[room];
+      if (room === 'waterfall') {
+        // Check every painted threshold in its traversable state.
+        s.counters = {...s.counters, vertex_shadow_tick: 32};
+        s.itemLoc = {...s.itemLoc, soap_bubble: 'inventory'};
+      }
       const exits = sceneExits(room,s,e.rooms), boundaries = sceneBoundaries(room,s,e.rooms);
       assert.deepEqual([...exits,...boundaries].map(exit=>exit.dir).sort(),
         Object.keys(PAINTED_ROADS[room]).sort(), `${room}: all painted roads represented`);

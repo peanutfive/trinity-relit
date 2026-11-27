@@ -1,3 +1,5 @@
+import {undergroundDoorView} from './underground-story.js';
+import {drawProjectedShadow} from './projected-shadow-art.js';
 import { SCENES, BACKGROUND_ATLAS } from './scene-manifest.js';
 import { paintCharacter } from './character.js';
 import { ranchDoorOpen, ranchDoors } from './ranch-actions.js';
@@ -14,6 +16,11 @@ function flagActive(state,flag){
 export function currentPlate(background, state) {
   const variant = background?.variant;
   if (!variant || (variant.unlessFlag && flagActive(state,variant.unlessFlag))) return background;
+  if(variant.projectedTunnelDoor && state){
+    const {insideGone,insideClosed}=undergroundDoorView(state);
+    if(insideGone)return variant;
+    if(insideClosed)return variant.closed;
+  }
   const outside=variant.itemOutside;
   if (state?.itemLoc && outside && state.itemLoc[outside.id]!==outside.location) return variant;
   if (variant.anyFlags?.some(flag=>flagActive(state,flag)) || flagActive(state,variant.flag)) return variant;
@@ -70,6 +77,7 @@ export function drawScene(c,room,time,effects=true,state={}){
   if(atlas?.complete&&atlas.naturalWidth){const h=atlas.naturalHeight/background.panels;c.save();c.drawImage(atlas,0,background.panelIndex*h,atlas.naturalWidth,h,0,0,480,288);c.restore();}
   else{box(c,0,0,480,288,'#52664a');box(c,216,0,48,288,'#c6b38b');if(room!=='broad_walk')box(c,room==='flower_walk'?0:240,143,240,40,'#c6b38b');}
   drawDoorwayLayer(c,room,state);
+  drawProjectedShadow(c,room,state,time,effects);
   for(const door of ranchDoors(SCENES[room])){
     if(ranchDoorOpen(state,door) === Boolean(door.closedOverlay))continue;
     const layer=backgrounds.get(doorImage(door));

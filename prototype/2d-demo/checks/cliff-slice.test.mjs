@@ -15,11 +15,12 @@ import {illustratedMapNodes} from '../map-geography.js';
 import {ROOMS} from '../../js/data/wabe.js';
 const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','e'];
 async function garden(){const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road){await e.processInput(c);assert.equal(e.state.dead,false,c);}assert.equal(e.state.room,'bottom_of_stairs');return e;}
+const caveTrip=['w','w','look behind waterfall','w','examine icicles','out','e','e'];
 const snap=(e,player)=>({...e.state.serialize(),visual:{room:e.state.room,player:player||{x:SCENES[e.state.room].spawn[0],y:SCENES[e.state.room].spawn[1]}}});
 
 test('四房由真实序章进入，经洞穴/坑底支线返回闭环，不改变物品/符号规则',async()=>{
  const e=await garden(),symbol=e.state.sundialSymbol;
- for(const c of ['ne','examine hive','examine bees','in','examine icicles','out','e','examine crater','d','examine lump'])await e.processInput(c);
+ for(const c of [...caveTrip,'ne','examine hive','examine bees','e','examine crater','d','examine lump'])await e.processInput(c);
  assert.equal(e.state.room,'crater');assert.equal(e.state.itemAt('lump'),'crater');assert.ok(!e.state.has('lump'));
  await e.processInput('take lump');assert.ok(!e.state.has('lump'),'原章固定金属不被图形层改成可取奖励');
  for(const c of ['u','s','w','n','sw'])await e.processInput(c);
@@ -46,12 +47,12 @@ test('出入口方向与原章一致，来源入口内侧出现且向内走不�
  const e=await garden();
  for(const id of ['bottom_of_stairs','under_cliff','ice_cavern','craters_edge','crater']){
   const ex=sceneExits(id,e.state,e.rooms);for(const exit of ex){
-   const raw=ROOMS[id].exits(e.state)[exit.dir];assert.equal(exit.target,typeof raw==='string'?raw:raw.to);
+   const raw=id==='ice_cavern'?'waterfall':ROOMS[id].exits(e.state)[exit.dir];assert.equal(exit.target,typeof raw==='string'?raw:raw.to);
    const target=SCENES[exit.target],returns=sceneExits(exit.target,e.state,e.rooms),a=roomArrival(target,{fromRoom:id,direction:exit.dir,exits:returns});
    assert.ok(a&&!isBlocked(target,a.x,a.y));assert.ok(findPath(target,a,target.spawn).length);
   }
  }
- for(const [id,dir]of [['under_cliff','in'],['ice_cavern','out'],['craters_edge','d'],['crater','u']]){
+ for(const [id,dir]of [['ice_cavern','out'],['craters_edge','d'],['crater','u']]){
   const exit=sceneExits(id,e.state,e.rooms).find(x=>x.dir===dir);assert.equal(exit.interactionOnly,true);
   assert.equal(approachingExit(exit,{x:exit.x,y:exit.y+5},{x:exit.x,y:exit.y}),false);
   const o=getHotspots({...e.state,room:id,inRoom:e.state.inRoom.bind(e.state),roomItems:()=>[]}).find(o=>o.kind==='passage');
@@ -63,8 +64,8 @@ test('出入口方向与原章一致，来源入口内侧出现且向内走不�
  assert.equal(sceneExits('craters_edge',e.state,e.rooms).find(x=>x.dir==='nw').target,'bluff');
 });
 test('洞口及缓坡短演出使用可走地面，完成/跳过只改变呈现，存档恢复不重演',async()=>{
- const e=await garden(),d=createNarrativeDirector();await e.processInput('ne');
- for(const command of ['in','out','e','d','u']){
+ const e=await garden(),d=createNarrativeDirector();for(const c of ['w','w','search waterfall'])await e.processInput(c);
+ for(const command of ['w','out','e','e','ne','e','d','u']){
   d.skip();const before=snap(e);await e.processInput(command);const after=snap(e),committed=e.state.serialize();
   d.onCommand(before,after,command);const motion=createCliffPassage(before,after);
   if(!motion)continue;
@@ -85,10 +86,10 @@ test('可见金属提示仅在进场删除；主动观察/烫伤、蜂巢声音�
  assert.ok(objects.find(o=>o.itemId==='lump').actions.every(a=>!a.command.startsWith('take ')));
  e.state.room='under_cliff';const hive=filterVisualPresence(ROOMS.under_cliff.desc(e.state),{room:e.state.room,objects:getHotspots(e.state),source:'room'});assert.ok(hive.text.includes('frightening drone'));
 });
-test('M只揭示已探索四房且靠近北部崖地，存读档不移动已知地图节点',async()=>{
- const e=await garden();for(const c of ['ne','in','out','e','d'])await e.processInput(c);
+test('M将已发现的冰穴标在瀑布西侧，存读档不移动已知地图节点',async()=>{
+ const e=await garden();for(const c of [...caveTrip,'ne','e','d'])await e.processInput(c);
  const model=buildChapterMap({state:e.state,rooms:e.rooms,scenes:SCENES}),nodes=illustratedMapNodes(model);
  assert.ok(nodes.some(n=>n.id==='crater'));assert.ok(!nodes.some(n=>n.id==='bluff'));
  const cliff=nodes.find(n=>n.id==='under_cliff'),ice=nodes.find(n=>n.id==='ice_cavern'),pit=nodes.find(n=>n.id==='crater');
- assert.ok(Math.hypot(cliff.x-ice.x,cliff.y-ice.y)<150);assert.ok(pit.x>cliff.x&&pit.y<330);
+ const falls=nodes.find(n=>n.id==='waterfall');assert.ok(ice.x<falls.x && Math.hypot(falls.x-ice.x,falls.y-ice.y)<150);assert.ok(pit.x>cliff.x&&pit.y<330);
 });

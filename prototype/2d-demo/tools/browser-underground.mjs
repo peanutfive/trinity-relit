@@ -1,5 +1,5 @@
-import { fitGnomonFixture } from './browser-vertex-gnomon.mjs';
-import { pointerCenter } from './browser-islet-route.mjs';
+import { fitGnomonFixture, lockProjectionFixture } from './browser-vertex-gnomon.mjs';
+import { pointerCenter, setIslandDial as setFixedDial } from './browser-islet-route.mjs';
 // Legal engine route creates a fixture; imports use the normal save UI. Every
 // subsequent room transition uses visible ground and real keyboard/F input.
 import assert from 'node:assert/strict';
@@ -262,9 +262,11 @@ async function lanternPlaythrough(){
  const prior=await importSave(source);
  assert.equal(prior.room,'bottom_of_stairs');
  assert.equal(prior.itemLoc.splinter,'inventory');
- assert.equal(prior.sundialSymbol,2);
  assert.equal(prior.visited.includes('underground_3'),false);
  assert.equal((await state()).turns,prior.turns);
+ await followPassage('bottom_of_stairs:stairs','u','vertex');
+ await setFixedDial({state,tap:(point,command)=>playedCommand(command,()=>click(...point))},3);
+ await followPassage('vertex:stairs','d','bottom_of_stairs');
  await go('ne','under_cliff');
  await go('e','craters_edge');
  await go('nw','bluff');
@@ -390,7 +392,7 @@ async function playLegacyWest(){
 }
 
 async function olderRegression(){
- const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);await fitGnomonFixture(e);for(let i=0;e.state.sundialSymbol!==2&&i<7;i++)await e.processInput('turn ring');for(const c of ['d','ne','e','nw'])await e.processInput(c);assert.equal(e.state.room,'bluff');
+ const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);await fitGnomonFixture(e);await lockProjectionFixture(e,'third');for(const c of ['d','ne','e','nw'])await e.processInput(c);assert.equal(e.state.room,'bluff');
  await importSave(makeVisualSave(e,{room:e.state.room,x:240,y:180,face:'right'}));await shot('bluff');
  await click(440,136);await page.waitForTimeout(2900);await page.keyboard.down('d');await page.waitForTimeout(800);await page.keyboard.up('d');await drain();assert.equal((await state()).room,'cottage');await shot('cottage');
  await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});await page.waitForTimeout(40);

@@ -135,9 +135,10 @@ test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放�
   }
   assert.equal(state.sundialSymbol, initial);
   await choose(g, 'd'); assert.equal(state.room, 'bottom_of_stairs');
+  for(const cmd of ['w','w','search waterfall','w','out','e','e']) await command(g,cmd);
   await command(g, 'e'); assert.equal(state.room,'the_bend');
   await command(g, 'e'); assert.equal(state.room,'moor');
-  for(const c of ['nw','in','out','e','d','u','nw','e','s','n','in','out','s','s','w','se','s'])await command(g,c);
+  for(const c of ['nw','e','d','u','nw','e','s','n','in','out','s','s','w','se','s'])await command(g,c);
   assert.equal(state.room,'moor');
   await command(g, 'w'); await command(g,'sw'); assert.equal(state.room,'trellises');
   for(const c of ['se','w','n','u','take axe','s','d','s','u','n','d','w','ne','nw','w','ne','sw','e','se'])await command(g,c);

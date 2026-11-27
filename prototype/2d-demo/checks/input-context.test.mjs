@@ -1,3 +1,4 @@
+import {lockPortalShadow} from './vertex-install-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPrologueSession} from '../engine-adapter.js';
@@ -100,8 +101,7 @@ test('不匹配的持物组合不伪造命令或自动拾物，空处F也不新�
 test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门仍显示通行', async () => {
   const engine = await stairs();
   await run(engine, ['u']);
-  for (let count = 0; engine.state.sundialSymbol !== 2 && count < 7; count++)
-    await run(engine, ['turn ring']);
+  await lockPortalShadow(engine, 'third');
   await run(engine, ['d', 'ne', 'e', 'nw', 'e', 's', 'n', 'in', 'in', 'take lantern']);
   assert.equal(engine.state.room, 'underground_3');
   assert.ok(engine.state.has('lantern'));
@@ -127,8 +127,7 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
 test('轨道持斧F使用泡膜、指向白门F通行；查询不破泡、不改变章节', async () => {
   const engine = await stairs();
   await run(engine, ['s', 'se', 'w', 'n', 'u', 'take axe', 'n', 'd', 'e', 'nw', 'n', 'u']);
-  for (let count = 0; engine.state.sundialSymbol !== 3 && count < 7; count++)
-    await run(engine, ['turn ring']);
+  await lockPortalShadow(engine, 'second');
   await run(engine, ['d', 'ne', 'e', 'nw', 'e', 'take soap bubble', 'w', 'se', 'sw', 'w', 'w', 'w', 'in']);
   assert.equal(engine.state.room, 'orbit_satellite');
   assert.ok(engine.state.has('axe'));

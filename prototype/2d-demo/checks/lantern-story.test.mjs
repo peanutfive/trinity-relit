@@ -18,6 +18,8 @@ async function chamber() {
   await game.engine.activateChapter('wabe');
   game.state.chapter='wabe';
   game.state.take('splinter');
+  game.state.setCnt('vertex_shadow_tick',58);
+  game.state.clearFlag('vertex_lever_up');
   game.engine.moveTo('ossuary');
   await game.command('in');
   assert.equal(game.state.room,'underground_3');

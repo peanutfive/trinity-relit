@@ -226,6 +226,11 @@ SCENES.south_bog.background.variant = {
   itemOutside: {id:'splinter',location:BOG_LOG_INTERIOR}, image:'./assets/south-bog-decayed-v1.webp',
 };
 SCENES.south_bog.preloadArt=[SCENES.south_bog.background.variant.image];
+SCENES.underground_3.background.variant={
+  projectedTunnelDoor:true, image:'./assets/ug-inner-v1.png',
+  closed:{image:'./assets/ug-inner-closed-v1.webp'},
+};
+SCENES.underground_3.preloadArt=['./assets/ug-inner-v1.png','./assets/ug-inner-closed-v1.webp'];
 SCENES.under_windmill.background.variant = {
   flag: 'binoculars_broken', image: './assets/ranch-reservoir-under_windmill-damaged-v1.png',
 };
