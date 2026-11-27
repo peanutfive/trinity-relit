@@ -16,11 +16,10 @@ function session() {
 async function chamber() {
   const game=session();
   await game.engine.activateChapter('wabe');
-  await game.engine.activateChapter('underground');
-  game.state.chapter='underground';
+  game.state.chapter='wabe';
   game.state.take('splinter');
-  game.engine.moveTo('underground_1');
-  await game.command('e'); await game.command('e');
+  game.engine.moveTo('ossuary');
+  await game.command('in');
   assert.equal(game.state.room,'underground_3');
   return game;
 }
@@ -57,7 +56,7 @@ test('点灯回合计入三十步，开关可暂停用电，临暗提示中断�
   const {state,command,engine}=await chamber();
   await command('take lantern');await command('turn on lantern');
   assert.equal(lanternView(state).remaining,29);
-  for(const dir of ['w','w','w'])await command(dir);
+  await command('e');
   assert.equal(state.room,'ossuary');
   const before=state.turns;
   await command('wait');
@@ -101,7 +100,7 @@ test('放下的灯仍耗电，别处猜灯不耗回合，远处熄灯不播提�
 test('同一盏灯能带到凉亭，旧档保留已点灯、移置或销毁的既有物位',async()=>{
   const game=await chamber();
   await game.command('take lantern');await game.command('turn on lantern');
-  for(const cmd of ['w','w','w'])await game.command(cmd);
+  await game.command('out');
   assert.equal(game.state.chapter,'wabe');assert.equal(game.state.room,'ossuary');
   game.engine.moveTo('top_of_arbor');game.state.placeItem('splinter','south_bog');
   assert.equal(arborLight(game.state),'lantern');

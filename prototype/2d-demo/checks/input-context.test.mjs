@@ -102,7 +102,7 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
   await run(engine, ['u']);
   for (let count = 0; engine.state.sundialSymbol !== 2 && count < 7; count++)
     await run(engine, ['turn ring']);
-  await run(engine, ['d', 'ne', 'e', 'nw', 'e', 's', 'n', 'in', 'in', 'e', 'e', 'take lantern']);
+  await run(engine, ['d', 'ne', 'e', 'nw', 'e', 's', 'n', 'in', 'in', 'take lantern']);
   assert.equal(engine.state.room, 'underground_3');
   assert.ok(engine.state.has('lantern'));
   const cylinder = target(engine, 'ug_cylinder');
@@ -117,12 +117,11 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
   assert.equal(decide(engine, null, {heldItem: 'lantern'}).type,'self');
   assert.equal(resolveHeldSelf('lantern',engine.state),'turn off lantern');
   assert.equal(decide(engine, cylinder).hint, '观察');
-  await run(engine, ['w', 'w']);
   const door = target(engine, 'passage');
   const decision = decide(engine, door, {heldItem: 'lantern'});
   assert.equal(decision.type, 'target');
   assert.equal(decision.hint, '通行');
-  assert.equal(decision.command, 'w');
+  assert.equal(decision.command, 'e');
 });
 
 test('轨道持斧F使用泡膜、指向白门F通行；查询不破泡、不改变章节', async () => {

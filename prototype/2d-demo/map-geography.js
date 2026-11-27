@@ -19,7 +19,7 @@ const wilds={
   craters_edge:[875,212,'hill'],crater:[965,252,'hill'],
 };
 const japan={playground:[365,340,'hill'],shelter:[730,340,'house']};
-const underground={underground_1:[220,340,'arch'],underground_2:[540,340,'place'],underground_3:[860,340,'house']};
+const underground={underground_1:[220,340,'place'],underground_2:[540,340,'place'],underground_3:[860,340,'arch']};
 const orbit={orbit_satellite:[380,282,'satellite'],orbit_space:[720,205,'orbit']};
 // The mesa is a separate Wabe viewpoint in the current chapter adapter. Keep
 // it off the island; the two scaffold levels are stacked, never a flat road.

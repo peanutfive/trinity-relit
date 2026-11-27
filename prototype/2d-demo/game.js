@@ -1,3 +1,4 @@
+import {drawOssuaryToadstool} from './ossuary-toadstool-art.js';
 import {lanternSwitchCommand} from './lantern-story.js';
 import {arborLight} from './arbor-light-state.js';
 import {drawArborCrystal,drawArborTopLight} from './arbor-light-art.js';
@@ -61,6 +62,9 @@ const ctx = canvas.getContext('2d');
 // walkthroughs must follow the scene itself. This never changes game rules.
 const reviewRoutes = new URLSearchParams(location.search).get('reviewRoutes') === '1';
 setStorySpriteRenderer((ctx,object,state,time)=>{
+  if(object.id==='ossuary:mushroom' && object.visualOptions?.gone){
+    return drawOssuaryToadstool(ctx,object.x,object.y,propImage);
+  }
   if(object.kind==='companion_bird'){
     const [x,y]=object.drawAt||[object.x,object.y];
     drawRoadrunner(ctx,{x,y,...object.visualOptions},time,!preferences.video.effects,propImage);return true;

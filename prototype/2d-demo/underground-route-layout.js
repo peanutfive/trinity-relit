@@ -1,3 +1,4 @@
+import {OSSUARY_TOADSTOOL_ART} from './ossuary-toadstool-art.js';
 import { CEMETERY_SCENE_ART } from './cemetery-assets.js';
 // Delivered paintings were inspected before tracing these foot-level floors.
 const strip=(points,width)=>{
@@ -24,17 +25,19 @@ export const UG_ROUTE_LAYOUT={
   barrow:{chapter:'wabe',objectId:353,image:'./assets/barrow-v1.png',spawn:[240,211],
     walkablePolygons:[[[226,92],[257,92],[272,109],[313,130],[352,156],[363,188],[327,214],[298,237],[281,288],[199,288],[191,246],[161,221],[125,195],[119,167],[160,134],[209,111]]],
     blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{s:[240,275],out:[240,275],in:[240,103]},exitApproaches:{s:[0,1],out:[0,1],in:[0,-1]},hiddenExitDirs:['out'],interactionExitDirs:['in']},
-  ossuary:{chapter:'wabe',objectId:522,image:'./assets/ossuary-v2.png',spawn:[244,185],
+  ossuary:{chapter:'wabe',objectId:522,image:'./assets/ossuary-v2.png',preloadArt:[OSSUARY_TOADSTOOL_ART],spawn:[244,185],
     walkablePolygons:[strip([[240,288],[238,235],[240,195],[235,157],[292,123],[350,130],[375,133]],35),[[109,151],[151,140],[189,129],[224,135],[252,157],[251,192],[201,191],[162,180],[124,173]]],
-    blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{out:[240,275],in:[350,130]},exitApproaches:{out:[0,1],in:[1,0]},interactionExitDirs:['in']},
-  underground_1:{mapLabel:'地下·裂隙',chapter:'underground',objectId:30,image:'./assets/ug-entry-v1.png',spawn:[88,164],
-    walkablePolygons:[[[14,130],[65,140],[102,149],[167,147],[247,148],[314,148],[396,147],[467,130],[480,159],[469,180],[391,183],[310,181],[235,181],[168,178],[90,179],[12,173]]],
-    blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{w:[28,145],e:[464,145],out:[464,145]},exitApproaches:{w:[-1,-.3],e:[1,-.3],out:[1,-.3]},hiddenExitDirs:['out'],interactionExitDirs:['w']},
+    blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{out:[240,275],in:[350,130]},exitApproaches:{out:[0,1],in:[1,0]},interactionExitDirs:['in'],omitSelfExitDirs:['in'],sourceArrivals:{underground_3:{x:315,y:127,face:'left',entrance:'in'}}},
+  underground_1:{mapLabel:'地下·裂隙',chapter:'underground',objectId:30,image:'./assets/ug-entry-v2.webp',spawn:[88,164],
+    walkablePolygons:[[[38,146],[65,140],[102,149],[167,147],[247,148],[314,148],[396,147],[467,130],[480,159],[469,180],[391,183],[310,181],[235,181],[168,178],[90,179],[36,171]]],
+    blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{e:[464,145],out:[464,145]},exitApproaches:{e:[1,-.3],out:[1,-.3]},hiddenExitDirs:['out','in','w']},
   underground_2:{mapLabel:'地下·电缆通道',chapter:'underground',objectId:87,image:'./assets/ug-middle-v1.png',spawn:[92,171],
     walkablePolygons:[[[15,110],[51,123],[82,148],[136,156],[220,155],[308,155],[394,147],[435,116],[466,109],[480,128],[465,157],[420,183],[360,204],[291,212],[220,212],[141,202],[72,185],[12,145]]],
     blockedPolygons:[],obstacles:[],occluders:[],exitAnchors:{w:[24,126],in:[24,126],e:[458,126]},exitApproaches:{w:[-.6,-1],in:[-.6,-1],e:[.6,-1]},hiddenExitDirs:['in']},
-  underground_3:{mapLabel:'地下·圆筒室',chapter:'underground',objectId:131,image:'./assets/ug-inner-v1.png',spawn:[100,165],
-    walkablePolygons:[[[12,122],[51,142],[96,137],[124,119],[215,112],[276,117],[331,126],[377,137],[405,177],[378,213],[301,248],[217,263],[147,248],[105,216],[59,197],[12,159]]],
-    blockedPolygons:[],obstacles:[{x:328,y:159,w:42,h:12}],occluders:[],exitAnchors:{w:[24,141]},exitApproaches:{w:[-1,-.2]},hiddenExitDirs:['e','in']},
+  underground_3:{mapLabel:'地下·圆筒室',chapter:'underground',objectId:131,image:'./assets/ug-inner-v2.webp',spawn:[100,165],
+    walkablePolygons:[[[12,122],[51,142],[96,137],[124,119],[215,112],[276,117],[331,126],[377,137],[405,177],[378,213],[301,248],[217,263],[147,248],[105,216],[59,197],[12,159]],strip([[370,187],[392,174],[402,156],[411,140],[407,119],[406,111]],28)],
+    blockedPolygons:[],obstacles:[{x:328,y:159,w:42,h:12}],occluders:[],exitAnchors:{w:[24,141],e:[407,119]},exitLabelAnchors:{e:[408,59]},exitApproaches:{w:[-1,-.2],e:[-.2,-1]},
+    exitPointerPolygons:{e:[[394,91],[397,80],[405,74],[414,79],[418,89],[418,119],[394,119]]},
+    hiddenExitDirs:['out','in'],sourceArrivals:{ossuary:{x:403,y:148,face:'left',entrance:'e'}}},
 };
 for(const scene of Object.values(UG_ROUTE_LAYOUT))scene.pathResolution=.5;

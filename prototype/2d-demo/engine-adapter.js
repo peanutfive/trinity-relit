@@ -1,6 +1,6 @@
 import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
 import {burnLantern, freeLanternAction, handleLantern, lanternAction, lanternWaitMoves, parseLanternCommand,
-  restoreLantern} from './lantern-story.js';
+  initializeUndergroundItems, restoreLantern} from './lantern-story.js';
 import { advanceShadow, initializeShadow, restoreShadow, initializeVertexInstallation,
   restoreVertexInstallation, recordVertexMirrorCrossing } from './islet-shadow.js';
 import { GameEngine } from '../js/engine.js';
@@ -82,6 +82,7 @@ class ExplorationEngine extends GameEngine {
   async deserialize(save) {
     await super.deserialize(save);
     restoreLantern(this.state);
+    if(this.state.chapter==='underground')initializeUndergroundItems(this.state);
     restoreBogLog(this.state,save.state);
     restoreGardenMoves(this.state);
     restorePaperback(this.state,save.state);
@@ -96,6 +97,12 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
+    if(['ossuary','underground_3','underground_1'].includes(state.room)) {
+      const {freeUndergroundAction}=await import('./underground-story.js');
+      const free=freeUndergroundAction(state,command);
+      if(free?.text){this.print(free.text);return true;}
+      if(free?.dir){await this._handleDirection(free.dir);this._autosave();return true;}
+    }
     const bog=freeBogAction(state,command);
     if(bog){this.print(bog);return true;}
     const arbor=freeArborAction(state,command,this.items);
@@ -208,6 +215,11 @@ class ExplorationEngine extends GameEngine {
   }
 
   async _handleDirection(dir) {
+    if(this.state.room==='ossuary' || this.state.room==='underground_3') {
+      const {undergroundCrossingChapter}=await import('./underground-story.js');
+      const to=undergroundCrossingChapter(this.state,dir);
+      if(to && !(await this.activateChapter(to)))return false;
+    }
     if (this.state.room==='shack' && dir==='e') {
       const {approachShackDoor}=await import('./shack-story.js');
       approachShackDoor(this.state,this);

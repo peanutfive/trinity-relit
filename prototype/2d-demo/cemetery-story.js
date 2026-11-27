@@ -1,5 +1,6 @@
 import {withBogLog} from './bog-log-story.js';
 import { ROOMS as WABE } from '../js/data/wabe.js';
+import {withOssuaryDoor} from './underground-story.js';
 import { withVertexShadow, withVertexMoor } from './vertex-story.js';
 import { withFerryShore } from './ferry-shore.js';
 import { withArborRooms } from './arbor-story.js';
@@ -181,7 +182,7 @@ export function withCemeteryItems(rooms) {
   return Object.fromEntries(Object.entries(rooms).map(([id,room])=>[id,{...room,events:[...(room.events||[]),...portableEvents]}]));
 }
 
-export const ROOMS = withCemeteryItems({...withArborRooms(WABE), south_bog:withBogLog(WABE.south_bog), vertex:withVertexShadow(WABE.vertex), moor:withVertexMoor(WABE.moor), the_river:withFerryShore(WABE.the_river), cemetery:{
+export const ROOMS = withCemeteryItems({...withArborRooms(WABE), ossuary:withOssuaryDoor(WABE.ossuary), south_bog:withBogLog(WABE.south_bog), vertex:withVertexShadow(WABE.vertex), moor:withVertexMoor(WABE.moor), the_river:withFerryShore(WABE.the_river), cemetery:{
   ...WABE.cemetery,
   desc() {
     return 'Gloomy statues lie toppled among the tombstones, their broken limbs and heads scattered like the carnage of a ghastly battle.\n\n阴沉的雕像倒在墓碑之间，断裂的手足和头颅散落一地，仿佛刚经历了一场惨烈的战斗。';

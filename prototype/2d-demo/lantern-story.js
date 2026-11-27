@@ -168,15 +168,17 @@ export function burnLantern(state, eng, moves) {
   }
 }
 
+export function initializeUndergroundItems(s) {
+  if (s.hasFlag('underground_items_placed')) return;
+  s.setFlag('underground_items_placed');
+  if (s.itemAt('lantern') == null) s.placeItem('lantern',firstRoom);
+  if (s.itemAt('walkie_talkie') == null) s.placeItem('walkie_talkie','underground_2');
+}
+
 export function withUndergroundLantern(rooms) {
-  const first = rooms.underground_1, last = rooms.underground_3;
+  const last = rooms.underground_3;
   return {...rooms,
-    underground_1:{...first, onEnter(s) {
-      if (s.hasFlag('underground_items_placed')) return;
-      s.setFlag('underground_items_placed');
-      if (s.itemAt('lantern') == null) s.placeItem('lantern',firstRoom);
-      if (s.itemAt('walkie_talkie') == null) s.placeItem('walkie_talkie','underground_2');
-    }},
+    underground_1:{...rooms.underground_1,onEnter:initializeUndergroundItems},
     underground_3:{...last, desc(s) {
       const walls = 'The walls and ceiling are gouged with deep spiral ruts; they look as if they\'ve been routed out with heavy machinery.\n\n墙壁和穹顶上刻着很深的螺旋纹，像是用重型机械凿出来的。';
       if (!s.inRoom('lantern')) return walls;

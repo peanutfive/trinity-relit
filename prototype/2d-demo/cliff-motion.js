@@ -9,7 +9,7 @@ const pairs={
   'top_of_arbor:south_arbor':'s','south_arbor:top_of_arbor':'u',
   'waterfall:orbit_satellite':'in',
   'cemetery:barrow':'n','barrow:cemetery':'s','barrow:ossuary':'in','ossuary:barrow':'out',
-  'ossuary:underground_1':'in','underground_1:ossuary':'w',
+  'ossuary:underground_3':'in','underground_3:ossuary':'e',
   'under_cliff:ice_cavern':'in','ice_cavern:under_cliff':'out',
   'craters_edge:crater':'d','crater:craters_edge':'u',
 };

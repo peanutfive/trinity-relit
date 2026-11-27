@@ -1,3 +1,4 @@
+import {undergroundDoorView} from './underground-story.js';
 import {lanternSwitchCommand} from './lantern-story.js';
 import {ITEMS} from '../js/data/items.js';
 import {cemeteryView} from './cemetery-state.js';
@@ -29,14 +30,23 @@ export function getUndergroundHotspots(s){
     a('观察门洞','examine door'),a('穿过门洞','in'),...(s.has('key_barrow')?[a('试用钥匙','put key in hole')]:[])
   ],{baked:true,eventId:'examine_door_barrow',pointerShape:ellipse(240,65,30,36)}),
   prop('barrow:keyhole',{x:277,y:112},'小孔','ug_hole',[a('观察小孔','examine hole'),...(s.has('key_barrow')?[a('试用钥匙','put key in hole')]:[])],{baked:true,eventId:'examine_hole_barrow',pointerShape:{...ellipse(277,68,3,4),priority:2}}));
-  if(s.room==='ossuary')objects.push(
-    prop('ossuary:bones',P.bones,'骸骨','ug_bones',[a('观察骸骨','examine bones')],{baked:true,eventId:'examine_bones',radius:48,pointerShape:ellipse(133,73,52,22)}),
-    prop('ossuary:mushroom',P.mushroom,'蘑菇门','mushroom_gate',[a('观察此处','look'),a('穿过蘑菇门','in')],{visualOptions:{open:s.sundialSymbol===2},pointerShape:ellipse(350,101,28,32)})
+  if(s.room==='ossuary'){
+    const {gone,open}=undergroundDoorView(s);
+    const actions=gone?[a('观察巨菌','examine toadstool')]:[a('观察此处','look'),a('穿过蘑菇门','in')];
+    objects.push(
+      prop('ossuary:bones',P.bones,'骸骨','ug_bones',[a('观察骸骨','examine bones')],{baked:true,eventId:'examine_bones',radius:48,pointerShape:ellipse(133,73,52,22)}),
+      prop('ossuary:mushroom',P.mushroom,gone?'巨菌':'蘑菇门','mushroom_gate',actions,
+        {visualOptions:{open,gone},pointerShape:ellipse(350,101,28,32)}),
+    );
+  }
+  if(s.room==='underground_3')objects.push(
+    prop('underground_3:white-door',P.whiteDoor,'白门','passage',[a('返回纳骨堂','e')],{
+      baked:true,radius:20,pointerShape:ellipse(407,98,12,23),
+    }),
   );
   if(s.room==='underground_1')objects.push(
-    prop('underground_1:white-door',P.whiteDoor,'白门','passage',[a('返回纳骨堂','w')],{visualOptions:{prop:'japan_door'},pointerShape:ellipse(P.whiteDoor.x,P.whiteDoor.y-21,11,23)}),
     prop('underground_1:crevice',P.crevice,'裂缝','ug_crevice',[a('观察裂缝','examine crevice')],{baked:true,eventId:'examine_crevice',pointerShape:ellipse(240,231,48,20)}),
-    prop('underground_1:landslide',P.landslide,'碎石','ug_landslide',[a('观察碎石','examine landslide')],{baked:true,eventId:'examine_landslide',radius:48,pointerShape:ellipse(345,105,45,27)})
+    prop('underground_1:landslide',P.landslide,'塌方','ug_landslide',[a('观察塌方','examine landslide')],{baked:true,eventId:'examine_landslide',radius:33,pointerShape:ellipse(31,110,29,25)})
   );
   if(s.room==='underground_3')objects.push(prop('underground_3:cylinder',P.cylinder,'金属圆筒','ug_cylinder',[a('观察圆筒','examine cylinder')],{baked:true,eventId:'examine_cylinder',pointerShape:ellipse(350,145,22,22)}));
   const dropped={bluff:[240,185],cottage:[170,210],cemetery:[260,218],barrow:[240,220],ossuary:[242,200],underground_1:[180,165],underground_2:[180,189],underground_3:[190,205]}[s.room];

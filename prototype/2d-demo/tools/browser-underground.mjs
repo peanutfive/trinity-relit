@@ -83,7 +83,11 @@ async function finishRoute(before,dir,to){
  const {s,lines}=await drain();
  assert.equal(s.lastCommand,dir);
  assert.equal(s.navigation.arrival?.fromRoom,before.room);
- assert.equal(s.navigation.arrival?.matched,true);
+ if(before.room==='underground_3'&&to==='ossuary') {
+  // The return has a painted arrival even though the door disappears on entry.
+  assert.equal(s.navigation.arrival.entrance,'in');
+  assert.deepEqual([s.player.x,s.player.y],[315,127]);
+ } else assert.equal(s.navigation.arrival?.matched,true);
  receipts.push({from:before.room,target:to,dir,arrival:s.navigation.arrival,turn:s.turns,lines});
  return s;
 }
@@ -159,6 +163,22 @@ async function reloadCurrent(name){
  return s;
 }
 
+async function exportCurrent(name){
+ await page.keyboard.press('Escape');
+ await page.getByRole('tab',{name:'探索进度'}).click();
+ const download=page.waitForEvent('download');
+ await page.locator('#export-save').click();
+ const path=`${out}/${name}.json`;
+ await (await download).saveAs(path);
+ await page.keyboard.press('Escape');
+ return path;
+}
+
+async function charge(){
+ const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),VISUAL_SAVE_KEY);
+ return saved.engine.state.counters.lantern_charge;
+}
+
 async function toggleLantern(on,via){
  const input=via==='F'?()=>page.keyboard.press('f'):()=>page.locator('#held-item').click();
  const {s}=await playedCommand(on?'turn on lantern':'turn off lantern',input,{source:via});
@@ -180,6 +200,61 @@ async function canvasBrightness(){
  });
 }
 
+async function confirmWestBlock(){
+ const before=await state();
+ assert.equal(before.room,'underground_1');
+ assert.ok(!getProp(before,'underground_1:white-door'));
+ assert.ok(!before.exits.some(exit=>!exit.locked && (exit.dir==='w'||exit.target==='ossuary')));
+ await move(52,153);
+ await face('a');
+ await playedCommand('examine landslide',()=>page.keyboard.press('f'),{source:'F'});
+ const examined=await state();
+ await page.keyboard.down('a');
+ try {await tick(800);} finally {await page.keyboard.up('a');}
+ const after=await state();
+ assert.equal(after.room,before.room);
+ assert.equal(after.turns,examined.turns);
+ assert.equal(after.score,before.score);
+ await shot('west-rock-barrier');
+ receipts.push({room:after.room,input:'A',obstacle:'west-rockfall',turn:after.turns,feet:[after.player.x,after.player.y]});
+}
+
+async function exitViaWhiteDoor(useF){
+ let before=await state();
+ assert.equal(before.room,'underground_3');
+ assert.ok(getProp(before,'underground_3:white-door'));
+ if(useF){
+  await move(404,144);
+  await face('w');
+  before=await state();
+ }
+ const remaining=await charge();
+ if(useF)await page.keyboard.press('f');
+ else await clickProp(getProp(before,'underground_3:white-door'),lanternJourney);
+ const returned=await finishRoute(before,'e','ossuary');
+ assert.equal(returned.turns,before.turns,'东侧白门按方向返回不消耗回合');
+ assert.equal(returned.score,before.score);
+ assert.deepEqual(returned.inventory,before.inventory);
+ assert.equal(await charge(),remaining);
+ return returned;
+}
+
+async function checkSpentMushroom(name){
+ const before=await state();
+ assert.equal(before.room,'ossuary');
+ const fungus=getProp(before,'ossuary:mushroom');
+ assert.ok(fungus);
+ assert.ok(!fungus.actions.some(action=>action.command==='in'));
+ assert.ok(!before.exits.some(exit=>exit.target.startsWith('underground_')));
+ assert.equal(Boolean(fungus.visualOptions?.open),false);
+ assert.equal(fungus.visualOptions?.gone,true);
+ await shot(name);
+ const examined=await playedCommand('examine toadstool',()=>clickProp(fungus,lanternJourney));
+ assert.equal(examined.s.room,'ossuary');
+ assert.equal(examined.s.score,before.score);
+ return examined.s;
+}
+
 async function lanternPlaythrough(){
  const source=process.env.PLAYED_UNDERGROUND_APPROACH_SAVE||fileURLToPath(new URL(
   '../../../artifacts/agent-team/evidence/t60-vertex-regression/hd2d-export.json',import.meta.url,
@@ -198,14 +273,21 @@ async function lanternPlaythrough(){
  await shot('cemetery-approach');
  await followPassage('cemetery:crypt','n','barrow');
  await followPassage('barrow:door','in','ossuary');
- await followPassage('ossuary:mushroom','in','underground_1');
- await go('e','underground_2');
- const inner=await go('e','underground_3');
+ const inner=await followPassage('ossuary:mushroom','in','underground_3');
+ assert.equal(inner.navigation.arrival?.entrance,'e');
+ assert.ok(Math.hypot(inner.player.x-404,inner.player.y-144)<=15);
+ const entry=await exportCurrent('first-arrival-by-east-door-played');
  const floor=lanterns(inner)[0];
  assert.equal(lanterns(inner).length,1);
  assert.equal(lampIsOn(inner),false);
- assert.deepEqual([floor.x,floor.y],[92,176]);
- assert.deepEqual(pointerCenter(floor),[91,167]);
+ assert.deepEqual([floor.x,floor.y],[388,159]);
+ assert.ok(Math.hypot(...pointerCenter(floor).map((v,i)=>v-[388,149][i]))<=4);
+ const marker=inner.routeMarker;
+ if(marker?.exit?.dir==='e') {
+  const {x,y,rx,ry}=getProp(inner,'underground_3:white-door').pointerShape;
+  assert.ok(marker.left+marker.width<=x-rx || marker.left>=x+rx
+    || marker.top+marker.height<=y-ry || marker.top>=y+ry,'东侧牌位应避开白门洞口');
+ }
  assert.doesNotMatch(receipts.at(-1).lines.join(' '),/灯笼在里面|从圆筒|圆筒中取出/);
  await shot('lantern-on-mud');
  const cylinder=getProp(inner,'underground_3:cylinder');
@@ -225,7 +307,11 @@ async function lanternPlaythrough(){
  await reloadCurrent('lantern-lit-after-reload');
  await go('w','underground_2');
  await go('w','underground_1');
- await followPassage('underground_1:white-door','w','ossuary');
+ await confirmWestBlock();
+ await go('e','underground_2');
+ await go('e','underground_3');
+ await exitViaWhiteDoor(true);
+ await checkSpentMushroom('spent-mushroom-after-carrying-lantern');
  await go('out','barrow');
  await go('s','cemetery');
  await go('s','cottage');
@@ -268,7 +354,39 @@ async function lanternPlaythrough(){
  assert.equal(retaken.arborLight,'lantern');
  assert.equal(retaken.score,picked.score);
  await shot('arbor-lantern-retaken');
- return {source,route:'existing-2d-entrance',score:retaken.score,turns:retaken.turns,litBrightness:lit};
+ await exitEmptyHanded(entry);
+ const legacy=await playLegacyWest();
+ return {source,entry,route:'east-white-door',score:retaken.score,turns:retaken.turns,litBrightness:lit,legacy};
+}
+
+async function exitEmptyHanded(entry){
+ const original=await importSave(entry);
+ assert.equal(original.room,'underground_3');
+ assert.equal(original.itemLoc.lantern,'underground_3');
+ const returned=await exitViaWhiteDoor(false);
+ assert.equal(carriesLantern(returned),false);
+ assert.equal(returned.score,original.score);
+ await reloadCurrent('spent-door-after-reload');
+ await checkSpentMushroom('spent-mushroom-after-empty-hand-return');
+}
+
+async function playLegacyWest(){
+ const source=process.env.LEGACY_UNDERGROUND_WEST_SAVE||fileURLToPath(new URL(
+  '../../../artifacts/agent-team/evidence/t63-underground-legacy-source/legacy-west-with-lit-lantern.json',import.meta.url,
+ ));
+ const original=await importSave(source);
+ const restored=await state();
+ assert.equal(original.room,'underground_1');
+ assert.equal(restored.turns,original.turns);
+ assert.equal(restored.score,original.score);
+ assert.ok(carriesLantern(restored)&&lampIsOn(restored));
+ assert.equal(await charge(),original.counters.lantern_charge);
+ await go('e','underground_2');
+ await go('e','underground_3');
+ const returned=await exitViaWhiteDoor(true);
+ assert.ok(carriesLantern(returned)&&lampIsOn(returned));
+ await checkSpentMushroom('legacy-west-correct-return');
+ return {source,room:returned.room,score:returned.score,turns:returned.turns};
 }
 
 async function olderRegression(){
@@ -280,15 +398,30 @@ async function olderRegression(){
  await move(287,210);await face('d');await F('examine soap bubble');await drain();await F('take soap bubble');await drain();assert.ok((await state()).inventory.includes('soap_bubble'));assert.ok(!(await state()).objects.some(o=>o.itemId==='soap_bubble'));await shot('cottage-bubble-taken');
  await travel('cemetery',[[241,250]],['s']);await shot('cemetery');await move(244,244);await move(260,203);await move(224,161);await move(242,140);await move(244,110);await face('w');await F('n');await drain();assert.equal((await state()).room,'barrow');await shot('barrow');
  await move(240,137);await face('w');await F('examine door');await drain();await F('in');await drain();assert.equal((await state()).room,'ossuary');await shot('ossuary');
- await move(152,157);await face('a');await F('examine bones');await drain();await move(323,135);await face('d');await F('look');await drain();await F('in');await closeText();let s=await state();assert.equal(s.room,'underground_1');assert.equal(s.narrative.currentEvent,'cliff_passage');await tick(220);await shot('mushroom-crossing');await page.keyboard.press('Escape');const elapsed=(await state()).narrative.elapsed;await tick(1000);assert.equal((await state()).narrative.elapsed,elapsed);await page.keyboard.press('Escape');await drain();await shot('underground-entry');
- await move(235,165);await face('s');await F('examine crevice');await drain();await move(326,164);await face('d');await F('examine landslide');await drain();await travel('underground_2',[[416,157],[444,150]],['d']);await shot('underground-middle');
- await move(249,194);await face('d');await F('examine walkie-talkie');await drain();await F('take walkie-talkie');await drain();assert.ok(!(await state()).objects.some(o=>o.itemId==='walkie_talkie'));
- await travel('underground_3',[[390,164],[438,143]],['d','w']);await shot('underground-inner-with-lantern');await takeGroundLantern({scoreDelta:1});await hold('灯笼');await toggleLantern(true,'F');await shot('lantern-lit');await page.click('#clear-hand');
- const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),VISUAL_SAVE_KEY);await page.reload();await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');await page.click('#continue-save');await drain();s=await state();assert.equal(s.room,'underground_3');assert.equal(s.turns,saved.engine.state.turns);assert.ok(s.flags.includes('lantern_on'));assert.ok(s.inventory.includes('walkie_talkie'));assert.equal(s.narrative.currentEvent,null);await shot('underground-restored');
+ await move(152,157);await face('a');await F('examine bones');await drain();
+ await move(323,135);await face('d');await F('look');await drain();await F('in');await closeText();
+ let s=await state();assert.equal(s.room,'underground_3');assert.equal(s.narrative.currentEvent,'cliff_passage');
+ await tick(220);await shot('mushroom-crossing');await page.keyboard.press('Escape');
+ const elapsed=(await state()).narrative.elapsed;await tick(1000);assert.equal((await state()).narrative.elapsed,elapsed);
+ await page.keyboard.press('Escape');await drain();await shot('underground-entry');
+ await shot('underground-inner-with-lantern');await takeGroundLantern({scoreDelta:1});await hold('灯笼');
+ await toggleLantern(true,'F');await shot('lantern-lit');await page.click('#clear-hand');
+ await go('w','underground_2');await shot('underground-middle');
+ await move(249,194);await face('d');await F('examine walkie-talkie');await drain();await F('take walkie-talkie');await drain();
+ assert.ok(!(await state()).objects.some(o=>o.itemId==='walkie_talkie'));
+ await go('w','underground_1');
+ await move(235,165);await face('s');await F('examine crevice');await drain();
+ await confirmWestBlock();
+ await go('e','underground_2');
+ await reloadCurrent('underground-restored');
+ s=await state();assert.ok(lampIsOn(s));assert.ok(s.inventory.includes('walkie_talkie'));assert.equal(s.narrative.currentEvent,null);
  await page.keyboard.press('m');const mapTurns=(await state()).turns;assert.equal((await state()).map.chapter,'underground');assert.equal(await page.locator('[data-room-id]').count(),3);await shot('underground-map');await tick(1000);assert.equal((await state()).turns,mapTurns);await page.setViewportSize({width:844,height:390});await shot('underground-map-mobile');assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.keyboard.press('m');await page.setViewportSize({width:1440,height:900});await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});
- await travel('underground_2',[[200,180],[100,165],[49,146]],['a']);await hold('灯笼');await page.keyboard.press('i');await page.click('#inventory-drop');await drain();assert.ok((await state()).objects.some(o=>o.itemId==='lantern'));await hold('木片');await page.keyboard.press('i');await page.click('#inventory-drop');await drain();await shot('lantern-left-middle');
+ await dropItem('灯笼','lantern');assert.equal(lanterns(await state()).length,1);
+ await dropItem('木片','splinter');await shot('lantern-left-middle');
  await travel('underground_1',[[82,164],[44,145]],['a','w']);await travel('underground_2',[[250,164],[390,165],[444,150]],['d']);assert.equal((await state()).dead,false);const lamp=(await state()).objects.find(o=>o.itemId==='lantern');await move(lamp.x-20,lamp.y);await face('d');await F('take lantern');await drain();
- await travel('underground_1',[[82,164],[44,145]],['a','w']);await hold('灯笼');await move(55,155);await face('a');await F('w');await drain();assert.equal((await state()).room,'ossuary');assert.equal((await state()).heldItem,'lantern');await page.click('#clear-hand');await shot('ossuary-return');await travel('barrow',[[240,195],[238,235],[240,252]],['s']);await travel('cemetery',[[240,245]],['s']);await travel('cottage',[[242,140],[224,161],[260,203],[244,244],[246,255]],['s']);await travel('bluff',[[170,210],[70,154],[42,141]],['a']);assert.equal((await state()).navigation.arrival.entrance,'e');await shot('bluff-return');
+ await go('e','underground_3');await hold('灯笼');await exitViaWhiteDoor(true);
+ assert.equal((await state()).heldItem,'lantern');await page.click('#clear-hand');await shot('ossuary-return');
+ await travel('barrow',[[240,195],[238,235],[240,252]],['s']);await travel('cemetery',[[240,245]],['s']);await travel('cottage',[[242,140],[224,161],[260,203],[244,244],[246,255]],['s']);await travel('bluff',[[170,210],[70,154],[42,141]],['a']);assert.equal((await state()).navigation.arrival.entrance,'e');await shot('bluff-return');
  await page.keyboard.press('m');assert.equal((await state()).map.chapter,'wabe');await shot('wabe-grave-map');await page.keyboard.press('m');
  return {F:true,normalRAF:true,restore:true,light:true,map:true};
 }
