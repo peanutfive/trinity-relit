@@ -1,4 +1,5 @@
 import {parseWaterfallObservation,freeWaterfallObservation} from './waterfall-discovery.js';
+import {parseFallsSteps,freeFallsDirection} from './waterfall-stairs.js';
 import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
 import {burnLantern, freeLanternAction, handleLantern, lanternAction, lanternWaitMoves, parseLanternCommand,
   initializeUndergroundItems, restoreLantern} from './lantern-story.js';
@@ -37,8 +38,14 @@ const VISUAL_CHAPTER_LOADERS = Object.freeze({
 });
 
 class ExplorationParser extends Parser {
+  constructor(currentRoom){
+    super();
+    this.currentRoom=currentRoom;
+  }
   parse(input){
     const text=input.trim().toLowerCase();
+    const stairs=parseFallsSteps(this.currentRoom(),text);
+    if(stairs)return stairs;
     const waterfall = parseWaterfallObservation(text);
     if (waterfall) return waterfall;
     const lamp=parseLanternCommand(text);
@@ -116,7 +123,7 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
-    const water = freeWaterfallObservation(state,command);
+    const water = freeFallsDirection(state.room,command?.dir) || freeWaterfallObservation(state,command);
     if (water) { this.print(water); return true; }
     const invisible=freeProjectedAction(state,command);
     if(invisible){this.print(invisible);return true;}
@@ -238,8 +245,8 @@ class ExplorationEngine extends GameEngine {
     const awaitingRanchEnding=this.state.chapter==='ranch' && this.state.hasFlag('ranch_snake_bitten');
     const inArbor=this.state.chapter==='wabe' && ['arboretum','north_arbor','south_arbor','top_of_arbor','trellises'].includes(this.state.room);
     const lampRoute=this.state.itemAt('lantern') && this.state.itemAt('lantern')!=='destroyed';
-    const atProjectedDoor=['ossuary','waterfall','underground_3'].includes(this.state.room);
-    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor || lampRoute || atProjectedDoor)
+    const localFreeChecks=['ossuary','waterfall','underground_3','cemetery','cottage'].includes(this.state.room);
+    if(this.state.chapter==='prologue' || ((birdRoute || awaitingRanchEnding || inArbor || lampRoute || localFreeChecks)
       && ['i','inventory','score','物品','背包','分数'].includes(input.toLowerCase()))) this.state.turns--;
     return super._handleMeta(input);
   }
@@ -304,7 +311,7 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
   const quietUi = Object.fromEntries(['text', 'system', 'inventory', 'location', 'userInput'].map(name => [name, () => {}]));
   let engine;
   engine = new ExplorationEngine({
-    rooms: { ...ROOMS }, items: ITEMS, parser: new ExplorationParser(), embedding: null,
+    rooms: { ...ROOMS }, items: ITEMS, parser: new ExplorationParser(()=>engine?.state.room), embedding: null,
     ui: ui || quietUi, onAutosave, preloadedChapters: ['prologue'],
     chapterLoader: async chapterId => {
       // Keep chapter imports lazy and register timer callbacks before exposing

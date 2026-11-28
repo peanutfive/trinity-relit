@@ -7,16 +7,20 @@ import { fileURLToPath } from 'node:url';
 import { pointerCenter } from './browser-islet-route.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const stairsJourney = process.argv.includes('--stairs');
 const source = process.env.PLAYED_VERTEX_SAVE || fileURLToPath(
   new URL('../../../artifacts/agent-team/evidence/t60-vertex-regression/vertex-installed.json',import.meta.url));
-const legacy = process.env.PLAYED_OLD_CAVERN_SAVE || fileURLToPath(
-  new URL('../../../artifacts/agent-team/evidence/t65-waterfall-discovery/pre-t65-cavern.json',import.meta.url));
-const output = process.env.QA_OUTPUT || join(tmpdir(),'trinity-waterfall-discovery');
+const legacy = stairsJourney
+  ? process.env.PLAYED_OLD_CEMETERY_SAVE || fileURLToPath(new URL('../../../artifacts/agent-team/evidence/t47-t48-ferry-final/cemetery-coin-and-shroud-restored.json',import.meta.url))
+  : process.env.PLAYED_OLD_CAVERN_SAVE || fileURLToPath(new URL('../../../artifacts/agent-team/evidence/t65-waterfall-discovery/pre-t65-cavern.json',import.meta.url));
+const output = process.env.QA_OUTPUT || join(tmpdir(),stairsJourney?'trinity-waterfall-stairs':'trinity-waterfall-discovery');
 const url = process.env.DEMO_URL || 'http://127.0.0.1:8080/2d-demo/';
 const original = JSON.parse(await readFile(source,'utf8')).engine.state;
 const foundFlag = 'waterfall_opening_found';
 const sprayId = 'waterfall:spray';
 const iceExit = 'ice_cavern:exit';
+const stepsLower = 'waterfall:steps';
+const stepsUpper = 'cemetery:steps';
 const bank = [[300,166],[311,145],[301,132],[283,119],[262,110],[242,103],[216,95],[192,88],[168,82],[147,79]];
 assert.equal(original.room,'vertex');
 assert.ok(!original.visited.includes('waterfall') && !original.flags.includes(foundFlag));
@@ -27,9 +31,9 @@ const reports = [];
 const errors = [];
 
 async function replay(touch,file=source){
-  const oldCavern = file===legacy;
-  const prefix = oldCavern ? 'legacy' : touch ? 'mobile' : 'desktop';
-  const initial = oldCavern ? JSON.parse(await readFile(file,'utf8')).engine.state : original;
+  const oldSave = file===legacy;
+  const prefix = oldSave ? 'legacy' : touch ? 'mobile' : 'desktop';
+  const initial = oldSave ? JSON.parse(await readFile(file,'utf8')).engine.state : original;
   const page = await browser.newPage(touch ? {viewport:{width:390,height:844},hasTouch:true,isMobile:true} : {viewport:{width:1440,height:900}});
   page.on('pageerror',error=>errors.push(`${prefix}: ${error.message}`));
   page.on('console',message=>{ if(message.type()==='error')errors.push(`${prefix}: ${message.text()}`); });
@@ -75,6 +79,7 @@ async function replay(touch,file=source){
 
   function clickProp(prop){
     assert.ok(prop);
+    if(prop.kind==='cliff_stone_steps')return click([prop.x,prop.y]);
     return click(prop.pointerShape?pointerCenter(prop):[prop.x,prop.y-5]);
   }
 
@@ -110,6 +115,89 @@ async function replay(touch,file=source){
     return {s,text};
   }
 
+  function verifyArrival(s,[x,y],facing,before){
+    assert.deepEqual([s.player.x,s.player.y,s.player.facing],[x,y,facing]);
+    assert.deepEqual(s.inventory,before.inventory);
+    assert.equal(s.turns,before.turns+1);
+  }
+
+  async function observeSteps(id,input){
+    const before = await state();
+    const steps = object(before,id);
+    assert.ok(steps);
+    const {s,text} = await command('examine steps',input||(()=>clickProp(steps)));
+    assert.equal(s.room,before.room);
+    assert.equal(s.turns,before.turns+1);
+    assert.equal(s.score,before.score);
+    assert.match(text.join(' '),/凿|刻/);
+    return s;
+  }
+
+  async function checkStairsMap(expectConnection){
+    const before = await state();
+    await page.keyboard.press('m');
+    await until(s=>s.mode==='map','打开章节地图');
+    const connection = page.locator('[data-from="waterfall"][data-to="cemetery"], [data-from="cemetery"][data-to="waterfall"]');
+    assert.equal(await connection.count(),Number(expectConnection),'未探索或已探索的同一座石阶');
+    if(expectConnection){
+      assert.ok((await connection.getAttribute('class')).includes('map-stairway'));
+      const from = await connection.getAttribute('data-from');
+      const to = await connection.getAttribute('data-to');
+      records.push({map:[from,to],stairs:true});
+      await shot('stairs-map');
+    }
+    await page.keyboard.press('m');
+    assert.equal((await state()).turns,before.turns);
+  }
+
+  async function walkStairs(arrival){
+    assert.equal(arrival.room,'waterfall');
+    const exits = arrival.exits.filter(e=>!e.locked);
+    assert.deepEqual(exits.filter(e=>e.target==='cemetery').map(e=>e.dir),['n']);
+    for(const [dir,target] of [['ne','north_bog'],['e','south_bog'],['se','forest_clearing']]){
+      assert.ok(exits.some(e=>e.dir===dir&&e.target===target));
+    }
+    assert.equal(hasPassage(arrival),false);
+    await checkStairsMap(false);
+    if(!touch){
+      await walkExit('ne','north_bog');
+      await walkExit('sw','waterfall');
+      await click([240,103]);
+      await until(s=>!s.navigation.path.length&&Math.hypot(s.player.x-240,s.player.y-103)<=4,'在岩沿接近石阶');
+      await page.keyboard.down('ArrowLeft');
+      try{await hold('ArrowUp',220);}finally{await page.keyboard.up('ArrowLeft');}
+      await hold('ArrowUp',50);
+      assert.equal((await state()).room,'waterfall');
+      assert.equal((await state()).nearby,object(await state(),stepsLower).label);
+    }
+    const lower = async()=>clickProp(object(await state(),stepsLower));
+    const upper = async()=>clickProp(object(await state(),stepsUpper));
+    const enter = touch ? lower : ()=>page.keyboard.press('f');
+    const inspected = await observeSteps(stepsLower,enter);
+    await shot('stairs-before-ascent');
+    const cemetery = await through('cemetery','n','waterfall',enter);
+    verifyArrival(cemetery,[251,240],'up',inspected);
+    assert.deepEqual(cemetery.exits.filter(e=>!e.locked&&e.target==='waterfall').map(e=>e.dir),['s']);
+    assert.ok(!cemetery.exits.some(e=>e.target==='cottage'));
+    await shot('stairs-arrival-at-cemetery');
+    await checkStairsMap(true);
+    await page.reload();
+    await page.locator('#continue-save').click();
+    await until(s=>s.room==='cemetery'&&s.mode!=='title'&&!s.processing,'在墓地续玩');
+    const {s:restored} = await drain();
+    assert.equal(restored.turns,cemetery.turns);
+    assert.deepEqual([restored.player.x,restored.player.y],[251,240]);
+
+    const beforeDown = touch ? await observeSteps(stepsUpper) : restored;
+    await tick(550);
+    const waterfall = await through('waterfall','s','cemetery',touch?upper:()=>hold('ArrowDown',1050));
+    verifyArrival(waterfall,[210,41],'right',beforeDown);
+    assert.equal(hasPassage(waterfall),false);
+    assert.notEqual(waterfall.navigation.arrival.entrance,'ne');
+    await shot('stairs-return-to-rock');
+    await checkStairsMap(true);
+  }
+
   try{
     await page.goto(url);
     await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');
@@ -122,7 +210,21 @@ async function replay(touch,file=source){
     const {s:loaded} = await drain();
     assert.equal(loaded.turns,initial.turns);
 
-    if(oldCavern){
+    if(oldSave&&stairsJourney){
+      assert.equal(loaded.room,'cemetery');
+      assert.equal(initial.itemLoc.silver_coin,'inventory');
+      assert.equal(initial.itemLoc.shroud,'worn');
+      assert.ok(!initial.visited.includes('waterfall'));
+      const seen = await observeSteps(stepsUpper);
+      const returned = await through('waterfall','s','cemetery',()=>clickProp(object(seen,stepsUpper)));
+      verifyArrival(returned,[210,41],'right',seen);
+      assert.ok(returned.inventory.includes('spade')&&returned.inventory.includes('silver_coin'));
+      await checkStairsMap(true);
+      await shot('stairs-from-old-save');
+      reports.push({legacy:file,records,finalTurn:returned.turns});
+      return;
+    }
+    if(oldSave){
       assert.equal(loaded.room,'ice_cavern');
       assert.ok(!loaded.flags.includes(foundFlag));
       assert.ok(loaded.exits.some(exit=>exit.dir==='out'&&exit.target==='under_cliff'));
@@ -145,8 +247,13 @@ async function replay(touch,file=source){
     await through('bottom_of_stairs','d','vertex',()=>clickProp(object(loaded,'vertex:stairs')));
     await walkExit('w','south_bog');
     const arrival = await walkExit('w','waterfall');
-    assert.ok(arrival.backgrounds.includes('./assets/waterfall-v2.webp'),'应加载带连续岩沿的底图');
+    assert.ok(arrival.backgrounds.includes('./assets/waterfall-v3.webp'),'应加载带连续岩沿和石阶的底图');
     assert.equal(await compass(),'北在上方');
+    if(stairsJourney){
+      await walkStairs(arrival);
+      reports.push({touch,records,finalTurn:(await state()).turns});
+      return;
+    }
     assert.equal(hasPassage(arrival),false);
     assert.equal(arrival.flags.includes(foundFlag),false);
     const ordinary = await command('examine waterfall',()=>click([106,56]));
@@ -235,7 +342,7 @@ try{
   if(failures.length)throw Error(failures.join('\n'));
   assert.deepEqual(errors,[]);
   await writeFile(join(output,'result.json'),JSON.stringify({pass:true,source,reports,errors},null,2));
-  console.log('瀑布岩沿、冰穴发现与往返，含键鼠、手机和续玩，均已实走通过');
+  console.log(stairsJourney?'瀑布石阶和墓地双向新路线、地图与旧档均已实走通过':'瀑布岩沿、冰穴发现与往返，含键鼠、手机和续玩，均已实走通过');
 }catch(error){
   await writeFile(join(output,'failure.json'),JSON.stringify({message:error.message,reports,errors},null,2));
   throw error;

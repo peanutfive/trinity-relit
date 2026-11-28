@@ -13,8 +13,8 @@ const wilds={
   bottom_of_stairs:[575,305,'stairs'],vertex:[600,210,'sundial'],forest_clearing:[385,495,'tree'],trellises:[575,495,'arch'],
   arboretum:[720,610,'tree'],top_of_arbor:[735,425,'arch'],north_arbor:[865,430,'tree'],south_arbor:[865,625,'tree'],
   arborvitaes_n:[825,525,'tree'],arborvitaes_s:[555,610,'tree'],chasms_brink:[570,145,'hill'],waterfall:[240,475,'water'],
-  ice_cavern:[145,490,'hill'],under_cliff:[755,145,'hill'],bluff:[840,140,'hill'],cemetery:[955,395,'arch'],
-  barrow:[955,475,'hill'],ossuary:[955,560,'arch'],promontory:[370,85,'hill'],cottage:[940,110,'house'],
+  ice_cavern:[145,490,'hill'],under_cliff:[755,145,'hill'],bluff:[840,140,'hill'],cemetery:[267,365,'arch'],
+  barrow:[272,253,'hill'],ossuary:[274,130,'arch'],promontory:[370,85,'hill'],cottage:[940,110,'house'],
   herb_garden:[1035,110,'flower'],moor:[925,305,'bog'],the_bend:[760,305,'water'],the_river:[805,375,'water'],
   craters_edge:[875,212,'hill'],crater:[965,252,'hill'],
 };
@@ -89,7 +89,8 @@ export function chartConnection(edge,nodes,chapter,edges=[]){
   const pair=[from.id,to.id].sort().join('|');
   const ranchLane=chapter==='ranch' && ranchGroundPairs.has(pair) && reverse.length>0;
   const road=ranchLane || chartedGround&&!from.unknownVisual&&!to.unknownVisual&&v&&align(from,to,edge.direction)&&reverse.length>0&&reverse.every(other=>align(to,from,other.direction));
-  const vertical=chapter==='ranch' && (pair==='edge_reservoir|south_reservoir'||pair==='hallway|icehouse')
+  const vertical=chapter==='wabe' && pair==='cemetery|waterfall'
+    || chapter==='ranch' && (pair==='edge_reservoir|south_reservoir'||pair==='hallway|icehouse')
     || chapter==='desert' && (pair==='tower_landing|tower_platform'||pair==='base_of_tower|tower_landing');
   const stairs=vertical && reverse.length>0 && !from.unknownVisual && !to.unknownVisual;
   return {from,to,road:!!road,schematic:!road,stairs};

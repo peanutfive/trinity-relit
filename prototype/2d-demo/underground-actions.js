@@ -3,6 +3,7 @@ import {lanternSwitchCommand} from './lantern-story.js';
 import {ITEMS} from '../js/data/items.js';
 import {cemeteryView} from './cemetery-state.js';
 import {UG_POINTS as P} from './underground-points.js';
+import {CEMETERY_STEPS} from './waterfall-stair-points.js';
 export const UG_WABE_ROOMS=Object.freeze(['bluff','cottage','cemetery','barrow','ossuary']);
 export const UG_ROOMS=Object.freeze(['underground_1','underground_2','underground_3']);
 const supported=new Set([...UG_WABE_ROOMS,...UG_ROOMS]);
@@ -19,6 +20,9 @@ export function getUndergroundHotspots(s){
   );
   if(s.room==='cemetery'){
     const view=cemeteryView(s);
+    objects.push(prop('cemetery:steps',CEMETERY_STEPS,'石阶','cliff_stone_steps',[a('观察石阶','examine steps'),a('下石阶','s')],
+      {baked:true,eventId:'cemetery_examine_steps',radius:23,pointerShape:{kind:'polygon',priority:2,
+        points:[[168,215],[316,213],[322,227],[331,246],[341,287],[147,287],[155,259],[160,232]]}}));
     objects.push(prop('cemetery:crypt',{x:240,y:95},'古墓入口','passage',[a('进入古墓','n')],{baked:true,pointerShape:ellipse(240,62,22,29)}));
     const actions=view.open ? [a('近看','look in crypt')] : [a('观察','examine crypt'),a('推开','open crypt')];
     if(!view.open && s.has('spade'))actions.push(a('用铲子','open crypt with spade'));

@@ -127,8 +127,12 @@ export function buildChapterMap({state={},rooms,scenes={},chapter,chapterRooms=D
       if(typeof to!=='string'||!known.has(to)||owners[to]!==selected)continue;
       try{if(!closed && (exit?.when===false || typeof exit?.when==='function'&&!exit.when(view)))continue;}
       catch{warnings.push({room:id,reason:'condition-unavailable'});continue;}
+      const stairAlias = id==='waterfall' && to==='cemetery' ? 'u'
+        : id==='cemetery' && to==='waterfall' ? 'd' : null;
+      if(direction===stairAlias)continue;
+      const label=stairAlias ? DIRECTIONS[direction]+' / '+DIRECTIONS[stairAlias] : DIRECTIONS[direction];
       const doorState=closed?{closed:true}:{};
-      const edge={id:`${id}:${direction}:${to}`,from:id,to,direction,label:DIRECTIONS[direction],...doorState};
+      const edge={id:`${id}:${direction}:${to}`,from:id,to,direction,label,...doorState};
       edges.push(edge);byId.get(id).exits.push({direction,label:edge.label,to,cn:byId.get(to).cn,name:byId.get(to).name,...doorState});
     }
   }
@@ -230,7 +234,7 @@ export function createChapterMapView({host,document:providedDocument,onClose=()=
     for(const edge of model.edges){
       const connection=chartConnection(edge,nodes,model.chapter,model.edges);if(!connection)continue;
       const {from,to,road,stairs}=connection,key=[from.id,to.id].sort(compare).join('|');
-      if(road||groupPassages(model.chapter)){
+      if(road||stairs||groupPassages(model.chapter)){
         if(seen.has(key))continue;
         seen.add(key);
       }

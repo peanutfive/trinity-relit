@@ -74,7 +74,7 @@ const lampIsOn=s=>s.flags.includes('lantern_on');
 
 async function clickProp(object,touch=false){
  assert.ok(object);
- const pointer=object.pointerShape?pointerCenter(object):[object.x,object.y-7];
+ const pointer=object.kind==='cliff_stone_steps'?[object.x,object.y]:object.pointerShape?pointerCenter(object):[object.x,object.y-7];
  await click(...pointer,touch);
 }
 
@@ -267,11 +267,9 @@ async function lanternPlaythrough(){
  await followPassage('bottom_of_stairs:stairs','u','vertex');
  await setFixedDial({state,tap:(point,command)=>playedCommand(command,()=>click(...point))},3);
  await followPassage('vertex:stairs','d','bottom_of_stairs');
- await go('ne','under_cliff');
- await go('e','craters_edge');
- await go('nw','bluff');
- await go('e','cottage');
- await go('s','cemetery');
+ await go('w','south_bog');
+ await go('w','waterfall');
+ await followPassage('waterfall:steps','n','cemetery');
  await shot('cemetery-approach');
  await followPassage('cemetery:crypt','n','barrow');
  await followPassage('barrow:door','in','ossuary');
@@ -316,11 +314,9 @@ async function lanternPlaythrough(){
  await checkSpentMushroom('spent-mushroom-after-carrying-lantern');
  await go('out','barrow');
  await go('s','cemetery');
- await go('s','cottage');
- await go('w','bluff');
- await go('se','craters_edge');
- await go('w','under_cliff');
- await go('sw','bottom_of_stairs');
+ await followPassage('cemetery:steps','s','waterfall');
+ await go('e','south_bog');
+ await go('e','bottom_of_stairs');
  await go('s','trellises');
  await go('se','arborvitaes_n');
  await go('w','arboretum');
@@ -398,7 +394,19 @@ async function olderRegression(){
  await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});await page.waitForTimeout(40);
  await move(193,129);await page.keyboard.down('d');await tick(650);await page.keyboard.up('d');await face('a');await F('examine map');await drain();await move(320,142);await face('w');await F('examine birdcage');await drain();await move(240,194);await face('w');await F('examine cauldron');await drain();
  await move(287,210);await face('d');await F('examine soap bubble');await drain();await F('take soap bubble');await drain();assert.ok((await state()).inventory.includes('soap_bubble'));assert.ok(!(await state()).objects.some(o=>o.itemId==='soap_bubble'));await shot('cottage-bubble-taken');
- await travel('cemetery',[[241,250]],['s']);await shot('cemetery');await move(244,244);await move(260,203);await move(224,161);await move(242,140);await move(244,110);await face('w');await F('n');await drain();assert.equal((await state()).room,'barrow');await shot('barrow');
+ await move(241,225);
+ const atCottage=await state();
+ assert.ok(!atCottage.exits.some(exit=>exit.dir==='s'||exit.target==='cemetery'));
+ await page.keyboard.down('s');await tick(650);await page.keyboard.up('s');
+ const southWall=await state();
+ assert.equal(southWall.room,'cottage');
+ assert.equal(southWall.turns,atCottage.turns);
+ assert.ok(southWall.player.y<244);
+ await shot('cottage-south-wall');
+ await go('w','bluff');await go('se','craters_edge');await go('w','under_cliff');
+ await go('sw','bottom_of_stairs');await go('w','south_bog');await go('w','waterfall');
+ await followPassage('waterfall:steps','n','cemetery');await shot('cemetery');
+ await move(244,244);await move(260,203);await move(224,161);await move(242,140);await move(244,110);await face('w');await F('n');await drain();assert.equal((await state()).room,'barrow');await shot('barrow');
  await move(240,137);await face('w');await F('examine door');await drain();await F('in');await drain();assert.equal((await state()).room,'ossuary');await shot('ossuary');
  await move(152,157);await face('a');await F('examine bones');await drain();
  await move(323,135);await face('d');await F('look');await drain();await F('in');await closeText();
@@ -423,7 +431,8 @@ async function olderRegression(){
  await travel('underground_1',[[82,164],[44,145]],['a','w']);await travel('underground_2',[[250,164],[390,165],[444,150]],['d']);assert.equal((await state()).dead,false);const lamp=(await state()).objects.find(o=>o.itemId==='lantern');await move(lamp.x-20,lamp.y);await face('d');await F('take lantern');await drain();
  await go('e','underground_3');await hold('灯笼');await exitViaWhiteDoor(true);
  assert.equal((await state()).heldItem,'lantern');await page.click('#clear-hand');await shot('ossuary-return');
- await travel('barrow',[[240,195],[238,235],[240,252]],['s']);await travel('cemetery',[[240,245]],['s']);await travel('cottage',[[242,140],[224,161],[260,203],[244,244],[246,255]],['s']);await travel('bluff',[[170,210],[70,154],[42,141]],['a']);assert.equal((await state()).navigation.arrival.entrance,'e');await shot('bluff-return');
+ await travel('barrow',[[240,195],[238,235],[240,252]],['s']);await travel('cemetery',[[240,245]],['s']);
+ await followPassage('cemetery:steps','s','waterfall');await shot('waterfall-return');
  await page.keyboard.press('m');assert.equal((await state()).map.chapter,'wabe');await shot('wabe-grave-map');await page.keyboard.press('m');
  return {F:true,normalRAF:true,restore:true,light:true,map:true};
 }

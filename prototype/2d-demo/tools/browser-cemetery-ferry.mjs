@@ -264,9 +264,12 @@ async function reachCemetery() {
   await record('moor-with-spade');
   await page.locator('#clear-hand').click();
   await travel('n','craters_edge');
-  await travel('nw','bluff');
-  await travel('e','cottage');
-  await travel('s','cemetery');
+  await travel('w','under_cliff');
+  await travel('sw','bottom_of_stairs');
+  await travel('w','south_bog');
+  await travel('w','waterfall');
+  const steps = (await state()).objects.find(object=>object.id==='waterfall:steps');
+  await pointerAction(steps.id,[steps.x,steps.y],'n','cemetery');
   await record('cemetery-with-spade');
 }
 
@@ -274,11 +277,10 @@ async function reachRiver() {
   await pointerAction('cemetery:crypt',[240,62],'n','barrow');
   await record('barrow-current');
   await travel('s','cemetery');
-  await travel('s','cottage');
-  await travel('w','bluff');
-  await travel('se','craters_edge');
-  await travel('w','under_cliff');
-  await travel('sw','bottom_of_stairs');
+  const steps = (await state()).objects.find(object=>object.id==='cemetery:steps');
+  await pointerAction(steps.id,[steps.x,steps.y],'s','waterfall');
+  await travel('e','south_bog');
+  await travel('e','bottom_of_stairs');
   await pointerAction('bottom_of_stairs:stairs',[245,102],'u','vertex');
   await setIslandDial({state,tap:(point,command)=>checkCommand(()=>clickAt(point),command)},checkpointStage==='river'?6:7);
   await record('shadow-prepared-for-crossing');

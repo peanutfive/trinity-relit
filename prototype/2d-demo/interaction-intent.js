@@ -38,6 +38,7 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='ranch_sink'||object.kind==='ranch_pipes')return seen?find('take ')||find('examine '):find('examine ');
   if(object.kind==='ranch_view')return find('look at ');
   if(object.kind==='waterfall_spray')return actions[0].command;
+  if(object.kind==='cliff_stone_steps')return seen ? actions[1].command : find('examine ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');

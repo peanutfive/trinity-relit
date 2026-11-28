@@ -68,7 +68,8 @@ async function click([x,y],touch=false){
 
 async function clickProp(prop,touch=false){
   assert.ok(prop);
-  await click(prop.pointerShape?pointerCenter(prop):[prop.x,prop.y-5],touch);
+  const point=prop.kind==='cliff_stone_steps'?[prop.x,prop.y]:prop.pointerShape?pointerCenter(prop):[prop.x,prop.y-5];
+  await click(point,touch);
 }
 
 async function importPlayed(file){
@@ -166,15 +167,10 @@ async function startProjection(symbol,moving,needLight=false){
 
 async function reach(site){
   await touchPassage('vertex:stairs','d','bottom_of_stairs');
-  if(site==='waterfall'){
-    await walk('w','south_bog');
-    return walk('w','waterfall');
-  }
-  await walk('ne','under_cliff');
-  await walk('e','craters_edge');
-  await walk('nw','bluff');
-  await walk('e','cottage');
-  await walk('s','cemetery');
+  await walk('w','south_bog');
+  const waterfall=await walk('w','waterfall');
+  if(site==='waterfall')return waterfall;
+  await touchPassage('waterfall:steps','n','cemetery');
   await touchPassage('cemetery:crypt','n','barrow');
   return touchPassage('barrow:door','in','ossuary');
 }

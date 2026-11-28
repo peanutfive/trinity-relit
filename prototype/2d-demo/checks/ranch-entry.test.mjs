@@ -28,10 +28,10 @@ test('正常进度从浅坑进牧场并原路返回，两程各走一回合且�
   await installCarriedGnomon(engine);
   for (let i=0; i<7 && engine.state.sundialSymbol!==1; i++) await play(['turn ring']);
   await play(['d','e','e','in','wait','give umbrella to girl','e','take spade',
-    'give paper to girl','w','ride bird','n','nw','e','s']);
+    'give paper to girl','w','ride bird','n','nw','sw','sw','w','n']);
   assert.equal(engine.state.room,'cemetery');
   await play(['open crypt with spade','take shroud','wear shroud','take bandage','take silver coin',
-    's','w','se','w','sw','se','nw','u','push lever','turn ring to seventh symbol','d','se']);
+    's','e','e','u','push lever','turn ring to seventh symbol','d','se']);
   for(let i=0;i<12 && !ferryView(engine.state).docked;i++) await play(['look']);
   await play(['enter dory','give silver coin to oarsman']);
   assert.equal(engine.state.room,'sand_bar');

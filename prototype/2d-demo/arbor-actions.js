@@ -1,5 +1,6 @@
 import {arborLight} from './arbor-light-state.js';
 import {waterfallDoorView} from './islet-shadow.js';
+import {FALLS_STEPS} from './waterfall-stair-points.js';
 import {ITEMS} from '../js/data/items.js';
 import {ARBOR_POINTS as P, ARBOR_LOOSE_ANCHORS} from './arbor-points.js';
 
@@ -28,6 +29,10 @@ export function getArborHotspots(state) {
   if (state.room === 'waterfall') {
     const gate=waterfallDoorView(state);
     objects.push(
+    prop('waterfall:steps',FALLS_STEPS,'石阶','cliff_stone_steps',
+      [action('观察石阶','examine steps'),action('上石阶','n')],
+      {baked:true,eventId:'waterfall_examine_steps',radius:23,pointerShape:{kind:'polygon',priority:2,
+        points:[[172,15],[194,14],[221,40],[237,58],[239,73],[228,86],[216,83],[223,66],[216,54],[202,38],[183,22]]}}),
     prop('waterfall:water', P.waterfall, '瀑布', 'arbor_waterfall',
       [action('观察瀑布', 'examine waterfall')],
       {baked: true, eventId: 'examine_waterfall', radius: 48,

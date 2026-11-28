@@ -102,7 +102,7 @@ test('地下未点亮灯笼的F使用与点亮后观察均只读，持灯白门�
   const engine = await stairs();
   await run(engine, ['u']);
   await lockPortalShadow(engine, 'third');
-  await run(engine, ['d', 'ne', 'e', 'nw', 'e', 's', 'n', 'in', 'in', 'take lantern']);
+  await run(engine, ['d', 'w', 'w', 'n', 'n', 'in', 'in', 'take lantern']);
   assert.equal(engine.state.room, 'underground_3');
   assert.ok(engine.state.has('lantern'));
   const cylinder = target(engine, 'ug_cylinder');

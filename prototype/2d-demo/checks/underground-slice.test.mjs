@@ -12,7 +12,7 @@ import {buildChapterMap} from '../chapter-map.js';
 import {illustratedMapNodes} from '../map-geography.js';
 import {terrainMarkup} from '../chapter-map-art.js';
 const road=['e','take ball','nw','unscrew gnomon','take gnomon','n','take paper bird','open paper bird','w','buy crumbs','feed birds','take ruby','n','push pram','push pram','wait','throw ball at tree','take umbrella','push pram','open pram','enter pram','open umbrella','take paper bird','take gnomon','enter water','enter door','n','ne','move log','take splinter','e','u'];
-async function ready(){const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);assert.equal(e.state.room,'vertex');await lockPortalShadow(e,'third');for(const c of ['d','ne','e','nw','e','s','n','in'])await e.processInput(c);assert.equal(e.state.room,'ossuary');return e;}
+async function ready(){const e=createPrologueSession();e.moveTo(e.state.room);for(const c of road)await e.processInput(c);assert.equal(e.state.room,'vertex');await lockPortalShadow(e,'third');for(const c of ['d','w','w','n','n','in'])await e.processInput(c);assert.equal(e.state.room,'ossuary');return e;}
 const snap=e=>({...e.state.serialize(),visual:{room:e.state.room,player:{x:SCENES[e.state.room].spawn[0],y:SCENES[e.state.room].spawn[1]}}});
 test('合法序章与光源进入地下，拿取/点亮/留下灯笼后返回，不增加得分或物品',async()=>{
  const e=await ready();for(const c of ['in','take lantern','turn lantern','w','take walkie-talkie','drop lantern','drop splinter','w','e']){await e.processInput(c);assert.equal(e.state.dead,false,c);}
@@ -21,8 +21,8 @@ test('合法序章与光源进入地下，拿取/点亮/留下灯笼后返回，
  assert.equal(e.state.room,'ossuary');assert.equal(e.state.chapter,'wabe');assert.equal(e.state.score,23);assert.ok(e.state.has('walkie_talkie'));assert.ok(e.state.has('lantern'));
 });
 test('纳骨堂白门与无光致命条件按游玩状态决定，表现层不能跳过',async()=>{
- const e=await ready();await e.processInput('out');await e.processInput('s');await e.processInput('s');await e.processInput('w');await e.processInput('se');await e.processInput('w');await e.processInput('sw');await e.processInput('u');
- assert.equal(e.state.room,'vertex');await e.processInput('turn ring');for(const c of ['d','ne','e','nw','e','s','n','in','in'])await e.processInput(c);assert.equal(e.state.room,'ossuary');
+ const e=await ready();for(const dir of ['out','s','s','e','e','u'])await e.processInput(dir);
+ assert.equal(e.state.room,'vertex');await e.processInput('turn ring');for(const c of ['d','w','w','n','n','in','in'])await e.processInput(c);assert.equal(e.state.room,'ossuary');
  const dark=await ready();await dark.processInput('drop splinter');await dark.processInput('in');assert.equal(dark.state.dead,false);await dark.processInput('w');assert.equal(dark.state.dead,true);
 });
 test('全部8房出入口有真实安全落点；通行别名共用物理口，西端塌方不画假门',async()=>{
@@ -42,9 +42,9 @@ test('F先观察再取物、手持灯可点亮、携物可出门；灯与对讲�
  await e.processInput('turn lantern');assert.equal(resolveHeldSelf('lantern',e.state),'turn off lantern');o=getHotspots(e.state).find(o=>o.kind==='passage');assert.equal(resolveInteraction(e.state,o,{heldItem:'lantern'}),'e');
 });
 test('独立绘画道路中心线可走，悬崖/锅/岩壁/裂缝与圆筒禁止穿过',()=>{
- const lines={bluff:[[[45,275],[102,224],[181,189],[240,180],[340,168],[420,145],[464,132]],[[240,180],[342,211],[431,275]]],cottage:[[[16,135],[70,154],[170,210],[241,221],[410,165],[464,135]],[[241,221],[241,275]]],cemetery:[[[249,275],[244,244],[260,203],[224,161],[242,140],[246,110],[243,85]],[[224,161],[197,151],[153,144],[139,136],[118,131]]],barrow:[[[240,275],[240,211],[240,150],[240,103]]],ossuary:[[[240,275],[238,235],[240,195],[235,157],[292,123],[350,130]]],underground_1:[[[57,158],[90,164],[250,164],[390,165],[464,145]]],underground_2:[[[24,126],[82,164],[230,179],[390,164],[458,126]]],underground_3:[[[24,141],[100,165],[200,180],[300,195],[370,187],[392,174],[402,156],[411,140],[407,119]]]};
+ const lines={bluff:[[[45,275],[102,224],[181,189],[240,180],[340,168],[420,145],[464,132]],[[240,180],[342,211],[431,275]]],cottage:[[[16,135],[70,154],[170,210],[241,221],[410,165],[464,135]],[[241,221],[241,234]]],cemetery:[[[249,275],[244,244],[260,203],[224,161],[242,140],[246,110],[243,85]],[[224,161],[197,151],[153,144],[139,136],[118,131]]],barrow:[[[240,275],[240,211],[240,150],[240,103]]],ossuary:[[[240,275],[238,235],[240,195],[235,157],[292,123],[350,130]]],underground_1:[[[57,158],[90,164],[250,164],[390,165],[464,145]]],underground_2:[[[24,126],[82,164],[230,179],[390,164],[458,126]]],underground_3:[[[24,141],[100,165],[200,180],[300,195],[370,187],[392,174],[402,156],[411,140],[407,119]]]};
  for(const [id,paths]of Object.entries(lines))for(const path of paths)for(let i=1;i<path.length;i++)assert.ok(isSegmentWalkable(SCENES[id],path[i-1],path[i]),`${id}: ${path[i-1]}→${path[i]}`);
- for(const [id,x,y]of [['bluff',200,40],['cottage',240,159],['cemetery',100,140],['barrow',80,150],['underground_1',28,145],['underground_1',240,227],['underground_2',240,90],['underground_3',350,165]])assert.ok(isBlocked(SCENES[id],x,y),id);
+ for(const [id,x,y]of [['bluff',200,40],['cottage',240,159],['cottage',241,275],['cemetery',100,140],['barrow',80,150],['underground_1',28,145],['underground_1',240,227],['underground_2',240,90],['underground_3',350,165]])assert.ok(isBlocked(SCENES[id],x,y),id);
 });
 test('新章节读档保留灯、物品、地图且不重演进场，门口短演出不再提交命令',async()=>{
  const e=await ready(),d=createNarrativeDirector(),before=snap(e);await e.processInput('in');const committed=e.state.serialize();d.onCommand(before,snap(e),'in');assert.equal(d.getState().currentEvent,'cliff_passage');d.update(.2);d.skip();assert.deepEqual(e.state.serialize(),committed);
