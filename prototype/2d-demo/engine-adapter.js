@@ -1,5 +1,6 @@
 import {parseWaterfallObservation,freeWaterfallObservation} from './waterfall-discovery.js';
 import {parseFallsSteps,freeFallsDirection} from './waterfall-stairs.js';
+import {initializeOssuaryKey,restoreOssuaryKey,parseOssuaryBones,freeMissingSkeletonKey,handleSkeletonKey} from './ossuary-key.js';
 import {freeBogAction,initializeBogLog,parseBogAction,restoreBogLog} from './bog-log-story.js';
 import {burnLantern, freeLanternAction, handleLantern, lanternAction, lanternWaitMoves, parseLanternCommand,
   initializeUndergroundItems, restoreLantern} from './lantern-story.js';
@@ -44,6 +45,8 @@ class ExplorationParser extends Parser {
   }
   parse(input){
     const text=input.trim().toLowerCase();
+    const bones=parseOssuaryBones(this.currentRoom(),text);
+    if(bones)return bones;
     const stairs=parseFallsSteps(this.currentRoom(),text);
     if(stairs)return stairs;
     const waterfall = parseWaterfallObservation(text);
@@ -110,6 +113,7 @@ class ExplorationEngine extends GameEngine {
       this.state.setFlag('waterfall_door_spent');
     if(this.state.chapter==='underground')initializeUndergroundItems(this.state);
     restoreBogLog(this.state,save.state);
+    restoreOssuaryKey(this.state,save.state);
     restoreGardenMoves(this.state);
     restorePaperback(this.state,save.state);
     restoreVertexInstallation(this.state,save.state);
@@ -123,6 +127,8 @@ class ExplorationEngine extends GameEngine {
     const state = this.state;
     this._shadowTurnStart=state.turns;
     this._birdDoorOpenAtStart=birdAtOpenDoor(state);
+    const missingKey=freeMissingSkeletonKey(state,command);
+    if(missingKey){this.print(missingKey);return true;}
     const water = freeFallsDirection(state.room,command?.dir) || freeWaterfallObservation(state,command);
     if (water) { this.print(water); return true; }
     const invisible=freeProjectedAction(state,command);
@@ -206,6 +212,7 @@ class ExplorationEngine extends GameEngine {
   }
 
   async _handleAction(command) {
+    if(handleSkeletonKey(this.state,this,command))return true;
     const lamp=lanternAction(this.state,command);
     if(lamp)return handleLantern(this.state,this,lamp);
     const birdAction=roadrunnerAction(this.state,command);
@@ -325,6 +332,7 @@ export function createPrologueSession({ ui, onAutosave } = {}) {
   engine.registerTimerHandlers(TIMERS);
   restoreLantern(engine.state);
   initializeBogLog(engine.state);
+  initializeOssuaryKey(engine.state);
   initializeVertexInstallation(engine.state);
   initializeRoadrunner(engine.state);
   return engine;

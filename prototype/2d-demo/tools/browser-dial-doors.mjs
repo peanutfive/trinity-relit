@@ -8,6 +8,7 @@ import { VISUAL_SAVE_KEY } from '../save.js';
 import { pointerCenter, setIslandDial as setFixedDial } from './browser-islet-route.mjs';
 
 const { chromium }=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+const ossuaryCheckpoint=process.argv.includes('--ossuary-checkpoint');
 const root=fileURLToPath(new URL('../../../artifacts/agent-team/evidence/',import.meta.url));
 const source=process.env.PLAYED_VERTEX_SAVE||join(root,'t60-vertex-regression','vertex-installed.json');
 const legacy=process.env.LEGACY_UNDERGROUND_ENTRY_SAVE||join(root,'t63-east-door-journey-final','first-arrival-by-east-door-played.json');
@@ -350,21 +351,41 @@ async function legacyReturn(){
   reports.push({legacy,score:restored.score,turns:restored.turns,actions});
 }
 
+async function exportOssuaryCheckpoint(){
+  name='ossuary-unsearched';
+  await startProjection(2,false);
+  const arrived=await reach('ossuary');
+  assert.ok(!arrived.inventory.includes('key_barrow'));
+  assert.ok(!arrived.observed.includes('ossuary:bones'));
+  await page.keyboard.press('Escape');
+  await page.getByRole('tab',{name:'探索进度'}).click();
+  const transfer=page.waitForEvent('download');
+  await page.locator('#export-save').click();
+  const checkpoint=join(output,'ossuary-unsearched.json');
+  await (await transfer).saveAs(checkpoint);
+  await page.keyboard.press('Escape');
+  await shot('played');
+  reports.push({checkpoint,room:arrived.room,score:arrived.score,turns:arrived.turns,actions});
+}
+
 try{
   await page.goto(url);
   await page.waitForFunction(()=>window.render_game_to_text&&JSON.parse(window.render_game_to_text()).art==='loaded');
   await page.locator('#start').click();
   await drain();
-  for(const site of ['waterfall','ossuary']) {
-    for(const symbol of [2,3])await replay(site,symbol,false);
-    for(const symbol of [2,3])await replay(site,symbol,true,site==='ossuary'&&symbol===2);
+  if(ossuaryCheckpoint)await exportOssuaryCheckpoint();
+  else{
+    for(const site of ['waterfall','ossuary']) {
+      for(const symbol of [2,3])await replay(site,symbol,false);
+      for(const symbol of [2,3])await replay(site,symbol,true,site==='ossuary'&&symbol===2);
+    }
+    await replay('waterfall',1,true,true);
+    await closeAwayFromDoor();
+    await legacyReturn();
   }
-  await replay('waterfall',1,true,true);
-  await closeAwayFromDoor();
-  await legacyReturn();
   assert.deepEqual(errors,[]);
   await writeFile(join(output,'result.json'),JSON.stringify({pass:true,source,reports,errors},null,2));
-  console.log('两座白门的固定/移动投影、末拍锁门及旧档返程通过');
+  console.log(ossuaryCheckpoint?'已实走并导出未探索的纳骨堂存档':'两座白门的固定/移动投影、末拍锁门及旧档返程通过');
 }catch(error){
   await shot('failure').catch(()=>{});
   await writeFile(join(output,'failure.json'),JSON.stringify({

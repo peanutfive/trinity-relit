@@ -39,6 +39,8 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
   if(object.kind==='ranch_view')return find('look at ');
   if(object.kind==='waterfall_spray')return actions[0].command;
   if(object.kind==='cliff_stone_steps')return seen ? actions[1].command : find('examine ');
+  if(object.kind==='ug_bones')return seen ? 'search bones' : 'examine bones';
+  if(object.itemId==='key_barrow' && !object.visualOptions?.onShelf)return seen ? find('take ') : find('examine ');
   if(object.kind==='water_edge')return find('enter water');
   if(object.kind==='pacific_gate')return seen?find('in'):find('examine ');
   if(object.kind==='tundra_gate')return seen?find('in'):find('look');
@@ -74,10 +76,8 @@ export function resolveInteraction(state,object,{heldItem=null,observed=new Set(
     return traverse || find('examine ') || find('look');
   }
   if(object.kind==='ug_barrow_door'){
-    if(heldItem==='key_barrow')return find('put key');
     return seen?find('in'):find('examine ');
   }
-  if(object.kind==='ug_hole'&&heldItem==='key_barrow')return find('put key');
   if(heldItem){
     if(object.kind==='japan_girl') {
       if(state.room==='playground'&&heldItem==='umbrella')return find('give umbrella');

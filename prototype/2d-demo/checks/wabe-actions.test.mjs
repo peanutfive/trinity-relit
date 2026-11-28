@@ -101,7 +101,9 @@ test('Wabe已制作房间目录只读，所有专用事件可由合法命令访�
       } else assert.equal(pointer,undefined);
     }
   }
-  assert.deepEqual([...covered].sort(), WABE_SLICE_ROOMS.flatMap(room => ROOMS[room].events.map(event => event.id)).sort());
+  const originalEvents=WABE_SLICE_ROOMS.flatMap(room=>ROOMS[room].events.map(event=>event.id));
+  // The visual barrow does not insert a key into the unrelated southern door.
+  assert.deepEqual([...covered].sort(), originalEvents.filter(id=>id!=='insert_key_barrow').sort());
 });
 
 test('真实序章后走完全部已制作Wabe房间、转环七次、拾取放下木片并读档继续', async () => {

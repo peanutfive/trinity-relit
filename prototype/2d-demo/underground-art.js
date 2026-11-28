@@ -1,5 +1,7 @@
 // Sample original generated PNG; keep movable objects out of painted backgrounds.
 import {renderJapanSprite} from './japan-art.js';
+import {propImage} from './art.js';
+import {UG_POINTS} from './underground-points.js';
 const sheet=new Image();sheet.src=new URL('./assets/ug-props-v1.png',import.meta.url).href;
 export const UG_PROP_REGIONS={lantern:[54,7,350,755],lit:[545,7,350,755],walkie_talkie:[1000,0,360,764],soap_bubble:[1396,175,574,565]};
 const flag=(s,id)=>s.hasFlag?.(id)??(s.flags instanceof Set?s.flags.has(id):(s.flags||[]).includes(id));
@@ -9,6 +11,15 @@ function stamp(c,key,x,y,h,w){if(!sheet.complete||!sheet.naturalWidth)return fal
 export function undergroundLighting(s){return {lantern:flag(s,'lantern_on')&&(held(s,'lantern')||at(s,'lantern')===s.room),splinter:held(s,'splinter')};}
 export function renderUndergroundSprite(c,o,s,time=0){
   const p=o.visualOptions?.drawAt||o;
+  if(o.kind==='ossuary_key'||o.kind==='key_barrow'||o.itemId==='key_barrow'){
+    const key=propImage('./assets/ossuary-key-v1.webp');
+    if(key){
+      const width=o.visualOptions?.inFingers?12:13;
+      const height=width*key.naturalHeight/key.naturalWidth;
+      c.drawImage(key,p.x-width/2,p.y-height,width,height);
+    }
+    return true;
+  }
   if(o.kind==='passage'&&o.visualOptions?.prop==='japan_door')return renderJapanSprite(c,{...o,kind:'japan_door'},s,time);
   if(o.kind==='lantern'){
     const frame=flag(s,'lantern_on')?'lit':'lantern';
@@ -34,6 +45,14 @@ export function renderUndergroundSprite(c,o,s,time=0){
   return false;
 }
 export function drawUndergroundAtmosphere(c,room,s,player,time=0,objects=[]){
+  if(room==='ossuary'&&objects.some(o=>o.kind==='ug_bones'&&o.visualOptions?.handExposed)){
+    const hand=propImage('./assets/ossuary-hand-v1.webp');
+    if(hand){
+      const {x,y}=UG_POINTS.skeletonKey;
+      const width=21,height=width*hand.naturalHeight/hand.naturalWidth;
+      c.drawImage(hand,x-width*.54,y-height+2,width,height);
+    }
+  }
   if(room==='cottage'){
     c.save();for(let i=0;i<6;i++){const t=(time*.15+i/6)%1;c.fillStyle=`rgba(214,208,177,${(1-t)*.11})`;c.beginPath();c.ellipse(240+Math.sin(time+i)*7,121-t*55,4+t*7,3+t*9,0,0,Math.PI*2);c.fill();}c.restore();
   }

@@ -4,6 +4,7 @@ import {ITEMS} from '../js/data/items.js';
 import {cemeteryView} from './cemetery-state.js';
 import {UG_POINTS as P} from './underground-points.js';
 import {CEMETERY_STEPS} from './waterfall-stair-points.js';
+import {ossuaryKeyView} from './ossuary-key.js';
 export const UG_WABE_ROOMS=Object.freeze(['bluff','cottage','cemetery','barrow','ossuary']);
 export const UG_ROOMS=Object.freeze(['underground_1','underground_2','underground_3']);
 const supported=new Set([...UG_WABE_ROOMS,...UG_ROOMS]);
@@ -31,17 +32,22 @@ export function getUndergroundHotspots(s){
     }));
   }
   if(s.room==='barrow')objects.push(prop('barrow:door',P.barrowDoor,'石门','ug_barrow_door',[
-    a('观察门洞','examine door'),a('穿过门洞','in'),...(s.has('key_barrow')?[a('试用钥匙','put key in hole')]:[])
+    a('观察门洞','examine door'),a('穿过门洞','in')
   ],{baked:true,eventId:'examine_door_barrow',pointerShape:ellipse(240,65,30,36)}),
-  prop('barrow:keyhole',{x:277,y:112},'小孔','ug_hole',[a('观察小孔','examine hole'),...(s.has('key_barrow')?[a('试用钥匙','put key in hole')]:[])],{baked:true,eventId:'examine_hole_barrow',pointerShape:{...ellipse(277,68,3,4),priority:2}}));
+  prop('barrow:keyhole',{x:277,y:112},'小孔','ug_hole',[a('观察小孔','examine hole')],{baked:true,eventId:'examine_hole_barrow',pointerShape:{...ellipse(277,68,3,4),priority:2}}));
   if(s.room==='ossuary'){
     const {gone,open}=undergroundDoorView(s);
+    const key=ossuaryKeyView(s);
     const actions=gone?[a('观察巨菌','examine toadstool')]:[a('观察此处','look'),a('穿过蘑菇门','in')];
     objects.push(
-      prop('ossuary:bones',P.bones,'骸骨','ug_bones',[a('观察骸骨','examine bones')],{baked:true,eventId:'examine_bones',radius:48,pointerShape:ellipse(133,73,52,22)}),
+      prop('ossuary:bones',P.bones,'骸骨','ug_bones',[a('观察骸骨','examine bones'),a('翻找骸骨','search bones')],
+        {baked:true,eventId:'examine_bones',radius:48,visualOptions:{handExposed:key.handExposed},pointerShape:ellipse(133,73,52,22)}),
       prop('ossuary:mushroom',P.mushroom,gone?'巨菌':'蘑菇门','mushroom_gate',actions,
         {visualOptions:{open,gone},pointerShape:ellipse(350,101,28,32)}),
     );
+    if(key.inFingers)objects.push(prop('ossuary:skeleton-key',{x:169,y:157},'骸骨钥匙','ossuary_key',
+      [a('观察钥匙','examine key'),a('取出钥匙','take key')],{radius:24,itemId:'key_barrow',depthY:P.skeletonKey.y,
+        visualOptions:{drawAt:P.skeletonKey,inFingers:true},pointerShape:{...ellipse(P.skeletonKey.x,P.skeletonKey.y-2,9,7),priority:3}}));
   }
   if(s.room==='underground_3'){
     const {insideOpen,insideClosed}=undergroundDoorView(s);

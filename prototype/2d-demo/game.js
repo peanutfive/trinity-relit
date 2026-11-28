@@ -9,6 +9,7 @@ import { drawSwimmer, drawBottomVisibility, drawRanchProp, warmWindmillArt, draw
 import { closetView } from './ranch-closet-story.js';
 import { positionWaterTarget, ranchDoorOpen, ranchDoors } from './ranch-actions.js';
 import { rememberIndoorDrops } from './ranch-floor-items.js';
+import {rememberSkeletonKeyDrop} from './ossuary-key-layout.js';
 import { restoreKitchenState, restoreWindmillState, reservoirBottomLit, reservoirLanternLit } from './ranch-story.js';
 import {keyboardInteraction,chapterObjective} from './interaction-context.js';
 import {createNavigationSceneCache} from './navigation-scene.js';
@@ -406,6 +407,8 @@ async function command(input, actions = [], observedId = null) {
       stopMovement();
     }
     if(!moved && destination.chapter==='ranch')rememberIndoorDrops(before,destination,navigationScene());
+    if(!moved && before.itemLoc.key_barrow!==destination.itemAt('key_barrow'))
+      rememberSkeletonKeyDrop(before,destination,navigationScene());
     if(!moved && destination.chapter==='desert')rememberDesertBookDrop(before,destination,navigationScene());
     if(!moved && ['ranch','desert','islet'].includes(destination.chapter) && before.itemLoc.ruby!==destination.itemAt('ruby'))
       rememberRubyDrop(before,destination,navigationScene());

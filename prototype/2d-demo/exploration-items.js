@@ -1,4 +1,5 @@
 import { ITEMS as textItems } from '../js/data/items.js';
+import {skeletonKeyDescription} from './ossuary-key.js';
 
 export const PAPERBACK_ID = 'paperback';
 export const BOOKMARK_ID = 'slip';
@@ -30,7 +31,7 @@ const bookmark = {
       : 'The slip of cardboard seems to have been used as a bookmark. A stanza of poetry is typed on the side you can see.\n\n这张硬纸片像是用来夹书的，朝上的一面打着一节诗。';
   },
 };
-export const ITEMS = {...textItems, [PAPERBACK_ID]:paperback,[BOOKMARK_ID]:bookmark};
+export const ITEMS = {...textItems, key_barrow:{...textItems.key_barrow,desc:skeletonKeyDescription},[PAPERBACK_ID]:paperback,[BOOKMARK_ID]:bookmark};
 
 function flag(s,name) {
   return s.hasFlag?.(name) ?? s.flags?.has?.(name) ?? s.flags?.includes?.(name) ?? false;
